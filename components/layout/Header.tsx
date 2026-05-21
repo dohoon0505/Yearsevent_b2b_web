@@ -21,6 +21,9 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const isHome = pathname === "/";
+  // 홈은 자체 PromoBar + HomeNav를 사용하므로 글로벌 헤더는 숨김
+  if (isHome) return null;
+
   const transparentMode = isHome && !scrolled;
 
   React.useEffect(() => {

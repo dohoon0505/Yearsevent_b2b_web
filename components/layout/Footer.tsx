@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Container } from "@/components/shared/Container";
 
 const footerNav = [
@@ -29,6 +32,10 @@ const footerNav = [
 ];
 
 export function Footer() {
+  const pathname = usePathname();
+  // 홈은 풀페이지 스크롤 전용 — 글로벌 푸터 숨김
+  if (pathname === "/") return null;
+
   return (
     <footer className="bg-primary text-primary-foreground">
       <Container className="py-14 md:py-20">
