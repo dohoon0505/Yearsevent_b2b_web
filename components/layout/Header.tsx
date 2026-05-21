@@ -21,6 +21,9 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const isHome = pathname === "/";
+  // 홈은 자체 PromoBar + HomeNav를 사용하므로 글로벌 헤더는 숨김
+  if (isHome) return null;
+
   const transparentMode = isHome && !scrolled;
 
   React.useEffect(() => {
@@ -44,19 +47,9 @@ export function Header() {
         <Link
           href="/"
           aria-label="Years 홈"
-          className={cn(
-            "flex items-center gap-2 text-lg font-bold tracking-tight",
-            transparentMode ? "text-white" : "text-foreground",
-          )}
+          className="flex items-center gap-2 text-lg font-bold tracking-tight text-foreground"
         >
-          <span
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold",
-              transparentMode
-                ? "bg-white/15 text-white ring-1 ring-white/30"
-                : "bg-primary text-primary-foreground",
-            )}
-          >
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
             Y
           </span>
           <span>Years</span>
@@ -72,11 +65,11 @@ export function Header() {
                 className={cn(
                   "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                   transparentMode
-                    ? "text-white/85 hover:text-white hover:bg-white/10"
+                    ? "text-[#60646c] hover:text-[#171717] hover:bg-[#f0f0f3]"
                     : "text-foreground/75 hover:text-foreground hover:bg-muted",
                   active &&
                     (transparentMode
-                      ? "text-white"
+                      ? "text-[#171717]"
                       : "text-foreground bg-muted"),
                 )}
               >
@@ -87,7 +80,7 @@ export function Header() {
         </nav>
 
         <div className="hidden md:block">
-          <Button asChild variant={transparentMode ? "brand" : "default"}>
+          <Button asChild variant="default">
             <Link href="/inquiry">도입 문의하기</Link>
           </Button>
         </div>
@@ -99,7 +92,7 @@ export function Header() {
           className={cn(
             "md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors",
             transparentMode
-              ? "text-white hover:bg-white/10"
+              ? "text-[#171717] hover:bg-[#f0f0f3]"
               : "text-foreground hover:bg-muted",
           )}
         >

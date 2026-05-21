@@ -26,8 +26,20 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
 
+  /* Years 새 브랜드 컬러 */
+  --color-y-black: #231F20;
+  --color-y-red: #CB0D35;
+  --color-y-coral: #EF695D;
+  --color-y-gray-50: #F9FAFB;
+  --color-y-gray-100: #F3F4F6;
+  --color-y-gray-200: #E5E7EB;
+  --color-y-gray-500: #6B7280;
+  --color-y-gray-700: #374151;
+
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: var(--font-inter), "Inter", -apple-system, system-ui,
+    sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -85,8 +97,54 @@
   h2,
   h3,
   h4 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
   }
+}
+
+/* 풀페이지 스크롤 스냅 (홈 전용 컨테이너에 적용) */
+.fullscroll-container {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.fullscroll-container > section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* 펄스 애니메이션 — 플로팅 CTA */
+@keyframes y-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(203, 13, 53, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(203, 13, 53, 0);
+  }
+}
+.animate-y-pulse {
+  animation: y-pulse 2s ease-out infinite;
+}
+
+/* 스크롤 인디케이터 — 수직선 흐름 */
+@keyframes y-scroll-line {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  51% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+.animate-y-scroll-line {
+  animation: y-scroll-line 2.2s ease-in-out infinite;
 }
 
 @utility container-page {
