@@ -21,11 +21,9 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const isHome = pathname === "/";
-  // 홈은 자체 PromoBar + HomeNav를 사용하므로 글로벌 헤더는 숨김
-  if (isHome) return null;
-
   const transparentMode = isHome && !scrolled;
 
+  // Hook은 항상 동일 순서로 호출되어야 하므로 조건부 return 이전에 등록
   React.useEffect(() => {
     if (!isHome) return;
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -33,6 +31,9 @@ export function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [isHome]);
+
+  // 홈은 자체 PromoBar + HomeNav를 사용하므로 글로벌 헤더는 숨김
+  if (isHome) return null;
 
   return (
     <header
