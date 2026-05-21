@@ -28,6 +28,8 @@
 
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: var(--font-inter), "Inter", -apple-system, system-ui,
+    sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
