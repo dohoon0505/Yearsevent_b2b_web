@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [init/landing-and-subpages]
+    branches: [main]
 
 permissions:
   contents: read
