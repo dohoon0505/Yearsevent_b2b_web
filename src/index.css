@@ -11,7 +11,7 @@
   --color-brand-red: #cb0d35;
   --color-brand-red-dark: #a30b2a;
   --color-brand-peach: #ef695d;
-  --color-brand-burgundy: #7b2b1e; /* 푸터 "무단 복제..." 강조 (Figma 실측) */
+  --color-brand-burgundy: #7b2b1e;
 
   /* Neutral 13단계 */
   --color-neutral-0: #ffffff;
@@ -20,20 +20,20 @@
   --color-neutral-30: #e6e9f0;
   --color-neutral-40: #d4d8e2;
   --color-neutral-50: #b1b6c4;
-  --color-neutral-60: #989898; /* Figma 푸터 서브 메뉴·copyright */
+  --color-neutral-60: #989898;
   --color-neutral-70: #5a5f6e;
-  --color-neutral-75: #5d5d5d; /* Figma 푸터 디바이더 */
+  --color-neutral-75: #5d5d5d;
   --color-neutral-80: #3c404b;
   --color-neutral-85: #2a2d36;
-  --color-neutral-90: #222222; /* Figma 푸터 헤딩·하단 링크 */
+  --color-neutral-90: #222222;
   --color-neutral-95: #1a1a1a;
   --color-neutral-100: #0b0d12;
 
   /* Surfaces */
-  --color-surface-dark: #000000; /* Event Header bg */
+  --color-surface-dark: #000000;
   --color-overlay-dark-40: rgba(0, 0, 0, 0.4);
   --color-overlay-light-10: rgba(255, 255, 255, 0.1);
-  --color-overlay-dark-card: rgba(34, 34, 34, 0.4); /* Header(Scroll Up) bg */
+  --color-overlay-dark-card: rgba(34, 34, 34, 0.4);
 
   /* Font family */
   --font-sans:
@@ -43,8 +43,8 @@
   /* Radius */
   --radius-sm: 5px;
   --radius-md: 12px;
-  --radius-lg: 16px; /* Figma Header(Scroll Up) */
-  --radius-xl: 18px; /* Figma Footer card placeholder */
+  --radius-lg: 16px;
+  --radius-xl: 18px;
 
   /* Easing */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -52,11 +52,10 @@
 }
 
 /* =============================================
-   Base styles
+   Base — 자간 허용 범위: -0.015em ~ 0.05em
    ============================================= */
 @layer base {
   html {
-    /* 한글 가독성 핵심 */
     word-break: keep-all;
     overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased;
@@ -72,44 +71,23 @@
     font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.65;
+    letter-spacing: -0.003em;
   }
 
-  /* 100vh 섹션은 모두 snap-align: start
-     scroll-snap-stop: always 로 한 번에 100vh 점프 보장 */
   .snap-section {
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
 
-  /* 한글 헤딩 자간 — 미세 음수 (요청서 §5.2.3) */
-  h1 {
-    letter-spacing: -0.022em;
-    line-height: 1.18;
-    font-weight: 700;
-    margin: 0;
-  }
-  h2 {
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-    font-weight: 700;
-    margin: 0;
-  }
-  h3 {
-    letter-spacing: -0.016em;
-    line-height: 1.35;
-    font-weight: 600;
-    margin: 0;
-  }
-  p {
-    letter-spacing: -0.003em;
-    margin: 0;
-  }
+  h1 { letter-spacing: -0.015em; line-height: 1.18; font-weight: 700; margin: 0; }
+  h2 { letter-spacing: -0.015em; line-height: 1.25; font-weight: 700; margin: 0; }
+  h3 { letter-spacing: -0.015em; line-height: 1.35; font-weight: 600; margin: 0; }
+  p  { letter-spacing: -0.003em; margin: 0; }
 
   ::selection {
     background-color: rgb(203 13 53 / 0.18);
     color: var(--color-brand-mocha);
   }
-
   *:focus-visible {
     outline: 2px solid var(--color-brand-red);
     outline-offset: 2px;
@@ -117,54 +95,240 @@
 }
 
 /* =============================================
-   Animations
+   Typography System
+   ============================================= */
+@layer components {
+
+  /* Hero 인트로 대형 텍스트 */
+  .typo-hero {
+    font-size: clamp(48px, 9.5vw, 130px);
+    font-weight: 900;
+    letter-spacing: -0.001em;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  /* 디스플레이 헤딩 */
+  .typo-display {
+    font-size: clamp(34px, 4.6vw, 56px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.18;
+  }
+
+  /* 슬라이드 제목 */
+  .typo-slide-title {
+    font-size: clamp(28px, 4vw, 56px);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+  }
+
+  /* 아이브로우 라벨 (12→13px) */
+  .typo-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  @media (min-width: 768px) {
+    .typo-eyebrow { font-size: 13px; }
+  }
+
+  /* Hero 본문 (15→17px) */
+  .typo-body-hero {
+    font-size: 15px;
+    letter-spacing: -0.003em;
+    line-height: 1.7;
+  }
+  @media (min-width: 768px) {
+    .typo-body-hero { font-size: 17px; }
+  }
+
+  /* 슬라이드 본문 (14→16px) */
+  .typo-body-slide {
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: -0.003em;
+    line-height: 1.65;
+  }
+  @media (min-width: 768px) {
+    .typo-body-slide { font-size: 16px; }
+  }
+
+  /* 프로그래스바 라벨 (12→14px) */
+  .typo-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  @media (min-width: 768px) {
+    .typo-label { font-size: 14px; }
+  }
+
+  /* 캡션 (11px) */
+  .typo-caption {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* 네비게이션 링크 */
+  .typo-nav {
+    letter-spacing: 0em;
+    line-height: 1.1;
+  }
+
+  /* 프로모션 헤더 (13→16px) */
+  .typo-promo {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.003em;
+    line-height: 1.3;
+  }
+  @media (min-width: 768px) {
+    .typo-promo { font-size: 16px; }
+  }
+
+  /* CTA 버튼 (13→14px) */
+  .typo-cta {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0em;
+  }
+  @media (min-width: 768px) {
+    .typo-cta { font-size: 14px; }
+  }
+
+  /* 푸터 카테고리 제목 (16→18px) */
+  .typo-footer-heading {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.003em;
+    line-height: 1.4;
+  }
+  @media (min-width: 768px) {
+    .typo-footer-heading { font-size: 18px; }
+  }
+
+  /* 푸터 서브메뉴 (14→16px) */
+  .typo-footer-link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.003em;
+    line-height: 1.4;
+  }
+  @media (min-width: 768px) {
+    .typo-footer-link { font-size: 16px; }
+  }
+
+  /* 푸터 법적 링크 (12→14px) */
+  .typo-footer-legal {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.001em;
+  }
+  @media (min-width: 768px) {
+    .typo-footer-legal { font-size: 14px; }
+  }
+
+  /* 푸터 저작권 (11→14px) */
+  .typo-footer-copy {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: -0.003em;
+  }
+  @media (min-width: 768px) {
+    .typo-footer-copy { font-size: 14px; }
+  }
+}
+
+/* =============================================
+   Effects & Transitions
+   ============================================= */
+@layer components {
+
+  /* Hero — background-clip: text */
+  .hero-text-clip {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Hero — 글자별 흰색 마스크 */
+  .hero-char-mask {
+    -webkit-text-fill-color: white;
+    color: white;
+    transition: opacity 0.7s var(--ease-out-quart);
+  }
+
+  /* Hero — 줌 컨테이너 */
+  .hero-zoom {
+    transform-origin: 54% 76%;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* 헤더 슬라이드인 */
+  .anim-header-slide-in {
+    animation: header-slide-in 0.8s var(--ease-out-quart) 1s both;
+  }
+
+  /* 슬라이드 이미지 크로스페이드 */
+  .slide-fade {
+    transition: opacity 600ms ease-in-out;
+    will-change: opacity;
+  }
+
+  /* 슬라이드 아티클 등장 */
+  .slide-article {
+    transition:
+      opacity 500ms ease-out,
+      transform 500ms cubic-bezier(0.2, 0, 0, 1);
+    will-change: opacity, transform;
+  }
+
+  /* 프로그래스바 fill */
+  .progress-fill {
+    will-change: transform;
+    transform-origin: left;
+  }
+
+  /* paint containment */
+  .contain-paint {
+    contain: paint;
+  }
+}
+
+/* =============================================
+   Keyframes
    ============================================= */
 
-/* Hero_intro — 1글자씩 등장 (진입 시) */
 @keyframes char-in {
-  from {
-    opacity: 0;
-    transform: translateY(40%) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(40%) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Hero_Section Header — 위에서 천천히 내려옴 */
 @keyframes header-slide-in {
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
-.animate-header-slide-in {
-  animation: header-slide-in 0.7s var(--ease-out-quart) both;
+@keyframes scroll-line {
+  0%   { transform: scaleY(0); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
 }
 
-/* ScrollUp Active Header — 위에서 매끄럽게 등장 */
-.scrollup-header-enter {
-  transform: translateY(-100%);
-  opacity: 0;
-  transition:
-    transform 0.55s var(--ease-out-quart),
-    opacity 0.4s ease-out;
-}
-.scrollup-header-enter.active {
-  transform: translateY(0);
-  opacity: 1;
-}
-
+/* =============================================
+   Reduced Motion
+   ============================================= */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;

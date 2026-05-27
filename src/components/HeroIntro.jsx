@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import cityBg from "../assets/hero-city-bg.png";
 
-const TEXT_STYLE = {
-  fontSize: "clamp(48px, 9.5vw, 130px)",
-  letterSpacing: "-0.001em",
-  lineHeight: 1.4,
-};
-
 export default function HeroIntro({ progress = 0 }) {
   const lines = ["기업 성장의", "필수 파트너"];
 
@@ -24,65 +18,36 @@ export default function HeroIntro({ progress = 0 }) {
       aria-label="진입 인트로"
     >
       <div
-        className="relative"
-        style={{
-          transform: `translate3d(0,0,0) scale(${scale.toFixed(3)})`,
-          transformOrigin: "54% 76%",
-          willChange: "transform",
-          backfaceVisibility: "hidden",
-        }}
+        className="relative hero-zoom"
+        style={{ transform: `translate3d(0,0,0) scale(${scale.toFixed(3)})` }}
       >
         {/* Layer 1: background-clip:text — 하나의 연속 이미지 */}
         <div
-          style={{
-            backgroundImage: `url(${cityBg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            color: "transparent",
-          }}
+          className="hero-text-clip"
+          style={{ backgroundImage: `url(${cityBg})` }}
         >
           {lines.map((line, i) => (
-            <p
-              key={i}
-              className="text-center font-black select-none"
-              style={TEXT_STYLE}
-            >
-              {line}
-            </p>
+            <p key={i} className="typo-hero select-none">{line}</p>
           ))}
         </div>
 
-        {/* Layer 2: 흰색 텍스트 오버레이 — 글자별로 사라지면서 Layer 1 노출 */}
+        {/* Layer 2: 흰색 텍스트 마스크 — 글자별 fade-out으로 Layer 1 노출 */}
         <div className="absolute inset-0" aria-hidden>
           {lines.map((line, lineIdx) => (
-            <p
-              key={lineIdx}
-              className="text-center font-black select-none"
-              style={TEXT_STYLE}
-            >
+            <p key={lineIdx} className="typo-hero select-none">
               {Array.from(line).map((char, charIdx) => {
                 const isSpace = char === " ";
                 const delaySec = lineIdx * 0.45 + charIdx * 0.08;
-
                 return (
                   <span
                     key={charIdx}
+                    className="hero-char-mask"
                     style={{
-                      WebkitTextFillColor: "white",
-                      color: "white",
                       opacity: revealed ? 0 : 1,
-                      transition:
-                        "opacity 0.7s var(--ease-out-quart)",
-                      transitionDelay: revealed
-                        ? `${delaySec.toFixed(2)}s`
-                        : "0s",
+                      transitionDelay: revealed ? `${delaySec.toFixed(2)}s` : "0s",
                     }}
                   >
-                    {isSpace ? " " : char}
+                    {isSpace ? " " : char}
                   </span>
                 );
               })}
@@ -101,9 +66,7 @@ export default function HeroIntro({ progress = 0 }) {
           transition: revealed ? "opacity 0.6s ease-out" : "opacity 0s",
         }}
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-          Scroll
-        </span>
+        <span className="typo-caption">Scroll</span>
         <span
           aria-hidden
           className="block h-10 w-px bg-[var(--color-neutral-50)] origin-top animate-[scroll-line_2.4s_ease-in-out_infinite]"

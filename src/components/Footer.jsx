@@ -1,15 +1,3 @@
-/**
- * Footer — Figma node 67:199
- *
- * 흰 배경, 좌우 패딩 300px, 상하 80px.
- * - 4컬럼 사이트맵 (회사소개 / 도입사례 / 서비스안내 / 상품가이드)
- *   · 카테고리 헤딩: Pretendard SemiBold 20px #222
- *   · 서브 메뉴: Pretendard Regular 18px #989898
- * - 우측 큰 카드 placeholder: 500px 폭, 둥근 모서리 18px, bg #d9d9d9
- * - 디바이더: 1px #5d5d5d
- * - 하단: 좌측 약관 링크 (#222 16px Medium), 우측 Copyright (#989898) + "무단복제..." (#7b2b1e)
- */
-
 const SITEMAP = [
   {
     title: "회사소개",
@@ -35,19 +23,16 @@ export default function Footer() {
   return (
     <footer className="snap-section bg-white text-[#222] px-6 md:px-12 lg:px-[120px] xl:px-[150px] py-[60px] md:py-[80px]">
       <div className="flex flex-col gap-[40px]">
-        {/* 상단 — 사이트맵 4컬럼 + 우측 카드 */}
         <div className="flex flex-col-reverse lg:flex-row lg:items-stretch lg:justify-between gap-10">
           <div className="grid grid-cols-2 gap-x-10 gap-y-10 md:flex md:gap-x-[48px] py-[3px]">
             {SITEMAP.map((col) => (
               <div key={col.title} className="flex flex-col gap-[22px]">
-                <p className="text-[16px] md:text-[18px] font-semibold leading-[1.4]">
-                  {col.title}
-                </p>
+                <p className="typo-footer-heading">{col.title}</p>
                 <ul className="flex flex-col gap-[14px] md:gap-[18px]">
                   {col.items.map((item) => (
                     <li
                       key={item}
-                      className="text-[14px] md:text-[16px] font-normal leading-[1.4] text-[var(--color-neutral-60)] transition-colors hover:text-[var(--color-brand-red)] cursor-pointer"
+                      className="typo-footer-link text-[var(--color-neutral-60)] transition-colors hover:text-[var(--color-brand-red)] cursor-pointer"
                     >
                       {item}
                     </li>
@@ -57,18 +42,15 @@ export default function Footer() {
             ))}
           </div>
 
-          {/* 우측 placeholder 카드 — Figma 68:302 */}
-          <div className="h-[200px] md:h-[253px] w-full max-w-[500px] rounded-[18px] bg-[#d9d9d9] flex items-center justify-center text-[var(--color-neutral-60)] text-[11px] md:text-[13px]">
+          <div className="h-[200px] md:h-[253px] w-full max-w-[500px] rounded-[18px] bg-[#d9d9d9] flex items-center justify-center text-[var(--color-neutral-60)] text-[13px]">
             <span className="opacity-60">광고·소개 영역 (Coming Soon)</span>
           </div>
         </div>
 
-        {/* 디바이더 */}
         <div className="h-px w-full bg-[var(--color-neutral-75)]" />
 
-        {/* 하단 */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-[12px] md:text-[14px]">
-          <div className="flex flex-wrap items-center gap-[15px] font-medium text-[#222] tracking-[-0.001em]">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="typo-footer-legal flex flex-wrap items-center gap-[15px] text-[#222]">
             {LEGAL.map((item) => (
               <a
                 key={item}
@@ -79,11 +61,11 @@ export default function Footer() {
               </a>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] md:text-[14px]">
-            <p className="text-[var(--color-neutral-60)] font-normal">
+          <div className="typo-footer-copy flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p className="text-[var(--color-neutral-60)]">
               Copyright © 2026 thinkflow .Inc All Rights Reserved.
             </p>
-            <p className="text-[var(--color-brand-burgundy)] font-normal">
+            <p className="text-[var(--color-brand-burgundy)]">
               무단 복제 및 크롤링 AI 접근을 일체 제한합니다
             </p>
           </div>

@@ -56,10 +56,7 @@ export default function ScrollSlides() {
     let ticking = false;
     const update = () => {
       const node = trackRef.current;
-      if (!node) {
-        ticking = false;
-        return;
-      }
+      if (!node) { ticking = false; return; }
       const rect = node.getBoundingClientRect();
       const max = Math.max(1, rect.height - window.innerHeight);
       const raw = Math.max(0, Math.min(1, -rect.top / max));
@@ -68,10 +65,7 @@ export default function ScrollSlides() {
     };
 
     const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(update);
-        ticking = true;
-      }
+      if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
@@ -92,20 +86,13 @@ export default function ScrollSlides() {
       className="relative"
       style={{ height: `${N * 100}vh` }}
     >
-      <div
-        className="sticky top-0 h-screen w-full overflow-hidden bg-black"
-        style={{ contain: "paint" }}
-      >
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black contain-paint">
         {SLIDES.map((slide, i) => (
           <div
             key={i}
             aria-hidden
-            className="absolute inset-0"
-            style={{
-              opacity: i === activeIndex ? 1 : 0,
-              transition: "opacity 600ms ease-in-out",
-              willChange: "opacity",
-            }}
+            className="absolute inset-0 slide-fade"
+            style={{ opacity: i === activeIndex ? 1 : 0 }}
           >
             <img
               src={slide.bg}
@@ -122,25 +109,21 @@ export default function ScrollSlides() {
             {SLIDES.map((slide, i) => (
               <article
                 key={i}
-                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[150px]"
+                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[150px] slide-article"
                 style={{
                   opacity: i === activeIndex ? 1 : 0,
-                  transform:
-                    i === activeIndex ? "translateY(0)" : "translateY(16px)",
-                  transition:
-                    "opacity 500ms ease-out, transform 500ms cubic-bezier(0.2,0,0,1)",
-                  willChange: "opacity, transform",
+                  transform: i === activeIndex ? "translateY(0)" : "translateY(16px)",
                   pointerEvents: i === activeIndex ? "auto" : "none",
                 }}
                 aria-hidden={i !== activeIndex}
               >
-                <p className="text-[12px] md:text-[13px] font-semibold tracking-[0.16em] text-white/75">
+                <p className="typo-eyebrow text-white/75">
                   {slide.eyebrow} · {slide.label}
                 </p>
-                <h2 className="mt-5 max-w-3xl text-[clamp(28px,4vw,56px)] font-medium leading-[1.12] tracking-[-0.022em] text-white">
+                <h2 className="typo-slide-title mt-5 max-w-3xl text-white">
                   {slide.title}
                 </h2>
-                <p className="mt-6 max-w-xl text-[14px] md:text-[16px] leading-[1.65] font-light text-white/85">
+                <p className="typo-body-slide mt-6 max-w-xl text-white/85">
                   {slide.desc}
                 </p>
               </article>
@@ -154,37 +137,24 @@ export default function ScrollSlides() {
               const start = i / N;
               const end = (i + 1) / N;
               const local =
-                progress < start
-                  ? 0
-                  : progress > end
-                    ? 1
-                    : (progress - start) / (end - start);
+                progress < start ? 0
+                : progress > end ? 1
+                : (progress - start) / (end - start);
               const isActive = i === activeIndex;
               const isPast = i < activeIndex;
-              const labelTone =
-                isActive || isPast ? "text-white" : "text-white/50";
-
+              const labelTone = isActive || isPast ? "text-white" : "text-white/50";
               const num = String(i + 1).padStart(2, "0");
 
               return (
-                <div
-                  key={i}
-                  className="flex flex-1 flex-col gap-3"
-                  data-i={i}
-                >
-                  <div
-                    className={`flex items-baseline gap-2 text-[12px] md:text-[14px] font-medium tracking-[0.01em] transition-colors duration-300 ${labelTone}`}
-                  >
+                <div key={i} className="flex flex-1 flex-col gap-3" data-i={i}>
+                  <div className={`typo-label flex items-baseline gap-2 transition-colors duration-300 ${labelTone}`}>
                     <span className="opacity-80 tabular">{num}</span>
                     <span className="truncate">{slide.label}</span>
                   </div>
                   <div className="h-[3px] rounded-full bg-white/25 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-white origin-left"
-                      style={{
-                        transform: `scaleX(${local.toFixed(3)})`,
-                        willChange: "transform",
-                      }}
+                      className="h-full rounded-full bg-white progress-fill"
+                      style={{ transform: `scaleX(${local.toFixed(3)})` }}
                     />
                   </div>
                 </div>
