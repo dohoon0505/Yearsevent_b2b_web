@@ -33,7 +33,7 @@ const LEGAL = ["사업자 정보 확인", "개인정보처리방침", "서비스
 
 export default function Footer() {
   return (
-    <footer className="snap-section bg-white text-[#222] px-6 md:px-12 lg:px-[120px] xl:px-[300px] py-[60px] md:py-[80px]">
+    <footer className="snap-section bg-white text-[#222] px-6 md:px-12 lg:px-[120px] xl:px-[150px] py-[60px] md:py-[80px]">
       <div className="flex flex-col gap-[40px]">
         {/* 상단 — 사이트맵 4컬럼 + 우측 카드 */}
         <div className="flex flex-col-reverse lg:flex-row lg:items-stretch lg:justify-between gap-10">
