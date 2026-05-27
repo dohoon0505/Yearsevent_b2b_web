@@ -1,51 +1,45 @@
 import { useEffect, useRef, useState } from "react";
-import cityBg from "../assets/hero-city-bg.png";
-
-/**
- * ScrollSlides — Framer Scroll Slides 페이드 스택 패턴
- *
- * 참고: scroll-text-reveal 카탈로그 §00 + Full-screen Scroll · 01 페이드 스택
- *   - track 높이 = N × 100vh
- *   - sticky stage 100vh (top:0)
- *   - 4개 슬라이드 absolute inset-0 stacking, opacity 0/1 (transition 600ms ease-in-out)
- *   - scroll progress 0~1 → activeIndex = floor(p × N)
- *   - 하단 progress bar 4종, 활성 슬라이드만 fill 진행
- *
- * 100vh scroll-snap 처리:
- *   - sticky stage 자체에 snap-section
- *   - 추가 100vh anchor 3개 (1st ~ 3rd) — 한 번 휠 = 1 슬라이드 전환
- *
- * 콘텐츠: 올해의경조사 핵심 가치 4종 — 신뢰 / 직거래 / WEB 3.0 / 확장
- */
+import slideEvent from "../assets/slide-event.png";
+import slideCommunity from "../assets/slide-community.png";
+import slideLegal from "../assets/slide-legal.png";
+import slideCorporate from "../assets/slide-corporate.png";
+import slideIndustry from "../assets/slide-industry.png";
 
 const SLIDES = [
   {
-    eyebrow: "01 · Trust",
-    title: "8년의 직거래로 다져진 신뢰",
-    desc:
-      "2016년 대구 20평 꽃집에서 시작해, 100만건 이상의 경조사를 직접 운영했습니다. 한 건 한 건이 다음 신뢰의 토대입니다.",
-    tone: "from-[rgba(35,31,32,0.65)] to-[rgba(35,31,32,0.92)]",
+    eyebrow: "01 · Event",
+    title: "수천 송이, 현장 도착 30분",
+    desc: "대규모 행사·집회·시위 현장에 화환·근조화를 일괄 발송합니다. 100건 이상의 동시 주문도 전국 네트워크로 당일 배송을 보장합니다.",
+    bg: slideEvent,
+    tone: "from-[rgba(35,31,32,0.40)] to-[rgba(11,13,18,0.88)]",
   },
   {
-    eyebrow: "02 · Direct Trade",
-    title: "중간마진 없는 단가, 35% 절감",
-    desc:
-      "꽃배달 대행사 80%가 거치는 4단계 중간 유통을 제거합니다. 자사 직거래 구조이기에 35% 단가 절감과 전국 무료배송이 가능합니다.",
-    tone: "from-[rgba(203,13,53,0.55)] to-[rgba(35,31,32,0.95)]",
+    eyebrow: "02 · Community",
+    title: "소속감을 꽃으로 전합니다",
+    desc: "동문회·향우회·종교단체 등 다양한 모임의 경조사를 한 곳에서 관리합니다. 회원 명부 연동으로 발주 누락 없이 정확하게.",
+    bg: slideCommunity,
+    tone: "from-[rgba(35,31,32,0.55)] to-[rgba(35,31,32,0.92)]",
   },
   {
-    eyebrow: "03 · WEB 3.0",
-    title: "발주는 1분, 정산은 자동",
-    desc:
-      "AI 비서가 청첩장·부고장 텍스트를 읽어 발주를 완성합니다. 매월 5일 거래명세서·세금계산서가 자동 발급되어 회계 처리 시간을 1분으로 압축합니다.",
-    tone: "from-[rgba(239,105,93,0.45)] to-[rgba(35,31,32,0.95)]",
+    eyebrow: "03 · Legal",
+    title: "격식 있는 자리, 빈틈없는 관리",
+    desc: "고객사·동료·재판부 경조사까지, 법무·세무법인 특유의 촘촘한 경조사 관계를 전담 매니저가 체계적으로 관리합니다.",
+    bg: slideLegal,
+    tone: "from-[rgba(35,31,32,0.50)] to-[rgba(35,31,32,0.90)]",
   },
   {
-    eyebrow: "04 · Scale",
-    title: "1,000+ 협력기업, 누적 157만건",
-    desc:
-      "법무·세무법인부터 제조·도소매·유통 기업까지 1,000+ 협력기업이 정기 제휴 중. 누적 거래 1,570,000+ 의 운영 데이터가 매일의 안정성을 보장합니다.",
-    tone: "from-[rgba(35,31,32,0.85)] to-[rgba(11,13,18,0.96)]",
+    eyebrow: "04 · Corporate",
+    title: "직원 복지의 시작, 경조사 관리",
+    desc: "총무·HR 담당자의 경조사 업무 부담을 덜어드립니다. 부서별 자동 발주, 월 정산, 세금계산서 일괄 발급으로 관리 효율을 극대화합니다.",
+    bg: slideCorporate,
+    tone: "from-[rgba(203,13,53,0.25)] to-[rgba(35,31,32,0.88)]",
+  },
+  {
+    eyebrow: "05 · Industry",
+    title: "현장 곁에서 함께하는 파트너",
+    desc: "전국 공장·물류센터·매장에 신속 배송합니다. 35% 단가 절감과 월 정산 시스템으로 비용 관리까지 한 번에 해결합니다.",
+    bg: slideIndustry,
+    tone: "from-[rgba(35,31,32,0.55)] to-[rgba(11,13,18,0.92)]",
   },
 ];
 
@@ -89,46 +83,41 @@ export default function ScrollSlides() {
   return (
     <section
       ref={trackRef}
-      aria-label="브랜드 핵심 가치 슬라이드"
+      aria-label="도입사례 슬라이드"
       className="relative"
       style={{ height: `${N * 100}vh` }}
     >
-      {/* sticky stage — snap-section: Hero_Section에서 휠 1번 = 첫 슬라이드 등장 */}
       <div
         className="snap-section sticky top-0 h-screen w-full overflow-hidden bg-black"
         style={{ contain: "paint" }}
       >
-        {/* 배경 사진 — 모든 슬라이드 공통, 슬라이드별로 다른 그라데이션 오버레이로 차별화 */}
-        <img
-          src={cityBg}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover select-none"
-          draggable="false"
-        />
-
-        {/* 슬라이드별 그라데이션 오버레이 stack */}
         {SLIDES.map((slide, i) => (
           <div
             key={i}
             aria-hidden
-            className={`absolute inset-0 bg-gradient-to-b ${slide.tone}`}
+            className="absolute inset-0"
             style={{
               opacity: i === activeIndex ? 1 : 0,
               transition: "opacity 600ms ease-in-out",
               willChange: "opacity",
             }}
-          />
+          >
+            <img
+              src={slide.bg}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover select-none"
+              draggable="false"
+            />
+            <div className={`absolute inset-0 bg-gradient-to-b ${slide.tone}`} />
+          </div>
         ))}
 
-        {/* 슬라이드별 캡션 stack — 카탈로그 §01 fs-caps 패턴
-            bottom 160px (progress bar 위쪽) */}
         <div className="absolute inset-x-0 bottom-[160px] md:bottom-[180px] z-10">
           <div className="relative">
             {SLIDES.map((slide, i) => (
               <article
                 key={i}
-                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[120px] xl:px-[300px]"
+                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[150px]"
                 style={{
                   opacity: i === activeIndex ? 1 : 0,
                   transform:
@@ -154,9 +143,8 @@ export default function ScrollSlides() {
           </div>
         </div>
 
-        {/* 하단 progress bars — 카탈로그 §01 fs-bars 패턴 */}
-        <div className="absolute bottom-12 left-0 right-0 z-20 px-6 md:px-12 lg:px-[120px] xl:px-[300px]">
-          <div className="flex gap-6 md:gap-10">
+        <div className="absolute bottom-12 left-0 right-0 z-20 px-6 md:px-12 lg:px-[150px]">
+          <div className="flex gap-4 md:gap-6">
             {SLIDES.map((slide, i) => {
               const start = i / N;
               const end = (i + 1) / N;
@@ -185,9 +173,9 @@ export default function ScrollSlides() {
                     <span className="opacity-80 tabular">{num}</span>
                     <span className="truncate">{slide.eyebrow.split(" · ")[1]}</span>
                   </div>
-                  <div className="h-px bg-white/25 overflow-hidden">
+                  <div className="h-[3px] rounded-full bg-white/25 overflow-hidden">
                     <div
-                      className="h-full bg-white origin-left"
+                      className="h-full rounded-full bg-white origin-left"
                       style={{
                         transform: `scaleX(${local.toFixed(3)})`,
                         willChange: "transform",
@@ -201,10 +189,9 @@ export default function ScrollSlides() {
         </div>
       </div>
 
-      {/* 추가 anchor 3개 — 100vh × 3 = 300vh. sticky 시작점(0) + 3 anchor = 4 snap 위치 */}
-      <div className="snap-section" style={{ height: "100vh" }} aria-hidden />
-      <div className="snap-section" style={{ height: "100vh" }} aria-hidden />
-      <div className="snap-section" style={{ height: "100vh" }} aria-hidden />
+      {Array.from({ length: N - 1 }, (_, i) => (
+        <div key={i} className="snap-section" style={{ height: "100vh" }} aria-hidden />
+      ))}
     </section>
   );
 }
