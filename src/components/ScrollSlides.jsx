@@ -78,6 +78,7 @@ export default function ScrollSlides() {
   }, []);
 
   const N = SLIDES.length;
+  const SLIDE_VH = 50;
   const activeIndex = Math.min(Math.floor(progress * N), N - 1);
 
   return (
@@ -85,7 +86,7 @@ export default function ScrollSlides() {
       ref={trackRef}
       aria-label="도입사례 슬라이드"
       className="relative"
-      style={{ height: `${N * 100}vh` }}
+      style={{ height: `${100 + (N - 1) * SLIDE_VH}vh` }}
     >
       <div
         className="snap-section sticky top-0 h-screen w-full overflow-hidden bg-black"
@@ -190,7 +191,7 @@ export default function ScrollSlides() {
       </div>
 
       {Array.from({ length: N - 1 }, (_, i) => (
-        <div key={i} className="snap-section" style={{ height: "100vh" }} aria-hidden />
+        <div key={i} className="snap-section" style={{ height: `${SLIDE_VH}vh` }} aria-hidden />
       ))}
     </section>
   );
