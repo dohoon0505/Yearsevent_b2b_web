@@ -86,7 +86,7 @@ export default function HomePage() {
       {/* ① HeroIntro — fixed inset-0 풀스크린. spacer 동안 zoom + crossfade
           ⚠ scroll-driven opacity는 transition 없음 (1:1 매핑이라야 부드러움) */}
       <div
-        className="fixed inset-0 z-30"
+        className="fixed inset-0 z-[60]"
         style={{
           opacity: (1 - crossfade).toFixed(3),
           pointerEvents: crossfade >= 0.6 ? "none" : "auto",

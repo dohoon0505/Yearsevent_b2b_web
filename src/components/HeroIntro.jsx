@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import cityBg from "../assets/hero-city-bg.png";
 
+const TEXT_STYLE = {
+  fontSize: "clamp(48px, 9.5vw, 130px)",
+  letterSpacing: "-0.001em",
+  lineHeight: 1.4,
+};
+
 export default function HeroIntro({ progress = 0 }) {
   const lines = ["기업 성장의", "필수 파트너"];
 
@@ -18,7 +24,7 @@ export default function HeroIntro({ progress = 0 }) {
       aria-label="진입 인트로"
     >
       <div
-        className="relative isolate"
+        className="relative"
         style={{
           transform: `translate3d(0,0,0) scale(${scale.toFixed(3)})`,
           transformOrigin: "54% 76%",
@@ -26,26 +32,37 @@ export default function HeroIntro({ progress = 0 }) {
           backfaceVisibility: "hidden",
         }}
       >
-        <img
-          src={cityBg}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-          draggable="false"
-        />
-
+        {/* Layer 1: background-clip:text — 하나의 연속 이미지 */}
         <div
-          className="relative flex flex-col items-center justify-center"
-          style={{ backgroundColor: "white", mixBlendMode: "screen" }}
+          style={{
+            backgroundImage: `url(${cityBg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            color: "transparent",
+          }}
         >
+          {lines.map((line, i) => (
+            <p
+              key={i}
+              className="text-center font-black select-none"
+              style={TEXT_STYLE}
+            >
+              {line}
+            </p>
+          ))}
+        </div>
+
+        {/* Layer 2: 흰색 텍스트 오버레이 — 글자별로 사라지면서 Layer 1 노출 */}
+        <div className="absolute inset-0" aria-hidden>
           {lines.map((line, lineIdx) => (
             <p
               key={lineIdx}
-              className="text-center font-black select-none text-black"
-              style={{
-                fontSize: "clamp(48px, 9.5vw, 130px)",
-                letterSpacing: "-0.001em",
-                lineHeight: 1.4,
-              }}
+              className="text-center font-black select-none"
+              style={TEXT_STYLE}
             >
               {Array.from(line).map((char, charIdx) => {
                 const isSpace = char === " ";
@@ -54,14 +71,12 @@ export default function HeroIntro({ progress = 0 }) {
                 return (
                   <span
                     key={charIdx}
-                    className="inline-block will-change-[opacity,transform]"
                     style={{
-                      opacity: revealed ? 1 : 0,
-                      transform: revealed
-                        ? "translateY(0)"
-                        : "translateY(40%)",
+                      WebkitTextFillColor: "white",
+                      color: "white",
+                      opacity: revealed ? 0 : 1,
                       transition:
-                        "opacity 0.7s var(--ease-out-quart), transform 0.7s var(--ease-out-quart)",
+                        "opacity 0.7s var(--ease-out-quart)",
                       transitionDelay: revealed
                         ? `${delaySec.toFixed(2)}s`
                         : "0s",
