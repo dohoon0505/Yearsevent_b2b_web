@@ -6,6 +6,7 @@ import path from "node:path";
 // https://vite.dev/config/
 export default defineConfig({
   base: "/Yearsevent_b2b_web/",
+  build: { outDir: "docs" },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
