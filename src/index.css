@@ -63,8 +63,6 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
-    /* scroll-snap — 100vh 단위로 자동 정렬 (Hero_intro spacer → Hero_Section → Footer) */
-    scroll-snap-type: y mandatory;
   }
 
   body {
