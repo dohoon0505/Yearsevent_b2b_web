@@ -37,7 +37,7 @@ export default function Footer() {
       <div className="flex flex-col gap-[40px]">
         {/* 상단 — 사이트맵 4컬럼 + 우측 카드 */}
         <div className="flex flex-col-reverse lg:flex-row lg:items-stretch lg:justify-between gap-10">
-          <div className="grid grid-cols-2 gap-x-10 gap-y-10 md:grid-cols-4 md:gap-x-[40px] py-[3px]">
+          <div className="grid grid-cols-2 gap-x-10 gap-y-10 md:flex md:gap-x-[48px] py-[3px]">
             {SITEMAP.map((col) => (
               <div key={col.title} className="flex flex-col gap-[22px]">
                 <p className="text-[16px] md:text-[18px] font-semibold leading-[1.4]">

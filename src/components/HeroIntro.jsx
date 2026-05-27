@@ -18,58 +18,62 @@ export default function HeroIntro({ progress = 0 }) {
       aria-label="진입 인트로"
     >
       <div
-        className="relative flex flex-col items-center justify-center"
+        className="relative isolate"
         style={{
           transform: `translate3d(0,0,0) scale(${scale.toFixed(3)})`,
           transformOrigin: "54% 76%",
           willChange: "transform",
           backfaceVisibility: "hidden",
-          backgroundImage: `url(${cityBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          color: "transparent",
         }}
       >
-        {lines.map((line, lineIdx) => (
-          <p
-            key={lineIdx}
-            className="text-center font-black select-none"
-            style={{
-              fontSize: "clamp(48px, 9.5vw, 130px)",
-              letterSpacing: "-0.001em",
-              lineHeight: 1.4,
-            }}
-          >
-            {Array.from(line).map((char, charIdx) => {
-              const isSpace = char === " ";
-              const delaySec = lineIdx * 0.45 + charIdx * 0.08;
+        <img
+          src={cityBg}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+          draggable="false"
+        />
 
-              return (
-                <span
-                  key={charIdx}
-                  className="inline-block will-change-[opacity,transform]"
-                  style={{
-                    opacity: revealed ? 1 : 0,
-                    transform: revealed
-                      ? "translateY(0)"
-                      : "translateY(40%)",
-                    transition:
-                      "opacity 0.7s var(--ease-out-quart), transform 0.7s var(--ease-out-quart)",
-                    transitionDelay: revealed
-                      ? `${delaySec.toFixed(2)}s`
-                      : "0s",
-                  }}
-                >
-                  {isSpace ? " " : char}
-                </span>
-              );
-            })}
-          </p>
-        ))}
+        <div
+          className="relative flex flex-col items-center justify-center"
+          style={{ backgroundColor: "white", mixBlendMode: "screen" }}
+        >
+          {lines.map((line, lineIdx) => (
+            <p
+              key={lineIdx}
+              className="text-center font-black select-none text-black"
+              style={{
+                fontSize: "clamp(48px, 9.5vw, 130px)",
+                letterSpacing: "-0.001em",
+                lineHeight: 1.4,
+              }}
+            >
+              {Array.from(line).map((char, charIdx) => {
+                const isSpace = char === " ";
+                const delaySec = lineIdx * 0.45 + charIdx * 0.08;
+
+                return (
+                  <span
+                    key={charIdx}
+                    className="inline-block will-change-[opacity,transform]"
+                    style={{
+                      opacity: revealed ? 1 : 0,
+                      transform: revealed
+                        ? "translateY(0)"
+                        : "translateY(40%)",
+                      transition:
+                        "opacity 0.7s var(--ease-out-quart), transform 0.7s var(--ease-out-quart)",
+                      transitionDelay: revealed
+                        ? `${delaySec.toFixed(2)}s`
+                        : "0s",
+                    }}
+                  >
+                    {isSpace ? " " : char}
+                  </span>
+                );
+              })}
+            </p>
+          ))}
+        </div>
       </div>
 
       <div
