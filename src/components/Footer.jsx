@@ -24,7 +24,7 @@ export default function Footer() {
     <footer className="snap-section bg-white text-[#222] px-6 md:px-12 lg:px-[120px] xl:px-[150px] py-[60px] md:py-[80px]">
       <div className="flex flex-col gap-[40px]">
         <div className="flex flex-col-reverse lg:flex-row lg:items-stretch lg:justify-between gap-10">
-          <div className="grid grid-cols-2 gap-x-10 gap-y-10 md:flex md:gap-x-[48px] py-[3px]">
+          <div className="grid grid-cols-2 gap-x-10 gap-y-10 md:flex md:gap-x-[60px] py-[3px]">
             {SITEMAP.map((col) => (
               <div key={col.title} className="flex flex-col gap-[22px]">
                 <p className="typo-footer-heading">{col.title}</p>

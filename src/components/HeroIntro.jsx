@@ -21,18 +21,10 @@ export default function HeroIntro({ progress = 0 }) {
         className="relative hero-zoom"
         style={{ transform: `translate3d(0,0,0) scale(${scale.toFixed(3)})` }}
       >
-        {/* Layer 1: background-clip:text — 하나의 연속 이미지 */}
         <div
           className="hero-text-clip"
           style={{ backgroundImage: `url(${cityBg})` }}
         >
-          {lines.map((line, i) => (
-            <p key={i} className="typo-hero select-none">{line}</p>
-          ))}
-        </div>
-
-        {/* Layer 2: 흰색 텍스트 마스크 — 글자별 fade-out으로 Layer 1 노출 */}
-        <div className="absolute inset-0" aria-hidden>
           {lines.map((line, lineIdx) => (
             <p key={lineIdx} className="typo-hero select-none">
               {Array.from(line).map((char, charIdx) => {
@@ -43,11 +35,18 @@ export default function HeroIntro({ progress = 0 }) {
                     key={charIdx}
                     className="hero-char-mask"
                     style={{
-                      opacity: revealed ? 0 : 1,
-                      transitionDelay: revealed ? `${delaySec.toFixed(2)}s` : "0s",
+                      WebkitTextFillColor: revealed
+                        ? "rgba(255,255,255,0)"
+                        : "white",
+                      color: revealed
+                        ? "rgba(255,255,255,0)"
+                        : "white",
+                      transitionDelay: revealed
+                        ? `${delaySec.toFixed(2)}s`
+                        : "0s",
                     }}
                   >
-                    {isSpace ? " " : char}
+                    {isSpace ? " " : char}
                   </span>
                 );
               })}

@@ -259,11 +259,11 @@
     color: transparent;
   }
 
-  /* Hero — 글자별 흰색 마스크 */
+  /* Hero — 글자별 색상 전환 (white → transparent) */
   .hero-char-mask {
-    -webkit-text-fill-color: white;
-    color: white;
-    transition: opacity 0.7s var(--ease-out-quart);
+    transition:
+      -webkit-text-fill-color 0.7s var(--ease-out-quart),
+      color 0.7s var(--ease-out-quart);
   }
 
   /* Hero — 줌 컨테이너 */
