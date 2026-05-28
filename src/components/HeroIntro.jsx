@@ -23,7 +23,11 @@ export default function HeroIntro({ progress = 0 }) {
       >
         <div
           className="hero-text-clip"
-          style={{ backgroundImage: `url(${cityBg})` }}
+          style={{
+            backgroundImage: `url(${cityBg})`,
+            opacity: revealed ? 1 : 0,
+            transition: "opacity 0.15s ease-out",
+          }}
         >
           {lines.map((line, lineIdx) => (
             <p key={lineIdx} className="typo-hero select-none">

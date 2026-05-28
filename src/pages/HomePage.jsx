@@ -49,27 +49,38 @@ export default function HomePage() {
 
   useEffect(() => {
     let ticking = false;
+    let snapTimer = null;
+    let isSnapping = false;
 
     const update = () => {
       const vh = window.innerHeight;
       const spacerH = (ZOOM_SPACER_VH / 100) * vh;
-      const raw = Math.max(0, Math.min(1, window.scrollY / spacerH));
+      const sy = window.scrollY;
+      const raw = Math.max(0, Math.min(1, sy / spacerH));
 
       // crossfade 구간: progress 0.93 ~ 1.0 (전체의 마지막 7%)
       const fade = Math.max(0, Math.min(1, (raw - 0.93) / 0.07));
 
-      // Hero 영역(spacer + HeroSection) 까지만 scroll-snap 유지, 이후 해제
-      const heroEnd = spacerH + vh;
-      const html = document.documentElement;
-      if (window.scrollY < heroEnd - 10) {
-        if (html.style.scrollSnapType !== "y mandatory")
-          html.style.scrollSnapType = "y mandatory";
-      } else {
-        if (html.style.scrollSnapType) html.style.scrollSnapType = "";
-      }
-
       setZoomProgress(raw);
       setCrossfade(fade);
+
+      // JS-based snap — spacer 영역(0 < scrollY < spacerH)에서만 동작
+      // CSS scroll-snap 대신 JS scroll-end 감지로 처리 → HeroSection 이후 자유 스크롤
+      clearTimeout(snapTimer);
+      if (!isSnapping && sy > 0 && sy < spacerH) {
+        snapTimer = setTimeout(() => {
+          const cur = window.scrollY;
+          if (cur > 0 && cur < spacerH) {
+            const target = cur < spacerH / 2 ? 0 : spacerH;
+            if (Math.abs(cur - target) > 2) {
+              isSnapping = true;
+              window.scrollTo({ top: target, behavior: "smooth" });
+              setTimeout(() => { isSnapping = false; }, 600);
+            }
+          }
+        }, 120);
+      }
+
       ticking = false;
     };
 
@@ -86,6 +97,7 @@ export default function HomePage() {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      clearTimeout(snapTimer);
     };
   }, []);
 
@@ -111,7 +123,7 @@ export default function HomePage() {
       <div
         aria-hidden
         style={{ height: `${ZOOM_SPACER_VH}vh` }}
-        className="pointer-events-none snap-section"
+        className="pointer-events-none"
       />
 
       {/* ③ HeroSection — spacer 끝나는 시점에 viewport.top에 도달. zoom 완료와 일치 */}

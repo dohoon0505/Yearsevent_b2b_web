@@ -5,7 +5,7 @@ import cityBg from "../assets/hero-city-bg.png";
 export default function HeroSection({ onMenuClick }) {
   return (
     <section
-      className="snap-section relative h-screen w-full overflow-hidden bg-black"
+      className="relative h-screen w-full overflow-hidden bg-black"
       aria-label="Hero"
     >
       <img
