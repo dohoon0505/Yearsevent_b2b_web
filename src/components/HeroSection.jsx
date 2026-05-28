@@ -127,7 +127,7 @@ export default function HeroSection({ onMenuClick }) {
           {/* 메인 헤딩 — 중간 (뱃지 등장 후 cascade) */}
           <h1 className="typo-display mt-6">
             <CascadeLine
-              text="번번히 발생하는 경조사 소식,"
+              text="번번히 발생하는 경조사,"
               ready={textReady}
               baseDelay={520}
               stagger={36}
