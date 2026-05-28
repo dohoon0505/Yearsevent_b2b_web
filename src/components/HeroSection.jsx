@@ -153,9 +153,9 @@ export default function HeroSection({ onMenuClick }) {
         </div>
       </div>
 
-      {/* 스크롤 유도 인디케이터 — 우측 하단 (마우스 + 점 + SCROLL 라벨) */}
+      {/* 스크롤 유도 인디케이터 — 우측 하단 (본문 pb-[120px]와 동일 라인) */}
       <div
-        className="absolute bottom-10 right-6 md:right-12 lg:right-[260px] z-10 hidden md:flex flex-col items-center gap-3 select-none pointer-events-none hero-fade-up"
+        className="absolute bottom-[120px] right-6 md:right-12 lg:right-[260px] z-10 hidden md:flex flex-col items-center gap-3 select-none pointer-events-none hero-fade-up"
         style={{
           opacity: headerReady ? 1 : 0,
           transform: headerReady ? "translateY(0)" : "translateY(12px)",
