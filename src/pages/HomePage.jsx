@@ -163,7 +163,7 @@ export default function HomePage() {
   const showScrollActive = pastHero && direction === "up" && !atTop;
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       <HeroSection />
       <DataSection />
       <ScrollCardSection />
