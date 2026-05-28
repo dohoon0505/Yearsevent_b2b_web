@@ -94,11 +94,11 @@ export default function ScrollCardSection() {
     <section
       ref={trackRef}
       aria-label="서비스 핵심"
-      className="relative"
+      className="relative bg-white"
       style={{ height: `${N * 100 + 100}vh` }}
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* 배경 4 레이어 — 고정, 크로스페이드 */}
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-white">
+        {/* 배경 4 레이어 — 고정, 크로스페이드 (가시성 50% 축소) */}
         {CARDS.map((card, i) => (
           <div
             key={`bg-${i}`}
@@ -106,7 +106,7 @@ export default function ScrollCardSection() {
             className="absolute inset-0 transition-opacity duration-[600ms] ease-out"
             style={{
               background: card.bg,
-              opacity: i === activeIdx ? 1 : 0,
+              opacity: i === activeIdx ? 0.5 : 0,
             }}
           />
         ))}
