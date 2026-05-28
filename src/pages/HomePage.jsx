@@ -80,28 +80,50 @@ export default function HomePage() {
     };
   }, []);
 
-  // HeroSection 영역(0~vh)에서만 JS 스냅 — 사용자 의도 방향 기반
-  // wheel/touch/keydown 이벤트로 직접 방향을 캡처 → 위치가 아닌 의도로 snap target 결정
+  // HeroSection 영역(0~vh)에서 wheel/touch/key 이벤트를 즉시 가로채서 snap
+  // 이전 방식: native scroll 진행 → 휠 멈춤 → 110ms 대기 → snap (시각적 멈춤 발생)
+  // 개선 방식: 첫 입력에서 preventDefault → 즉시 vh/0으로 smooth scrollTo (중간 멈춤 X)
   useEffect(() => {
-    let snapTimer = null;
     let isSnapping = false;
-    let intentDir = null; // "down" | "up" | null
     let touchStartY = 0;
 
+    const snapTo = (dir) => {
+      const vh = window.innerHeight;
+      const cur = window.scrollY;
+      const target = dir === "down" ? vh : 0;
+      if (Math.abs(cur - target) <= 2) return;
+      isSnapping = true;
+      window.scrollTo({ top: target, behavior: "smooth" });
+      setTimeout(() => {
+        isSnapping = false;
+      }, 700);
+    };
+
+    const inHero = () => {
+      const sy = window.scrollY;
+      const vh = window.innerHeight;
+      return sy >= 0 && sy < vh - 2;
+    };
+
     const onWheel = (e) => {
-      if (e.deltaY > 1) intentDir = "down";
-      else if (e.deltaY < -1) intentDir = "up";
+      if (!inHero()) return;
+      e.preventDefault();
+      if (isSnapping) return;
+      if (Math.abs(e.deltaY) < 1) return;
+      snapTo(e.deltaY > 0 ? "down" : "up");
     };
 
     const onTouchStart = (e) => {
       touchStartY = e.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (e) => {
+      if (!inHero()) return;
+      e.preventDefault();
+      if (isSnapping) return;
       const y = e.touches[0]?.clientY ?? 0;
       const dy = touchStartY - y;
-      if (dy > 2) intentDir = "down";
-      else if (dy < -2) intentDir = "up";
-      touchStartY = y;
+      if (Math.abs(dy) < 5) return;
+      snapTo(dy > 0 ? "down" : "up");
     };
 
     const DOWN_KEYS = new Set([
@@ -113,55 +135,25 @@ export default function HomePage() {
     ]);
     const UP_KEYS = new Set(["ArrowUp", "PageUp", "Home"]);
     const onKey = (e) => {
-      if (DOWN_KEYS.has(e.key)) intentDir = "down";
-      else if (UP_KEYS.has(e.key)) intentDir = "up";
-    };
-
-    const onScroll = () => {
-      clearTimeout(snapTimer);
+      if (!inHero()) return;
+      const isDown = DOWN_KEYS.has(e.key);
+      const isUp = UP_KEYS.has(e.key);
+      if (!isDown && !isUp) return;
+      e.preventDefault();
       if (isSnapping) return;
-      const vh = window.innerHeight;
-      const sy = window.scrollY;
-      // HeroSection 영역 벗어나면 의도 reset
-      if (sy <= 0 || sy >= vh) {
-        intentDir = null;
-        return;
-      }
-      snapTimer = setTimeout(() => {
-        const cur = window.scrollY;
-        if (cur <= 0 || cur >= vh) return;
-        // 의도 우선 → fallback: 위치 절반 기준
-        const target =
-          intentDir === "up"
-            ? 0
-            : intentDir === "down"
-              ? vh
-              : cur < vh / 2
-                ? 0
-                : vh;
-        if (Math.abs(cur - target) > 2) {
-          isSnapping = true;
-          window.scrollTo({ top: target, behavior: "smooth" });
-          setTimeout(() => {
-            isSnapping = false;
-            intentDir = null;
-          }, 650);
-        }
-      }, 110);
+      snapTo(isDown ? "down" : "up");
     };
 
-    window.addEventListener("wheel", onWheel, { passive: true });
+    // passive:false 로 등록해야 preventDefault 가능
+    window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onScroll);
-      clearTimeout(snapTimer);
     };
   }, []);
 
