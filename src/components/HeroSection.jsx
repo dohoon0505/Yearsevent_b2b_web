@@ -108,13 +108,13 @@ export default function HeroSection({ onMenuClick }) {
 
           <h1 className="typo-display mt-4">
             <CascadeLine
-              text="경조사 소식이 많이 들려온다면,"
+              text="번번히 발생하는 경조사를"
               ready={textReady}
               baseDelay={320}
               stagger={36}
             />
             <CascadeLine
-              text="전담관리 서비스는 꼭 필요합니다."
+              text="체계적으로 관리 해드려요"
               ready={textReady}
               baseDelay={860}
               stagger={36}
