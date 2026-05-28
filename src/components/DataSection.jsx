@@ -38,11 +38,16 @@ const ABOUT_LINES = [
     { text: "위로", tone: "accent" },
     { text: "에서", tone: "dark" },
   ],
-  [{ text: "시작됩니다.", tone: "dark" }],
+  [
+    { text: "시작되는", tone: "dark" },
+    { text: "것을", tone: "dark" },
+    { text: "아시나요?", tone: "dark" },
+  ],
 ];
 
 const BUSINESS_LINES = [
   [
+    { text: "저희는", tone: "dark" },
     { text: "2016년", tone: "accent", noSpace: true },
     { text: "을", tone: "dark" },
     { text: "시작으로", tone: "dark" },

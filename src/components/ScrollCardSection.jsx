@@ -124,7 +124,7 @@ export default function ScrollCardSection() {
         ))}
 
         {/* 콘텐츠 레이어 */}
-        <div className="relative h-full w-full flex flex-col items-center justify-center gap-[60px] md:gap-[80px] xl:gap-[90px] px-6 md:px-12 lg:px-[80px] xl:px-[260px] py-[80px] md:py-[120px] xl:py-[150px]">
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-[40px] md:gap-[60px] xl:gap-[70px] px-6 md:px-12 lg:px-[80px] xl:px-[260px] py-[120px] md:py-[140px] xl:py-[150px]">
           {/* 섹션 헤더 — 가운데 정렬 */}
           <div className="flex flex-col gap-[20px] md:gap-[30px] items-center">
             <div className="flex gap-[8px] items-center">
@@ -147,24 +147,45 @@ export default function ScrollCardSection() {
             style={{ aspectRatio: "1200 / 554" }}
           >
             {CARDS.map((card, i) => {
-              let translateY = 0;
-              if (i > 0) {
-                const start = (i - 1) / segs;
-                const local = Math.max(
-                  0,
-                  Math.min(1, (progress - start) * segs),
-                );
-                translateY = (1 - local) * 100;
-              }
+              // 카드 등장 진행률
+              //   i=0: 항상 완전 등장 (1)
+              //   i=1~N-1: 사용자가 (i-1)/segs ~ i/segs 구간을 스크롤하며 0→1
+              const cardLocal =
+                i === 0
+                  ? 1
+                  : Math.max(
+                      0,
+                      Math.min(1, (progress - (i - 1) / segs) * segs),
+                    );
+
+              // translateY: vh 단위로 viewport 바깥에서 시작 (100vh 아래)
+              const translateYvh = (1 - cardLocal) * 100;
+
+              // 다음 카드 등장률 → 가려진 정도에 따라 shadow 페이드 아웃
+              //   next 0 → shadow alpha 0.1 (정상)
+              //   next 1 → shadow alpha 0 (완전 가려짐, none)
+              const nextLocal =
+                i < N - 1
+                  ? Math.max(
+                      0,
+                      Math.min(1, (progress - i / segs) * segs),
+                    )
+                  : 0;
+              const shadowAlpha = 0.1 * (1 - nextLocal);
+
               const isLast = i === N - 1;
               return (
                 <div
                   key={i}
-                  className="absolute inset-0 flex drop-shadow-[0px_0px_50px_rgba(0,0,0,0.1)] rounded-[30px]"
+                  className="absolute inset-0 flex rounded-[30px]"
                   style={{
-                    transform: `translateY(${translateY.toFixed(3)}%)`,
+                    transform: `translateY(${translateYvh.toFixed(3)}vh)`,
                     zIndex: i + 1,
-                    willChange: "transform",
+                    willChange: "transform, filter",
+                    filter:
+                      shadowAlpha > 0.005
+                        ? `drop-shadow(0px 0px 50px rgba(0,0,0,${shadowAlpha.toFixed(3)}))`
+                        : "none",
                   }}
                 >
                   {/* 좌측 텍스트 패널 */}
