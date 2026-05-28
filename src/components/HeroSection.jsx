@@ -17,7 +17,6 @@ import cityBg from "../assets/hero-city-bg.png";
 export default function HeroSection({ onMenuClick }) {
   const [bgLoaded, setBgLoaded] = useState(false);
   const [textReady, setTextReady] = useState(false);
-  const [bodyReady, setBodyReady] = useState(false);
   const [headerReady, setHeaderReady] = useState(false);
 
   // 1) Background 우선 로드 — preload Image 객체로 캐시 확인
@@ -41,11 +40,9 @@ export default function HeroSection({ onMenuClick }) {
   useEffect(() => {
     if (!bgLoaded) return;
     const t1 = setTimeout(() => setTextReady(true), 250);
-    const t2 = setTimeout(() => setBodyReady(true), 1750);
     const t3 = setTimeout(() => setHeaderReady(true), 1300);
     return () => {
       clearTimeout(t1);
-      clearTimeout(t2);
       clearTimeout(t3);
     };
   }, [bgLoaded]);
@@ -101,32 +98,8 @@ export default function HeroSection({ onMenuClick }) {
       {/* 본문 — 글자 폭포 + fade-up (좌우 padding 0 / margin 260px @ lg+) */}
       <div className="relative z-10 flex h-full flex-col justify-end pb-[120px] px-0 mx-6 md:mx-12 lg:mx-[260px] text-white">
         <div className="max-w-[820px]">
-          <CascadeLine
-            as="p"
-            text="11년차 꽃배달 기업의 경조사 전담 솔루션"
-            ready={textReady}
-            baseDelay={0}
-            stagger={28}
-            className="text-[16px] md:text-[18px] font-medium text-white/85 tracking-[-0.003em]"
-          />
-
-          <h1 className="typo-display mt-4">
-            <CascadeLine
-              text="번번히 발생하는 경조사 소식,"
-              ready={textReady}
-              baseDelay={320}
-              stagger={36}
-            />
-            <CascadeLine
-              text="체계적인 전담관리 솔루션"
-              ready={textReady}
-              baseDelay={860}
-              stagger={36}
-              className="text-[var(--color-brand-peach)]"
-            />
-          </h1>
-
-          <ul className="mt-8 flex flex-wrap gap-2.5 max-w-[640px]">
+          {/* 뱃지 6개 — 가장 위 (textReady 시점 stagger 등장) */}
+          <ul className="flex flex-wrap gap-2.5 max-w-[640px]">
             {[
               "법무법인",
               "세무법인",
@@ -139,8 +112,8 @@ export default function HeroSection({ onMenuClick }) {
                 key={label}
                 className="bg-[var(--color-overlay-light-10)] backdrop-blur-[3px] rounded-full px-4 py-2 text-white text-[13px] md:text-[14px] font-medium border border-white/15 hero-fade-up"
                 style={{
-                  opacity: bodyReady ? 1 : 0,
-                  transform: bodyReady
+                  opacity: textReady ? 1 : 0,
+                  transform: textReady
                     ? "translateY(0)"
                     : "translateY(20px)",
                   transitionDelay: `${i * 0.08}s`,
@@ -150,6 +123,33 @@ export default function HeroSection({ onMenuClick }) {
               </li>
             ))}
           </ul>
+
+          {/* 메인 헤딩 — 중간 (뱃지 등장 후 cascade) */}
+          <h1 className="typo-display mt-10">
+            <CascadeLine
+              text="번번히 발생하는 경조사 소식,"
+              ready={textReady}
+              baseDelay={520}
+              stagger={36}
+            />
+            <CascadeLine
+              text="체계적인 전담관리 솔루션"
+              ready={textReady}
+              baseDelay={1060}
+              stagger={36}
+              className="text-[var(--color-brand-peach)]"
+            />
+          </h1>
+
+          {/* 11년차 슬로건 — 가장 아래 (헤딩 등장 후 cascade) */}
+          <CascadeLine
+            as="p"
+            text="11년차 꽃배달 기업의 경조사 전담 솔루션"
+            ready={textReady}
+            baseDelay={1600}
+            stagger={28}
+            className="mt-8 text-[16px] md:text-[18px] font-medium text-white/85 tracking-[-0.003em]"
+          />
         </div>
       </div>
     </section>
