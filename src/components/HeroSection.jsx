@@ -49,7 +49,7 @@ export default function HeroSection({ onMenuClick }) {
 
   return (
     <section
-      className="snap-section relative h-screen w-full overflow-hidden bg-black"
+      className="snap-section relative h-screen w-full bg-black"
       aria-label="Hero"
     >
       {/* Background — fade-in + 미세 zoom-out */}
