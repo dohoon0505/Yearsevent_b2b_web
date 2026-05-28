@@ -1,15 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * DataSection — Figma 85:50 + sticky pin scrub reveal
+ * DataSection — Figma 85:50, 100vh sticky 안에 두 항목 동시 표시
  *
- * 인터랙션 흐름:
- *   1) 진입 시 About Us + 슬로건 fade-up
- *   2) 슬로건 sticky pin (track 200vh, stage 100vh)
- *      사용자가 100vh 스크롤하는 동안 progress 0→1
- *      텍스트 100% 채워지기 전까지 화면 스크롤 X (sticky 잠금)
- *   3) progress 1.0 도달 → sticky 해제 → 사용자가 더 스크롤 시 통계 카드 영역 등장
- *   4) 통계 카드 viewport 진입 → IntersectionObserver 트리거 → 0.22s stagger
+ * 인터랙션 phase:
+ *   Phase 1 (progress 0 → 0.5):  About Us 슬로건 단어 scrub reveal
+ *     - 사용자가 100vh 스크롤 → 슬로건 100% reveal
+ *   Phase 2 (progress 0.5 → 1.0): For Business 통계 카드 stagger reveal
+ *     - 사용자가 추가 100vh 스크롤 → 카드 3개 순차 등장
+ *   progress 1.0 → sticky 해제, 다음 섹션으로 이동
+ *
+ * 레이아웃 (100vh sticky stage):
+ *   ┌────────────────────────────┐
+ *   │ About Us                   │
+ *   │ 모든 위대한 비즈니스는       │
+ *   │ 작은 축하와 깊은 위로에서    │
+ *   │ 시작됩니다.                 │
+ *   │                            │
+ *   │              For Business  │
+ *   │     설립일       2016~     │
+ *   │     누적 주문    60만+     │
+ *   │     전담 기업    200+      │
+ *   └────────────────────────────┘
+ *
+ * Track: 250vh (사용자 150vh 스크롤로 두 phase 진행)
  */
 
 const SLOGAN_LINES = [
@@ -32,21 +46,9 @@ const SLOGAN_LINES = [
 const TOTAL_WORDS = SLOGAN_LINES.reduce((acc, line) => acc + line.length, 0);
 
 const STATS = [
-  {
-    label: "설립일",
-    desc: "2016년 설립, 2018년 합병",
-    value: "2016~",
-  },
-  {
-    label: "누적 주문",
-    desc: "일 평균 200개 가량의 주문 소화",
-    value: "60만+",
-  },
-  {
-    label: "전담 기업",
-    desc: "10년의 경험으로, 노하우로",
-    value: "200+",
-  },
+  { label: "설립일", desc: "2016년 설립, 2018년 합병", value: "2016~" },
+  { label: "누적 주문", desc: "일 평균 200개 가량의 주문 소화", value: "60만+" },
+  { label: "전담 기업", desc: "10년의 경험으로, 노하우로", value: "200+" },
 ];
 
 const DIM = "#d4d8e2";
@@ -56,12 +58,10 @@ const ACCENT = "var(--color-brand-red)";
 export default function DataSection() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const statsRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [aboutReady, setAboutReady] = useState(false);
-  const [statsReady, setStatsReady] = useState(false);
 
-  // About Us + 슬로건 등장 시퀀스 (section 진입)
+  // 진입 시퀀스 (About Us + 슬로건 fade-up)
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -78,24 +78,7 @@ export default function DataSection() {
     return () => obs.disconnect();
   }, []);
 
-  // 통계 카드 viewport 진입 시 stagger 등장
-  useEffect(() => {
-    const el = statsRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setStatsReady(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.15 },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  // sticky track 기반 progress (track 안에서 0~1)
+  // sticky track 기반 progress (0~1)
   useEffect(() => {
     let ticking = false;
     const update = () => {
@@ -126,9 +109,20 @@ export default function DataSection() {
     };
   }, []);
 
-  // 단어 인덱스 — 처음 5% 패딩 + 90% 구간에서 reveal
-  const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.9));
-  const litIndex = Math.floor(lit * (TOTAL_WORDS + 1));
+  // Phase 1 — About Us 슬로건 (progress 0 ~ 0.5)
+  const sloganProgress = Math.max(0, Math.min(1, progress / 0.5));
+  const sloganLit = Math.max(0, Math.min(1, (sloganProgress - 0.05) / 0.9));
+  const litIndex = Math.floor(sloganLit * (TOTAL_WORDS + 1));
+
+  // Phase 2 — For Business 통계 카드 (progress 0.5 ~ 1.0)
+  const statsProgress = Math.max(0, Math.min(1, (progress - 0.5) / 0.5));
+  const cardReveal = (i) => {
+    // 카드 3개를 0.05 패딩 + overlap stagger로 등장
+    const cardStart = 0.05 + i * 0.3;
+    const cardEnd = cardStart + 0.35;
+    const t = (statsProgress - cardStart) / (cardEnd - cardStart);
+    return Math.max(0, Math.min(1, t));
+  };
 
   let wordCounter = 0;
 
@@ -138,85 +132,100 @@ export default function DataSection() {
       aria-label="회사 데이터"
       className="relative bg-white"
     >
-      {/* 슬로건 sticky 트랙 — track 200vh / sticky stage 100vh */}
-      <div ref={trackRef} style={{ height: "200vh" }} className="relative">
-        <div className="sticky top-0 h-screen w-full flex flex-col items-start justify-center px-6 md:px-12 lg:px-[120px] xl:px-[260px]">
-          <div className="flex flex-col gap-[30px] items-start">
-            <p
-              className="text-[var(--color-brand-red)] font-bold text-[20px] md:text-[24px] tracking-[-0.01em] hero-fade-up"
-              style={{
-                opacity: aboutReady ? 1 : 0,
-                transform: aboutReady ? "translateY(0)" : "translateY(20px)",
-              }}
-            >
-              About Us
-            </p>
+      {/* sticky track — 250vh / sticky 100vh */}
+      <div ref={trackRef} style={{ height: "250vh" }} className="relative">
+        <div className="sticky top-0 h-screen w-full overflow-hidden">
+          <div className="h-full w-full flex flex-col justify-center gap-[5vh] px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[8vh]">
+            {/* 상단 — About Us + 슬로건 (좌측 정렬) */}
+            <div className="flex flex-col gap-[18px] items-start">
+              <p
+                className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] hero-fade-up"
+                style={{
+                  opacity: aboutReady ? 1 : 0,
+                  transform: aboutReady ? "translateY(0)" : "translateY(20px)",
+                }}
+              >
+                About Us
+              </p>
 
-            <h2
-              className="font-bold text-[36px] md:text-[48px] lg:text-[56px] xl:text-[60px] leading-[1.28] tracking-[-0.018em] hero-fade-up"
-              style={{
-                opacity: aboutReady ? 1 : 0,
-                transform: aboutReady ? "translateY(0)" : "translateY(28px)",
-                transitionDelay: "0.14s",
-              }}
-            >
-              {SLOGAN_LINES.map((line, lineIdx) => (
-                <span key={lineIdx} className="block">
-                  {line.map((w, i) => {
-                    const idx = wordCounter++;
-                    const isLit = idx < litIndex;
-                    const onColor = w.tone === "accent" ? ACCENT : DARK;
-                    return (
-                      <span
-                        key={i}
-                        className="inline-block whitespace-pre transition-colors duration-300 ease-out"
-                        style={{ color: isLit ? onColor : DIM }}
-                      >
-                        {w.text}
-                        {i < line.length - 1 && !w.noSpace ? " " : ""}
-                      </span>
-                    );
-                  })}
-                </span>
-              ))}
-            </h2>
+              <h2
+                className="font-bold text-[28px] md:text-[40px] lg:text-[46px] xl:text-[52px] leading-[1.22] tracking-[-0.018em] hero-fade-up"
+                style={{
+                  opacity: aboutReady ? 1 : 0,
+                  transform: aboutReady ? "translateY(0)" : "translateY(28px)",
+                  transitionDelay: "0.14s",
+                }}
+              >
+                {SLOGAN_LINES.map((line, lineIdx) => (
+                  <span key={lineIdx} className="block">
+                    {line.map((w, i) => {
+                      const idx = wordCounter++;
+                      const isLit = idx < litIndex;
+                      const onColor = w.tone === "accent" ? ACCENT : DARK;
+                      return (
+                        <span
+                          key={i}
+                          className="inline-block whitespace-pre transition-colors duration-300 ease-out"
+                          style={{ color: isLit ? onColor : DIM }}
+                        >
+                          {w.text}
+                          {i < line.length - 1 && !w.noSpace ? " " : ""}
+                        </span>
+                      );
+                    })}
+                  </span>
+                ))}
+              </h2>
+            </div>
+
+            {/* 하단 — For Business 통계 카드 (우측 정렬) */}
+            <div className="w-full flex flex-col gap-[18px] items-end">
+              <p
+                className="text-[var(--color-brand-red)] font-bold text-[16px] md:text-[18px] tracking-[-0.01em] self-end hero-fade-up"
+                style={{
+                  opacity: statsProgress > 0.02 ? 1 : 0,
+                  transform: statsProgress > 0.02 ? "translateY(0)" : "translateY(12px)",
+                  transition:
+                    "opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+              >
+                For Business
+              </p>
+
+              <div className="w-full flex flex-col gap-[22px] items-end">
+                {STATS.map((stat, i) => {
+                  const t = cardReveal(i);
+                  return (
+                    <div
+                      key={stat.label}
+                      className="w-full max-w-[520px] flex flex-col gap-[18px]"
+                      style={{
+                        opacity: t,
+                        transform: `translateY(${(1 - t) * 30}px)`,
+                        transition: "opacity 0.15s linear, transform 0.15s linear",
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-6">
+                        <div className="flex flex-col gap-[6px] min-w-0">
+                          <p className="text-[18px] md:text-[22px] font-medium text-black tracking-[-0.012em] leading-[1.3]">
+                            {stat.label}
+                          </p>
+                          <p className="text-[12px] md:text-[14px] font-light text-black tracking-[-0.003em] leading-[1.4]">
+                            {stat.desc}
+                          </p>
+                        </div>
+                        <p className="text-[42px] md:text-[54px] lg:text-[64px] font-extrabold tracking-[-0.01em] leading-[1] text-black whitespace-nowrap">
+                          {stat.value}
+                        </p>
+                      </div>
+                      <div className="h-[2px] w-full bg-[#222]" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* 통계 카드 — sticky 해제 후 자연 등장 (viewport 진입 시 stagger) */}
-      <div
-        ref={statsRef}
-        className="w-full flex flex-col gap-[50px] items-end px-6 md:px-12 lg:px-[120px] xl:px-[260px] pb-[150px]"
-      >
-        {STATS.map((stat, i) => (
-          <div
-            key={stat.label}
-            className="w-full max-w-[560px] flex flex-col gap-[45px]"
-            style={{
-              opacity: statsReady ? 1 : 0,
-              transform: statsReady ? "translateY(0)" : "translateY(40px)",
-              transition:
-                "opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1)",
-              transitionDelay: statsReady ? `${i * 0.22}s` : "0s",
-            }}
-          >
-            <div className="flex items-center justify-between gap-6">
-              <div className="flex flex-col gap-[10px] min-w-0">
-                <p className="text-[22px] md:text-[26px] font-medium text-black tracking-[-0.012em] leading-[1.4]">
-                  {stat.label}
-                </p>
-                <p className="text-[14px] md:text-[17px] font-light text-black tracking-[-0.003em] leading-[1.4]">
-                  {stat.desc}
-                </p>
-              </div>
-              <p className="text-[56px] md:text-[68px] lg:text-[80px] font-extrabold tracking-[-0.01em] leading-[1] text-black whitespace-nowrap">
-                {stat.value}
-              </p>
-            </div>
-            <div className="h-[3px] w-full bg-[#222]" />
-          </div>
-        ))}
       </div>
     </section>
   );
