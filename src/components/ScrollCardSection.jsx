@@ -65,7 +65,8 @@ const CARDS = [
 
 const N = CARDS.length;
 const SEGS = N - 1;
-const SHADOW_ON = "0 0 50px rgba(0,0,0,0.1)";
+// blur 50px → 25px (layer 사이즈 축소 → composite 부담 절반)
+const SHADOW_ON = "0 8px 28px rgba(0,0,0,0.12)";
 
 export default function ScrollCardSection() {
   const trackRef = useRef(null);
@@ -85,7 +86,8 @@ export default function ScrollCardSection() {
       const p = Math.max(0, Math.min(1, -rect.top / max));
       const idx = Math.min(Math.floor(p * N), N - 1);
 
-      // 카드 transform / visibility / box-shadow 직접 DOM 업데이트
+      // 카드 transform / box-shadow 직접 DOM 업데이트
+      // (visibility 토글 제거 — 마운트 시 모두 paint 완료 → 이후 transform composite만)
       for (let i = 0; i < N; i++) {
         const el = cardRefs.current[i];
         if (!el) continue;
@@ -95,13 +97,7 @@ export default function ScrollCardSection() {
             : Math.max(0, Math.min(1, (p - (i - 1) / SEGS) * SEGS));
         const yvh = ((1 - local) * 100).toFixed(2);
         el.style.transform = `translate3d(0, ${yvh}vh, 0)`;
-        // 가려진 카드는 paint 생략
-        const visible = local > 0.001;
-        if (el.dataset.visible !== String(visible)) {
-          el.style.visibility = visible ? "visible" : "hidden";
-          el.dataset.visible = String(visible);
-        }
-        // shadow는 활성 카드만 (boolean이라 매 프레임 재계산 비용 X)
+        // shadow는 활성 카드만 (boolean toggle)
         const shadow = i === idx ? SHADOW_ON : "none";
         if (el.dataset.shadow !== shadow) {
           el.style.boxShadow = shadow;
@@ -128,8 +124,15 @@ export default function ScrollCardSection() {
       }
     };
 
-    // 초기 cardRefs visibility/transform 세팅
+    // 초기 transform 세팅 + 모든 카드 paint 트리거 (warm-up)
+    // 카드 2/3번이 처음 등장할 때 paint 부담을 마운트 시점으로 이동
     update();
+    requestAnimationFrame(() => {
+      for (let i = 0; i < N; i++) {
+        const el = cardRefs.current[i];
+        if (el) void el.offsetHeight;
+      }
+    });
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
@@ -235,8 +238,8 @@ export default function ScrollCardSection() {
                     <img
                       src={card.img}
                       alt=""
-                      loading="lazy"
                       decoding="async"
+                      fetchpriority={i === 0 ? "high" : "low"}
                       className="absolute inset-0 w-full h-full object-cover select-none"
                       draggable="false"
                     />
