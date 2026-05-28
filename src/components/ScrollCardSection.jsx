@@ -141,9 +141,9 @@ export default function ScrollCardSection() {
             </h2>
           </div>
 
-          {/* 카드 컨테이너 — max-w-1200 mx-auto w-full */}
+          {/* 카드 컨테이너 — max-w-1020 mx-auto w-full (15% 축소) */}
           <div
-            className="relative max-w-[1200px] mx-auto w-full"
+            className="relative max-w-[1020px] mx-auto w-full"
             style={{ aspectRatio: "1200 / 554" }}
           >
             {CARDS.map((card, i) => {
@@ -188,21 +188,21 @@ export default function ScrollCardSection() {
                         : "none",
                   }}
                 >
-                  {/* 좌측 텍스트 패널 */}
-                  <div className="bg-[#fbfbfb] flex flex-col items-start justify-between h-full w-[68.4%] p-[24px] md:p-[40px] xl:p-[60px] rounded-l-[30px]">
-                    <div className="flex flex-col gap-[24px] md:gap-[36px] xl:gap-[50px] items-start">
+                  {/* 좌측 텍스트 패널 — 패딩·gap·텍스트 모두 15% 축소 */}
+                  <div className="bg-[#fbfbfb] flex flex-col items-start justify-between h-full w-[68.4%] p-[20px] md:p-[34px] xl:p-[51px] rounded-l-[30px]">
+                    <div className="flex flex-col gap-[20px] md:gap-[30px] xl:gap-[42px] items-start">
                       {/* 라벨 + 타이틀 */}
-                      <div className="flex flex-col gap-[8px] md:gap-[10px] xl:gap-[12px] items-start">
-                        <p className="font-medium text-[#c1c1c1] text-[16px] md:text-[22px] xl:text-[28px] tracking-[-0.005em]">
+                      <div className="flex flex-col gap-[6px] md:gap-[8px] xl:gap-[10px] items-start">
+                        <p className="font-medium text-[#c1c1c1] text-[14px] md:text-[19px] xl:text-[24px] tracking-[-0.005em]">
                           제휴기업 혜택 {String(i + 1).padStart(2, "0")}
                         </p>
-                        <p className="font-bold text-[#222] text-[22px] md:text-[32px] xl:text-[40px] tracking-[-0.018em] leading-[1.2]">
+                        <p className="font-bold text-[#222] text-[19px] md:text-[27px] xl:text-[34px] tracking-[-0.018em] leading-[1.2]">
                           {card.title}
                         </p>
                       </div>
 
                       {/* 본문 3줄 */}
-                      <div className="text-[#333] text-[13px] md:text-[16px] xl:text-[20px] leading-[1.5] tracking-[-0.003em]">
+                      <div className="text-[#333] text-[11px] md:text-[14px] xl:text-[17px] leading-[1.5] tracking-[-0.003em]">
                         {card.lines.map((line, j) => (
                           <p key={j} className="m-0">
                             {line}
