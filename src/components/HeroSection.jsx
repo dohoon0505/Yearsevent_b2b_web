@@ -94,8 +94,8 @@ export default function HeroSection({ onMenuClick }) {
         <HeaderHero onMenuClick={onMenuClick} />
       </div>
 
-      {/* 본문 — 글자 폭포 + fade-up */}
-      <div className="relative z-10 mx-auto flex h-full max-w-[1320px] flex-col justify-end pb-[120px] px-6 md:px-12 lg:px-[120px] xl:px-[100px] text-white">
+      {/* 본문 — 글자 폭포 + fade-up (좌우 padding 0 / margin 260px @ lg+) */}
+      <div className="relative z-10 flex h-full flex-col justify-end pb-[120px] px-0 mx-6 md:mx-12 lg:mx-[260px] text-white">
         <div className="max-w-[820px]">
           <CascadeLine
             as="p"
