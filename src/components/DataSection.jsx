@@ -81,20 +81,19 @@ export default function DataSection() {
     return () => obs.disconnect();
   }, []);
 
-  // 슬로건 천천한 스크럽 — viewport 75% → 5% 구간(약 70vh) 매핑
+  // section 기준 진행률 — section top이 viewport top 도달 시 0, 100vh 스크롤 시 1
+  // (hero 100vh snap 직후에도 progress 0 보장)
   useEffect(() => {
     let ticking = false;
     const update = () => {
-      const node = sloganRef.current;
+      const node = sectionRef.current;
       if (!node) {
         ticking = false;
         return;
       }
       const rect = node.getBoundingClientRect();
       const vh = window.innerHeight;
-      const start = vh * 0.75;
-      const end = vh * 0.05;
-      const raw = (start - rect.top) / (start - end);
+      const raw = -rect.top / vh;
       setProgress(Math.max(0, Math.min(1, raw)));
       ticking = false;
     };
@@ -113,11 +112,13 @@ export default function DataSection() {
     };
   }, []);
 
-  // 단어 인덱스 매핑 (0~1 → 0~N+1)
-  const litIndex = Math.floor(progress * (TOTAL_WORDS + 1));
+  // 단어 인덱스 매핑 — 처음 5% 패딩 후 90% 구간에서 reveal
+  // (사용자: "스크롤 수치가 5%부터 다시 시작")
+  const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.9));
+  const litIndex = Math.floor(lit * (TOTAL_WORDS + 1));
 
-  // 통계 카드는 슬로건 95% 이상 reveal 시점에 stagger 시작
-  const statsReady = progress >= 0.95;
+  // 통계 카드는 reveal 95% 이상 시점에 stagger 시작
+  const statsReady = lit >= 0.95;
 
   let wordCounter = 0;
 
