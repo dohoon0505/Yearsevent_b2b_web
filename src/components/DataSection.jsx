@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * DataSection — Figma 85:50 레이아웃 + 시퀀스 인터랙티브
+ * DataSection — Figma 85:50 + sticky pin scrub reveal
  *
  * 인터랙션 흐름:
- *   1) 진입 시 About Us 라벨 fade-up (IntersectionObserver)
- *   2) 슬로건이 viewport 75%~5% 구간 통과(약 70vh)하는 동안 단어가 천천히
- *      dim → on 색상으로 채워짐 (scrub color, progress 0→1)
- *   3) 슬로건 reveal 95% 이상 도달 시 통계 카드 stagger 등장 시작
- *      (statsReady → 카드별 0.22s 간격)
- *
- * 레이아웃:
- *   - py-[150px] 상하 통일
- *   - 위: About Us + 슬로건 (좌측 정렬)
- *   - 아래: 통계 3카드 (우측 정렬, gap-50)
- *   - 통계 카드 max-w-[560px], 80px ExtraBold 숫자, h-[3px] bg-#222 보더
+ *   1) 진입 시 About Us + 슬로건 fade-up
+ *   2) 슬로건 sticky pin (track 200vh, stage 100vh)
+ *      사용자가 100vh 스크롤하는 동안 progress 0→1
+ *      텍스트 100% 채워지기 전까지 화면 스크롤 X (sticky 잠금)
+ *   3) progress 1.0 도달 → sticky 해제 → 사용자가 더 스크롤 시 통계 카드 영역 등장
+ *   4) 통계 카드 viewport 진입 → IntersectionObserver 트리거 → 0.22s stagger
  */
 
 const SLOGAN_LINES = [
@@ -60,11 +55,13 @@ const ACCENT = "#ef695d";
 
 export default function DataSection() {
   const sectionRef = useRef(null);
-  const sloganRef = useRef(null);
+  const trackRef = useRef(null);
+  const statsRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [aboutReady, setAboutReady] = useState(false);
+  const [statsReady, setStatsReady] = useState(false);
 
-  // About Us 라벨 + 슬로건 컨테이너 진입 시퀀스
+  // About Us + 슬로건 등장 시퀀스 (section 진입)
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -75,25 +72,42 @@ export default function DataSection() {
           obs.disconnect();
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.05 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  // section 기준 진행률 — section top이 viewport top 도달 시 0, 100vh 스크롤 시 1
-  // (hero 100vh snap 직후에도 progress 0 보장)
+  // 통계 카드 viewport 진입 시 stagger 등장
+  useEffect(() => {
+    const el = statsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStatsReady(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // sticky track 기반 progress (track 안에서 0~1)
   useEffect(() => {
     let ticking = false;
     const update = () => {
-      const node = sectionRef.current;
+      const node = trackRef.current;
       if (!node) {
         ticking = false;
         return;
       }
       const rect = node.getBoundingClientRect();
       const vh = window.innerHeight;
-      const raw = -rect.top / vh;
+      const max = Math.max(1, rect.height - vh);
+      const raw = -rect.top / max;
       setProgress(Math.max(0, Math.min(1, raw)));
       ticking = false;
     };
@@ -112,13 +126,9 @@ export default function DataSection() {
     };
   }, []);
 
-  // 단어 인덱스 매핑 — 처음 5% 패딩 후 90% 구간에서 reveal
-  // (사용자: "스크롤 수치가 5%부터 다시 시작")
+  // 단어 인덱스 — 처음 5% 패딩 + 90% 구간에서 reveal
   const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.9));
   const litIndex = Math.floor(lit * (TOTAL_WORDS + 1));
-
-  // 통계 카드는 reveal 95% 이상 시점에 stagger 시작
-  const statsReady = lit >= 0.95;
 
   let wordCounter = 0;
 
@@ -128,81 +138,85 @@ export default function DataSection() {
       aria-label="회사 데이터"
       className="relative bg-white"
     >
-      <div className="flex flex-col gap-[40px] items-start px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[150px]">
-        {/* 좌측 — About Us 라벨 + 슬로건 (scrub color) */}
-        <div className="flex flex-col gap-[30px] items-start">
-          <p
-            className="text-[var(--color-brand-red)] font-bold text-[20px] md:text-[24px] tracking-[-0.01em] hero-fade-up"
-            style={{
-              opacity: aboutReady ? 1 : 0,
-              transform: aboutReady ? "translateY(0)" : "translateY(20px)",
-            }}
-          >
-            About Us
-          </p>
-
-          <h2
-            ref={sloganRef}
-            className="font-bold text-[36px] md:text-[48px] lg:text-[56px] xl:text-[60px] leading-[1.28] tracking-[-0.018em] hero-fade-up"
-            style={{
-              opacity: aboutReady ? 1 : 0,
-              transform: aboutReady ? "translateY(0)" : "translateY(28px)",
-              transitionDelay: "0.14s",
-            }}
-          >
-            {SLOGAN_LINES.map((line, lineIdx) => (
-              <span key={lineIdx} className="block">
-                {line.map((w, i) => {
-                  const idx = wordCounter++;
-                  const isLit = idx < litIndex;
-                  const onColor = w.tone === "accent" ? ACCENT : DARK;
-                  return (
-                    <span
-                      key={i}
-                      className="inline-block transition-colors duration-300 ease-out"
-                      style={{ color: isLit ? onColor : DIM }}
-                    >
-                      {w.text}
-                      {i < line.length - 1 && !w.noSpace ? " " : ""}
-                    </span>
-                  );
-                })}
-              </span>
-            ))}
-          </h2>
-        </div>
-
-        {/* 우측 — 통계 카드 (슬로건 reveal 완료 후 stagger 등장) */}
-        <div className="w-full flex flex-col gap-[50px] items-end">
-          {STATS.map((stat, i) => (
-            <div
-              key={stat.label}
-              className="w-full max-w-[560px] flex flex-col gap-[45px]"
+      {/* 슬로건 sticky 트랙 — track 200vh / sticky stage 100vh */}
+      <div ref={trackRef} style={{ height: "200vh" }} className="relative">
+        <div className="sticky top-0 h-screen w-full flex flex-col items-start justify-center px-6 md:px-12 lg:px-[120px] xl:px-[260px]">
+          <div className="flex flex-col gap-[30px] items-start">
+            <p
+              className="text-[var(--color-brand-red)] font-bold text-[20px] md:text-[24px] tracking-[-0.01em] hero-fade-up"
               style={{
-                opacity: statsReady ? 1 : 0,
-                transform: statsReady ? "translateY(0)" : "translateY(40px)",
-                transition:
-                  "opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1)",
-                transitionDelay: statsReady ? `${i * 0.22}s` : "0s",
+                opacity: aboutReady ? 1 : 0,
+                transform: aboutReady ? "translateY(0)" : "translateY(20px)",
               }}
             >
-              <div className="flex items-center justify-between gap-6">
-                <div className="flex flex-col gap-[10px] min-w-0">
-                  <p className="text-[22px] md:text-[26px] font-medium text-black tracking-[-0.012em] leading-[1.4]">
-                    {stat.label}
-                  </p>
-                  <p className="text-[14px] md:text-[17px] font-light text-black tracking-[-0.003em] leading-[1.4]">
-                    {stat.desc}
-                  </p>
-                </div>
-                <p className="text-[56px] md:text-[68px] lg:text-[80px] font-extrabold tracking-[-0.01em] leading-[1] text-black whitespace-nowrap">
-                  {stat.value}
+              About Us
+            </p>
+
+            <h2
+              className="font-bold text-[36px] md:text-[48px] lg:text-[56px] xl:text-[60px] leading-[1.28] tracking-[-0.018em] hero-fade-up"
+              style={{
+                opacity: aboutReady ? 1 : 0,
+                transform: aboutReady ? "translateY(0)" : "translateY(28px)",
+                transitionDelay: "0.14s",
+              }}
+            >
+              {SLOGAN_LINES.map((line, lineIdx) => (
+                <span key={lineIdx} className="block">
+                  {line.map((w, i) => {
+                    const idx = wordCounter++;
+                    const isLit = idx < litIndex;
+                    const onColor = w.tone === "accent" ? ACCENT : DARK;
+                    return (
+                      <span
+                        key={i}
+                        className="inline-block transition-colors duration-300 ease-out"
+                        style={{ color: isLit ? onColor : DIM }}
+                      >
+                        {w.text}
+                        {i < line.length - 1 && !w.noSpace ? " " : ""}
+                      </span>
+                    );
+                  })}
+                </span>
+              ))}
+            </h2>
+          </div>
+        </div>
+      </div>
+
+      {/* 통계 카드 — sticky 해제 후 자연 등장 (viewport 진입 시 stagger) */}
+      <div
+        ref={statsRef}
+        className="w-full flex flex-col gap-[50px] items-end px-6 md:px-12 lg:px-[120px] xl:px-[260px] pb-[150px]"
+      >
+        {STATS.map((stat, i) => (
+          <div
+            key={stat.label}
+            className="w-full max-w-[560px] flex flex-col gap-[45px]"
+            style={{
+              opacity: statsReady ? 1 : 0,
+              transform: statsReady ? "translateY(0)" : "translateY(40px)",
+              transition:
+                "opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1)",
+              transitionDelay: statsReady ? `${i * 0.22}s` : "0s",
+            }}
+          >
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex flex-col gap-[10px] min-w-0">
+                <p className="text-[22px] md:text-[26px] font-medium text-black tracking-[-0.012em] leading-[1.4]">
+                  {stat.label}
+                </p>
+                <p className="text-[14px] md:text-[17px] font-light text-black tracking-[-0.003em] leading-[1.4]">
+                  {stat.desc}
                 </p>
               </div>
-              <div className="h-[3px] w-full bg-[#222]" />
+              <p className="text-[56px] md:text-[68px] lg:text-[80px] font-extrabold tracking-[-0.01em] leading-[1] text-black whitespace-nowrap">
+                {stat.value}
+              </p>
             </div>
-          ))}
-        </div>
+            <div className="h-[3px] w-full bg-[#222]" />
+          </div>
+        ))}
       </div>
     </section>
   );
