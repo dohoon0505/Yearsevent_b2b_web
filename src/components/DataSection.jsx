@@ -90,7 +90,7 @@ function Slogan({ lines, litIndex, align = "left", style }) {
   let wordCounter = 0;
   return (
     <h2
-      className={`font-bold text-[32px] md:text-[42px] lg:text-[48px] xl:text-[52px] leading-[1.25] tracking-[-0.018em] hero-fade-up ${
+      className={`font-bold text-[36px] md:text-[46px] lg:text-[52px] xl:text-[58px] leading-[1.25] tracking-[-0.018em] hero-fade-up ${
         align === "right" ? "text-right" : "text-left"
       }`}
       style={style}
@@ -180,6 +180,9 @@ export default function DataSection() {
   const businessLit = Math.max(0, Math.min(1, (businessProgress - 0.05) / 0.9));
   const businessLitIdx = Math.floor(businessLit * (TOTAL_BUSINESS + 1));
 
+  // About Us 100% 완료 전까지 For Business 영역 숨김
+  const businessReady = ready && progress >= 0.5;
+
   return (
     <section
       ref={sectionRef}
@@ -211,14 +214,15 @@ export default function DataSection() {
               />
             </div>
 
-            {/* 하단 우측 — For Business */}
+            {/* 하단 우측 — For Business (About Us 100% 완료 후 등장) */}
             <div className="flex flex-col gap-[24px] items-end">
               <SectionLabel
                 text="For Business"
                 style={{
-                  opacity: ready ? 1 : 0,
-                  transform: ready ? "translateY(0)" : "translateY(20px)",
-                  transitionDelay: "0.28s",
+                  opacity: businessReady ? 1 : 0,
+                  transform: businessReady
+                    ? "translateY(0)"
+                    : "translateY(20px)",
                 }}
               />
               <Slogan
@@ -226,9 +230,11 @@ export default function DataSection() {
                 litIndex={businessLitIdx}
                 align="right"
                 style={{
-                  opacity: ready ? 1 : 0,
-                  transform: ready ? "translateY(0)" : "translateY(28px)",
-                  transitionDelay: "0.42s",
+                  opacity: businessReady ? 1 : 0,
+                  transform: businessReady
+                    ? "translateY(0)"
+                    : "translateY(28px)",
+                  transitionDelay: "0.14s",
                 }}
               />
             </div>
