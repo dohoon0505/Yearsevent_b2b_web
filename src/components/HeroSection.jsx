@@ -152,6 +152,24 @@ export default function HeroSection({ onMenuClick }) {
           />
         </div>
       </div>
+
+      {/* 스크롤 유도 인디케이터 — 우측 하단 (마우스 + 점 + SCROLL 라벨) */}
+      <div
+        className="absolute bottom-10 right-6 md:right-12 lg:right-[260px] z-10 hidden md:flex flex-col items-center gap-3 select-none pointer-events-none hero-fade-up"
+        style={{
+          opacity: headerReady ? 1 : 0,
+          transform: headerReady ? "translateY(0)" : "translateY(12px)",
+          transitionDelay: "0.35s",
+        }}
+        aria-hidden
+      >
+        <div className="w-[26px] h-[44px] border-[1.5px] border-white/70 rounded-full flex justify-center pt-2">
+          <span className="w-[3px] h-[8px] bg-white/90 rounded-full anim-scroll-mouse-dot" />
+        </div>
+        <span className="text-[10px] tracking-[0.3em] text-white/65 font-semibold uppercase anim-scroll-label">
+          Scroll
+        </span>
+      </div>
     </section>
   );
 }

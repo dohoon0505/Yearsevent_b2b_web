@@ -404,6 +404,26 @@
   100% { transform: scaleY(1); opacity: 0; }
 }
 
+/* Hero 우측 하단 — 마우스 내부 점 위→아래 이동 */
+@keyframes scroll-mouse-dot {
+  0%   { transform: translateY(0); opacity: 0; }
+  20%  { opacity: 1; }
+  70%  { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(14px); opacity: 0; }
+}
+.anim-scroll-mouse-dot {
+  animation: scroll-mouse-dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Hero 우측 하단 — SCROLL 라벨 미세 호흡 */
+@keyframes scroll-label-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.anim-scroll-label {
+  animation: scroll-label-pulse 2.4s ease-in-out infinite;
+}
+
 /* =============================================
    Reduced Motion
    ============================================= */
