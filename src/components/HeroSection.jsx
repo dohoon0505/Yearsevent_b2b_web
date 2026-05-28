@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import EventHeader from "./EventHeader.jsx";
 import HeaderHero from "./HeaderHero.jsx";
+import PetalCanvas from "./PetalCanvas.jsx";
 import cityBg from "../assets/hero-city-bg.png";
 
 /**
@@ -70,6 +71,9 @@ export default function HeroSection({ onMenuClick }) {
         className="absolute inset-0 bg-[var(--color-overlay-dark-40)]"
         aria-hidden
       />
+
+      {/* 꽃잎 파티클 — Canvas 2D (overlay 위, 본문 텍스트 아래) */}
+      <PetalCanvas count={60} />
 
       {/* EventHeader — top bar */}
       <div
