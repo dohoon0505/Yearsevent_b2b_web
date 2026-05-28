@@ -58,6 +58,16 @@ export default function HomePage() {
       // crossfade 구간: progress 0.93 ~ 1.0 (전체의 마지막 7%)
       const fade = Math.max(0, Math.min(1, (raw - 0.93) / 0.07));
 
+      // Hero 영역(spacer + HeroSection) 까지만 scroll-snap 유지, 이후 해제
+      const heroEnd = spacerH + vh;
+      const html = document.documentElement;
+      if (window.scrollY < heroEnd - 10) {
+        if (html.style.scrollSnapType !== "y mandatory")
+          html.style.scrollSnapType = "y mandatory";
+      } else {
+        if (html.style.scrollSnapType) html.style.scrollSnapType = "";
+      }
+
       setZoomProgress(raw);
       setCrossfade(fade);
       ticking = false;
