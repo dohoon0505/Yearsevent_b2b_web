@@ -109,7 +109,7 @@ export default function ScrollSlides() {
             {SLIDES.map((slide, i) => (
               <article
                 key={i}
-                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[150px] slide-article"
+                className="absolute left-0 right-0 bottom-0 px-6 md:px-12 lg:px-[260px] slide-article"
                 style={{
                   opacity: i === activeIndex ? 1 : 0,
                   transform: i === activeIndex ? "translateY(0)" : "translateY(16px)",
@@ -131,7 +131,7 @@ export default function ScrollSlides() {
           </div>
         </div>
 
-        <div className="absolute bottom-12 left-0 right-0 z-20 px-6 md:px-12 lg:px-[150px]">
+        <div className="absolute bottom-12 left-0 right-0 z-20 px-6 md:px-12 lg:px-[260px]">
           <div className="flex gap-4 md:gap-6">
             {SLIDES.map((slide, i) => {
               const start = i / N;

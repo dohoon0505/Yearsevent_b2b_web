@@ -21,7 +21,7 @@ import MenuToggle from "./MenuToggle.jsx";
 export default function HeaderScrollActive({ visible, onMenuClick }) {
   return (
     <div
-      className={`fixed inset-x-0 top-3 lg:top-5 z-50 mx-auto max-w-[1400px] px-3 md:px-4 lg:px-5 pointer-events-none ${
+      className={`fixed inset-x-0 top-3 lg:top-5 z-50 px-6 md:px-12 lg:px-[260px] pointer-events-none ${
         visible ? "translate-y-0 opacity-100" : "-translate-y-[120%] opacity-0"
       } transition-[transform,opacity] duration-[550ms] ease-[cubic-bezier(0.25,1,0.5,1)]`}
       aria-hidden={!visible}
