@@ -1,23 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * DataSection — Hero 바로 아래 회사 데이터 섹션
+ * DataSection — Figma 85:50 100% 재현
  *
- * 참고: scroll-text-reveal scrub-color 패턴 (Framer Marketplace Text Reveal)
+ * 레이아웃 (height 자연 흐름, 100vh sticky 미사용):
+ *   - 부모 flex-col gap-40 items-start, px-260 py-200
+ *   - 위: About Us + 슬로건 (좌측 정렬, items-start)
+ *   - 아래: 통계 3카드 묶음 (우측 정렬, items-end, gap-50)
  *
- * 구조 (총 240vh):
- *   - track 240vh / sticky stage 100vh
- *   - 사용자가 140vh 스크롤 동안 단어가 dim → on 색상으로 채워짐
- *   - progress 1.0 도달 시 sticky 해제 → 다음 섹션으로 자연스럽게 이어짐
+ * 스크럽 컬러 (sticky 없는 자연 스크롤 버전):
+ *   - 슬로건 ref가 viewport 80%~20% 구간을 통과하는 동안 progress 0→1
+ *   - 단어 인덱스 매핑으로 dim → on 색상 토글
  *
- * 시퀀스:
- *   1) IntersectionObserver로 viewport 진입 감지
- *   2) About Us label fade-up → 헤딩 → 통계 카드 stagger (초기 1회)
- *   3) 사용자 스크롤 → scrub color reveal (단어별 색상 토글)
- *
- * 강조 단어:
- *   "작은 축하와 깊은 위로" → brand-peach 색상
- *   그 외 → dark (#222)
+ * 진입 시퀀스:
+ *   IntersectionObserver → About Us → 슬로건 → 통계 카드 stagger
  */
 
 const SLOGAN_LINES = [
@@ -61,13 +57,14 @@ const DARK = "#222222";
 const ACCENT = "#ef695d";
 
 export default function DataSection() {
-  const trackRef = useRef(null);
+  const sectionRef = useRef(null);
+  const sloganRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [inView, setInView] = useState(false);
 
   // IntersectionObserver — 섹션 진입 시퀀스 트리거
   useEffect(() => {
-    const el = trackRef.current;
+    const el = sectionRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
@@ -76,25 +73,27 @@ export default function DataSection() {
           obs.disconnect();
         }
       },
-      { threshold: 0.12 },
+      { threshold: 0.1 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  // 스크롤 진행률 추적 (scrub) — track 기준 0~1
+  // 자연 스크롤 진행률 — 슬로건이 viewport 80%~20% 구간을 통과하는 동안 0→1
   useEffect(() => {
     let ticking = false;
     const update = () => {
-      const node = trackRef.current;
+      const node = sloganRef.current;
       if (!node) {
         ticking = false;
         return;
       }
       const rect = node.getBoundingClientRect();
-      const max = Math.max(1, rect.height - window.innerHeight);
-      const raw = Math.max(0, Math.min(1, -rect.top / max));
-      setProgress(raw);
+      const vh = window.innerHeight;
+      const start = vh * 0.8;
+      const end = vh * 0.2;
+      const raw = (start - rect.top) / (start - end);
+      setProgress(Math.max(0, Math.min(1, raw)));
       ticking = false;
     };
     const onScroll = () => {
@@ -112,7 +111,7 @@ export default function DataSection() {
     };
   }, []);
 
-  // 단어 인덱스 매핑 — Framer Text Reveal 동일 (앞 5% 패딩 + 뒤 10% 여유)
+  // 단어 인덱스 매핑 (Framer Text Reveal 스펙)
   const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.85));
   const litIndex = Math.floor(lit * (TOTAL_WORDS + 1));
 
@@ -120,83 +119,82 @@ export default function DataSection() {
 
   return (
     <section
-      ref={trackRef}
+      ref={sectionRef}
       aria-label="회사 데이터"
       className="relative bg-white"
-      style={{ height: "240vh" }}
     >
-      <div className="sticky top-0 h-screen w-full flex items-center px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[80px]">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-14 lg:gap-20 items-end">
-          {/* 좌측 — About Us label + 슬로건 (scrub color) */}
-          <div>
-            <p
-              className="typo-eyebrow text-[var(--color-brand-red)] hero-fade-up"
+      <div className="flex flex-col gap-[40px] items-start px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[120px] md:py-[160px] xl:py-[200px]">
+        {/* 좌측 — About Us 라벨 + 슬로건 (items-start) */}
+        <div className="flex flex-col gap-[30px] items-start">
+          <p
+            className="text-[var(--color-brand-red)] font-bold text-[20px] md:text-[24px] tracking-[-0.01em] hero-fade-up"
+            style={{
+              opacity: inView ? 1 : 0,
+              transform: inView ? "translateY(0)" : "translateY(20px)",
+            }}
+          >
+            About Us
+          </p>
+
+          <h2
+            ref={sloganRef}
+            className="font-bold text-[36px] md:text-[48px] lg:text-[56px] xl:text-[60px] leading-[1.28] tracking-[-0.018em] hero-fade-up"
+            style={{
+              opacity: inView ? 1 : 0,
+              transform: inView ? "translateY(0)" : "translateY(28px)",
+              transitionDelay: "0.14s",
+            }}
+          >
+            {SLOGAN_LINES.map((line, lineIdx) => (
+              <span key={lineIdx} className="block">
+                {line.map((w, i) => {
+                  const idx = wordCounter++;
+                  const isLit = idx < litIndex;
+                  const onColor = w.tone === "accent" ? ACCENT : DARK;
+                  return (
+                    <span
+                      key={i}
+                      className="inline-block transition-colors duration-200 ease-out"
+                      style={{ color: isLit ? onColor : DIM }}
+                    >
+                      {w.text}
+                      {i < line.length - 1 ? " " : ""}
+                    </span>
+                  );
+                })}
+              </span>
+            ))}
+          </h2>
+        </div>
+
+        {/* 우측 — 통계 카드 묶음 (w-full + items-end) */}
+        <div className="w-full flex flex-col gap-[50px] items-end">
+          {STATS.map((stat, i) => (
+            <div
+              key={stat.label}
+              className="w-full max-w-[560px] flex flex-col gap-[20px] hero-fade-up"
               style={{
                 opacity: inView ? 1 : 0,
-                transform: inView ? "translateY(0)" : "translateY(20px)",
+                transform: inView ? "translateY(0)" : "translateY(28px)",
+                transitionDelay: `${0.34 + i * 0.14}s`,
               }}
             >
-              About Us
-            </p>
-
-            <h2
-              className="mt-8 font-bold text-[34px] md:text-[44px] lg:text-[54px] leading-[1.28] tracking-[-0.018em] hero-fade-up"
-              style={{
-                opacity: inView ? 1 : 0,
-                transform: inView ? "translateY(0)" : "translateY(24px)",
-                transitionDelay: "0.14s",
-              }}
-            >
-              {SLOGAN_LINES.map((line, lineIdx) => (
-                <span key={lineIdx} className="block">
-                  {line.map((w, i) => {
-                    const idx = wordCounter++;
-                    const isLit = idx < litIndex;
-                    const onColor = w.tone === "accent" ? ACCENT : DARK;
-                    return (
-                      <span
-                        key={i}
-                        className="inline-block transition-colors duration-200 ease-out"
-                        style={{ color: isLit ? onColor : DIM }}
-                      >
-                        {w.text}
-                        {i < line.length - 1 ? " " : ""}
-                      </span>
-                    );
-                  })}
-                </span>
-              ))}
-            </h2>
-          </div>
-
-          {/* 우측 — 3개 통계 카드 */}
-          <ul className="flex flex-col gap-2">
-            {STATS.map((stat, i) => (
-              <li
-                key={stat.label}
-                className="hero-fade-up"
-                style={{
-                  opacity: inView ? 1 : 0,
-                  transform: inView ? "translateY(0)" : "translateY(28px)",
-                  transitionDelay: `${0.34 + i * 0.12}s`,
-                }}
-              >
-                <div className="flex items-end justify-between gap-6 pt-6 pb-7 border-b border-[#222]">
-                  <div className="min-w-0">
-                    <p className="text-[17px] md:text-[19px] font-bold tracking-[-0.012em] text-[#222]">
-                      {stat.label}
-                    </p>
-                    <p className="mt-2 text-[12px] md:text-[13px] text-[var(--color-neutral-60)] leading-[1.45]">
-                      {stat.desc}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-[44px] md:text-[58px] lg:text-[72px] font-extrabold tracking-[-0.025em] leading-[1] text-[#222]">
-                    {stat.value}
+              <div className="flex items-center justify-between gap-6">
+                <div className="flex flex-col gap-[10px] min-w-0">
+                  <p className="text-[22px] md:text-[26px] font-medium text-black tracking-[-0.012em] leading-[1.4]">
+                    {stat.label}
+                  </p>
+                  <p className="text-[14px] md:text-[17px] font-light text-black tracking-[-0.003em] leading-[1.4]">
+                    {stat.desc}
                   </p>
                 </div>
-              </li>
-            ))}
-          </ul>
+                <p className="text-[56px] md:text-[68px] lg:text-[80px] font-extrabold tracking-[-0.01em] leading-[1] text-black whitespace-nowrap">
+                  {stat.value}
+                </p>
+              </div>
+              <div className="h-[3px] w-full bg-[#222]" />
+            </div>
+          ))}
         </div>
       </div>
     </section>
