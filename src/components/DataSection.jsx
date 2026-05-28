@@ -51,7 +51,7 @@ const STATS = [
 
 const DIM = "#d4d8e2";
 const DARK = "#222222";
-const ACCENT = "#ef695d";
+const ACCENT = "var(--color-brand-red)";
 
 export default function DataSection() {
   const sectionRef = useRef(null);
