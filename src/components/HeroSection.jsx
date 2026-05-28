@@ -40,7 +40,7 @@ export default function HeroSection({ onMenuClick }) {
   useEffect(() => {
     if (!bgLoaded) return;
     const t1 = setTimeout(() => setTextReady(true), 250);
-    const t2 = setTimeout(() => setBodyReady(true), 2000);
+    const t2 = setTimeout(() => setBodyReady(true), 1750);
     const t3 = setTimeout(() => setHeaderReady(true), 1300);
     return () => {
       clearTimeout(t1);
@@ -99,33 +99,24 @@ export default function HeroSection({ onMenuClick }) {
         <div className="max-w-[820px]">
           <CascadeLine
             as="p"
-            text="For Business · Since 2016"
-            ready={textReady}
-            baseDelay={0}
-            stagger={20}
-            className="typo-eyebrow text-white/75"
-          />
-
-          <CascadeLine
-            as="p"
             text="11년차 꽃배달 기업의 경조사 전담 솔루션"
             ready={textReady}
-            baseDelay={220}
-            stagger={32}
-            className="mt-3 text-[17px] md:text-[20px] font-medium text-white/85 tracking-[-0.003em]"
+            baseDelay={0}
+            stagger={28}
+            className="text-[16px] md:text-[18px] font-medium text-white/85 tracking-[-0.003em]"
           />
 
           <h1 className="typo-display mt-4">
             <CascadeLine
               text="경조사 소식이 많이 들려온다면,"
               ready={textReady}
-              baseDelay={520}
+              baseDelay={320}
               stagger={36}
             />
             <CascadeLine
               text="전담관리 서비스는 꼭 필요합니다."
               ready={textReady}
-              baseDelay={1080}
+              baseDelay={860}
               stagger={36}
               className="text-[var(--color-brand-peach)]"
             />
