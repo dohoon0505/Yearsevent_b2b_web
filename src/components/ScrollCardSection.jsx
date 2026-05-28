@@ -5,18 +5,20 @@ import slideCorporate from "../assets/slide-corporate.png";
 import slideCommunity from "../assets/slide-community.png";
 
 /**
- * ScrollCardSection — Figma 95:212 적용
+ * ScrollCardSection — Figma 95:212 디자인 + base44 stack-up 인터랙션
  *
- * 구성:
- *   - sticky stage 100vh
- *     - 상단: 섹션 헤더 (Partner Benefits • + 제휴기업은 어떤 혜택이 있나요?)
- *     - 하단: 카드 컨테이너 (1200×554, drop-shadow, rounded-30)
- *       - 좌측 821px (#fbfbfb) — 라벨 + 타이틀 + 본문 + "스크롤 하여 이동 ↓"
- *       - 우측 flex-1 — 이미지
+ * 구성 (sticky stage 100vh):
+ *   - 배경 그라데이션 4 레이어 (활성 카드 opacity 0.5 크로스페이드, bg-white 위)
+ *   - 콘텐츠 레이어:
+ *     - 상단: Partner Benefits • + 제휴기업은 어떤 혜택이 있나요? (가운데 정렬)
+ *     - 하단: 카드 컨테이너 (max-w-1200 mx-auto w-full, aspect 1200/554, drop-shadow)
+ *       - 좌측 68.4%: #fbfbfb 패널 (라벨 + 타이틀 + 본문 3줄 + 하단 안내)
+ *       - 우측 flex-1: object-cover 이미지
  *
- * 인터랙션 (base44 stack-up 유지):
- *   - track 500vh, 사용자 400vh 스크롤 동안 카드 stack up
- *   - 카드 1번은 처음부터 표시, 카드 2~4번이 아래에서 위로 슬라이드 + zIndex 순서
+ * 인터랙션:
+ *   - track 500vh / sticky stage 100vh
+ *   - 카드 1번은 처음부터 표시, 2~4번이 translateY 100%→0 stack up (zIndex 순서)
+ *   - 활성 카드 인덱스에 따라 배경 그라데이션 크로스페이드 (600ms)
  */
 
 const CARDS = [
@@ -28,6 +30,7 @@ const CARDS = [
       "타사와는 다르게 100% 무료배송을 제공해 드리고 있습니다.",
     ],
     img: slideLegal,
+    bg: "linear-gradient(#fff 42.34%, rgb(240,195,236) 91.67%, rgb(204,231,233) 104.12%)",
   },
   {
     title: "시장 평균 대비 35% 단가 절감",
@@ -37,6 +40,7 @@ const CARDS = [
       "화환 · 근조화 모든 품목에서 합리적인 가격을 제시합니다.",
     ],
     img: slideIndustry,
+    bg: "linear-gradient(#fff 42.49%, #fff 70%, rgb(229,255,148) 104.08%)",
   },
   {
     title: "월 정산 · 50만원 책임 배상",
@@ -46,6 +50,7 @@ const CARDS = [
       "만약의 사고에도 안심하고 거래하실 수 있습니다.",
     ],
     img: slideCorporate,
+    bg: "linear-gradient(#fff 42.62%, rgb(249,251,201) 94.17%, rgb(254,233,105) 104.07%)",
   },
   {
     title: "1:1 전담 매니저 배정",
@@ -55,6 +60,7 @@ const CARDS = [
       "카카오톡 상담으로 신속한 지원을 받으실 수 있습니다.",
     ],
     img: slideCommunity,
+    bg: "linear-gradient(0deg, rgb(203,13,53) -13.02%, #fff 9.58%, #fff 83.05%)",
   },
 ];
 
@@ -94,6 +100,7 @@ export default function ScrollCardSection() {
 
   const N = CARDS.length;
   const segs = N - 1;
+  const activeIdx = Math.min(Math.floor(progress * N), N - 1);
 
   return (
     <section
@@ -102,89 +109,110 @@ export default function ScrollCardSection() {
       className="relative bg-white"
       style={{ height: `${N * 100 + 100}vh` }}
     >
-      <div className="sticky top-0 h-screen w-full bg-white flex flex-col items-center justify-center gap-[60px] md:gap-[80px] xl:gap-[90px] px-6 md:px-12 lg:px-[80px] xl:px-[260px] py-[80px] md:py-[120px] xl:py-[150px]">
-        {/* 섹션 헤더 — 가운데 정렬 */}
-        <div className="flex flex-col gap-[20px] md:gap-[30px] items-center">
-          <div className="flex gap-[8px] items-center">
-            <p className="font-bold text-[var(--color-brand-red)] text-[18px] md:text-[22px] xl:text-[24px] tracking-[-0.01em]">
-              Partner Benefits
-            </p>
-            <span
-              aria-hidden
-              className="block w-[8px] h-[8px] xl:w-[10px] xl:h-[10px] rounded-full bg-[var(--color-brand-red)]"
-            />
+      <div className="sticky top-0 h-screen w-full bg-white overflow-hidden">
+        {/* 배경 그라데이션 4 레이어 — 활성 카드 opacity 0.5 크로스페이드 */}
+        {CARDS.map((card, i) => (
+          <div
+            key={`bg-${i}`}
+            aria-hidden
+            className="absolute inset-0 transition-opacity duration-[600ms] ease-out"
+            style={{
+              background: card.bg,
+              opacity: i === activeIdx ? 0.5 : 0,
+            }}
+          />
+        ))}
+
+        {/* 콘텐츠 레이어 */}
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-[60px] md:gap-[80px] xl:gap-[90px] px-6 md:px-12 lg:px-[80px] xl:px-[260px] py-[80px] md:py-[120px] xl:py-[150px]">
+          {/* 섹션 헤더 — 가운데 정렬 */}
+          <div className="flex flex-col gap-[20px] md:gap-[30px] items-center">
+            <div className="flex gap-[8px] items-center">
+              <p className="font-bold text-[var(--color-brand-red)] text-[18px] md:text-[22px] xl:text-[24px] tracking-[-0.01em]">
+                Partner Benefits
+              </p>
+              <span
+                aria-hidden
+                className="block w-[8px] h-[8px] xl:w-[10px] xl:h-[10px] rounded-full bg-[var(--color-brand-red)]"
+              />
+            </div>
+            <h2 className="font-bold text-[#222] text-[32px] md:text-[44px] xl:text-[58px] tracking-[-0.018em] text-center leading-[1.2]">
+              제휴기업은 어떤 혜택이 있나요?
+            </h2>
           </div>
-          <h2 className="font-bold text-[#222] text-[32px] md:text-[44px] xl:text-[58px] tracking-[-0.018em] text-center leading-[1.2]">
-            제휴기업은 어떤 혜택이 있나요?
-          </h2>
-        </div>
 
-        {/* 카드 컨테이너 */}
-        <div
-          className="relative w-full max-w-[1200px]"
-          style={{ aspectRatio: "1200 / 554" }}
-        >
-          {CARDS.map((card, i) => {
-            let translateY = 0;
-            if (i > 0) {
-              const start = (i - 1) / segs;
-              const local = Math.max(0, Math.min(1, (progress - start) * segs));
-              translateY = (1 - local) * 100;
-            }
-            const isLast = i === N - 1;
-            return (
-              <div
-                key={i}
-                className="absolute inset-0 flex drop-shadow-[0px_0px_50px_rgba(0,0,0,0.1)] rounded-[30px]"
-                style={{
-                  transform: `translateY(${translateY.toFixed(3)}%)`,
-                  zIndex: i + 1,
-                  willChange: "transform",
-                }}
-              >
-                {/* 좌측 텍스트 패널 */}
-                <div className="bg-[#fbfbfb] flex flex-col items-start justify-between h-full w-[68.4%] p-[24px] md:p-[40px] xl:p-[60px] rounded-l-[30px]">
-                  <div className="flex flex-col gap-[24px] md:gap-[36px] xl:gap-[50px] items-start">
-                    {/* 라벨 + 타이틀 */}
-                    <div className="flex flex-col gap-[8px] md:gap-[10px] xl:gap-[12px] items-start">
-                      <p className="font-medium text-[#c1c1c1] text-[16px] md:text-[22px] xl:text-[28px] tracking-[-0.005em]">
-                        제휴기업 혜택 {String(i + 1).padStart(2, "0")}
-                      </p>
-                      <p className="font-bold text-[#222] text-[22px] md:text-[32px] xl:text-[40px] tracking-[-0.018em] leading-[1.2]">
-                        {card.title}
-                      </p>
-                    </div>
-
-                    {/* 본문 3줄 */}
-                    <div className="text-[#333] text-[13px] md:text-[16px] xl:text-[20px] leading-[1.5] tracking-[-0.003em]">
-                      {card.lines.map((line, j) => (
-                        <p key={j} className="m-0">
-                          {line}
+          {/* 카드 컨테이너 — max-w-1200 mx-auto w-full */}
+          <div
+            className="relative max-w-[1200px] mx-auto w-full"
+            style={{ aspectRatio: "1200 / 554" }}
+          >
+            {CARDS.map((card, i) => {
+              let translateY = 0;
+              if (i > 0) {
+                const start = (i - 1) / segs;
+                const local = Math.max(
+                  0,
+                  Math.min(1, (progress - start) * segs),
+                );
+                translateY = (1 - local) * 100;
+              }
+              const isLast = i === N - 1;
+              return (
+                <div
+                  key={i}
+                  className="absolute inset-0 flex drop-shadow-[0px_0px_50px_rgba(0,0,0,0.1)] rounded-[30px]"
+                  style={{
+                    transform: `translateY(${translateY.toFixed(3)}%)`,
+                    zIndex: i + 1,
+                    willChange: "transform",
+                  }}
+                >
+                  {/* 좌측 텍스트 패널 */}
+                  <div className="bg-[#fbfbfb] flex flex-col items-start justify-between h-full w-[68.4%] p-[24px] md:p-[40px] xl:p-[60px] rounded-l-[30px]">
+                    <div className="flex flex-col gap-[24px] md:gap-[36px] xl:gap-[50px] items-start">
+                      {/* 라벨 + 타이틀 */}
+                      <div className="flex flex-col gap-[8px] md:gap-[10px] xl:gap-[12px] items-start">
+                        <p className="font-medium text-[#c1c1c1] text-[16px] md:text-[22px] xl:text-[28px] tracking-[-0.005em]">
+                          제휴기업 혜택 {String(i + 1).padStart(2, "0")}
                         </p>
-                      ))}
+                        <p className="font-bold text-[#222] text-[22px] md:text-[32px] xl:text-[40px] tracking-[-0.018em] leading-[1.2]">
+                          {card.title}
+                        </p>
+                      </div>
+
+                      {/* 본문 3줄 */}
+                      <div className="text-[#333] text-[13px] md:text-[16px] xl:text-[20px] leading-[1.5] tracking-[-0.003em]">
+                        {card.lines.map((line, j) => (
+                          <p key={j} className="m-0">
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 하단 안내 */}
+                    <div className="flex items-center justify-end w-full">
+                      <p className="font-normal text-[var(--color-brand-red)] text-[12px] md:text-[15px] xl:text-[18px] tracking-[-0.01em]">
+                        {isLast
+                          ? "혜택을 모두 확인하셨어요"
+                          : "스크롤 하여 이동 ↓"}
+                      </p>
                     </div>
                   </div>
 
-                  {/* 하단 안내 */}
-                  <div className="flex items-center justify-end w-full">
-                    <p className="font-normal text-[var(--color-brand-red)] text-[12px] md:text-[15px] xl:text-[18px] tracking-[-0.01em]">
-                      {isLast ? "혜택을 모두 확인하셨어요" : "스크롤 하여 이동 ↓"}
-                    </p>
+                  {/* 우측 이미지 패널 */}
+                  <div className="flex-1 h-full relative overflow-hidden rounded-r-[30px]">
+                    <img
+                      src={card.img}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover select-none"
+                      draggable="false"
+                    />
                   </div>
                 </div>
-
-                {/* 우측 이미지 패널 */}
-                <div className="flex-1 h-full relative overflow-hidden rounded-r-[30px]">
-                  <img
-                    src={card.img}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover select-none"
-                    draggable="false"
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
