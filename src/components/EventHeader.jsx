@@ -7,7 +7,7 @@ export default function EventHeader() {
     >
       <p className="typo-promo truncate">
         <span aria-hidden>🎁 </span>
-        도입을 희망하는 기업에게는 5만원 상당의 1회 무료이용권을 지급해드리고
+        도입을 희망하는 기업에게는 최대 10만원 상당의 1회 무료이용권을 지급해드리고
         있어요.
       </p>
       <a
