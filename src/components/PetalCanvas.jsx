@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * PetalCanvas — Canvas 2D 꽃잎 파티클 시스템
@@ -41,7 +41,51 @@ export default function PetalCanvas({
   const mouseRef = useRef({ x: -9999, y: -9999, active: false });
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
+  // 시퀀스 상태:
+  //   active — RAF 루프 활성 (mount~fade-out 종료)
+  //   visible — opacity 1 토글 (fade-in/hold/fade-out 제어)
+  const [active, setActive] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  // 페이지 100% 로드 후 시퀀스 시작 (1.2s fade-in → 3s 유지 → 2.5s fade-out)
   useEffect(() => {
+    const HOLD = 3000;
+    const FADE_IN = 1200;
+    const FADE_OUT = 2500;
+
+    let timerOut = null;
+    let timerStop = null;
+    let rafId = null;
+
+    const start = () => {
+      setActive(true);
+      // 다음 프레임에 visible=true → 0→1 transition 트리거
+      rafId = requestAnimationFrame(() => setVisible(true));
+      timerOut = setTimeout(() => setVisible(false), FADE_IN + HOLD);
+      timerStop = setTimeout(
+        () => setActive(false),
+        FADE_IN + HOLD + FADE_OUT,
+      );
+    };
+
+    let onLoad = null;
+    if (document.readyState === "complete") {
+      start();
+    } else {
+      onLoad = () => start();
+      window.addEventListener("load", onLoad);
+    }
+
+    return () => {
+      if (onLoad) window.removeEventListener("load", onLoad);
+      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout(timerOut);
+      clearTimeout(timerStop);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -164,14 +208,20 @@ export default function PetalCanvas({
       window.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseleave", onMouseLeave);
     };
-  }, [count, palette]);
+  }, [count, palette, active]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden
       className="absolute inset-0 w-full h-full pointer-events-none select-none"
-      style={{ zIndex: 5 }}
+      style={{
+        zIndex: 5,
+        opacity: visible ? 1 : 0,
+        transition: visible
+          ? "opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1)"
+          : "opacity 2.5s cubic-bezier(0.4, 0, 0.6, 1)",
+      }}
     />
   );
 }
