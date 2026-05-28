@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Lenis from "lenis";
 import HeroSection from "../components/HeroSection.jsx";
+import WhyUsSection from "../components/WhyUsSection.jsx";
 import ScrollSlides from "../components/ScrollSlides.jsx";
 import Footer from "../components/Footer.jsx";
 import HeaderScrollActive from "../components/HeaderScrollActive.jsx";
@@ -162,6 +163,7 @@ export default function HomePage() {
   return (
     <div className="relative">
       <HeroSection />
+      <WhyUsSection />
       <ScrollSlides />
       <Footer />
 
