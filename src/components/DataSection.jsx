@@ -169,11 +169,11 @@ export default function DataSection() {
                     return (
                       <span
                         key={i}
-                        className="inline-block transition-colors duration-300 ease-out"
+                        className="inline-block whitespace-pre transition-colors duration-300 ease-out"
                         style={{ color: isLit ? onColor : DIM }}
                       >
                         {w.text}
-                        {i < line.length - 1 && !w.noSpace ? " " : ""}
+                        {i < line.length - 1 && !w.noSpace ? " " : ""}
                       </span>
                     );
                   })}
