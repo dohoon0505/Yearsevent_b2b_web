@@ -26,11 +26,11 @@ export default function HeaderScrollActive({ visible, onMenuClick }) {
       }`}
       aria-hidden={!visible}
     >
-      <header className="rounded-[16px] bg-[rgba(34,34,34,0.4)] flex items-center gap-[30px] px-6 md:px-[40px] h-[72px] md:h-[90px] pointer-events-auto">
+      <header className="rounded-[24px] bg-[rgba(34,34,34,0.28)] backdrop-blur-[24px] backdrop-saturate-150 border border-white/12 shadow-[0_10px_36px_rgba(0,0,0,0.22)] flex items-center gap-[30px] px-5 md:px-[30px] h-[72px] pointer-events-auto">
         <div className="flex flex-1 items-center justify-between gap-6 min-w-0">
           <Logo />
           <div className="hidden lg:flex items-center gap-[30px]">
-            <NavMenu size={18} fontClass="font-semibold" />
+            <NavMenu size={17} fontClass="font-medium" />
           </div>
         </div>
         <MenuToggle onClick={onMenuClick} accent="red" size={30} />
