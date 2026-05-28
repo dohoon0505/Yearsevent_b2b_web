@@ -161,9 +161,9 @@ export default function ScrollCardSection() {
               // translateY: vh 단위로 viewport 바깥에서 시작 (100vh 아래)
               const translateYvh = (1 - cardLocal) * 100;
 
-              // 다음 카드 등장률 → 가려진 정도에 따라 shadow 페이드 아웃
-              //   next 0 → shadow alpha 0.1 (정상)
-              //   next 1 → shadow alpha 0 (완전 가려짐, none)
+              // 다음 카드 등장률 → boolean으로 단순화 (성능)
+              //   nextLocal >= 0.85 → 거의 가려짐 → shadow off
+              //   그 외 → shadow on
               const nextLocal =
                 i < N - 1
                   ? Math.max(
@@ -171,21 +171,20 @@ export default function ScrollCardSection() {
                       Math.min(1, (progress - i / segs) * segs),
                     )
                   : 0;
-              const shadowAlpha = 0.1 * (1 - nextLocal);
+              const showShadow = i === N - 1 || nextLocal < 0.85;
 
               const isLast = i === N - 1;
               return (
                 <div
                   key={i}
-                  className="absolute inset-0 flex rounded-[30px]"
+                  className="absolute inset-0 flex rounded-[30px] bg-white"
                   style={{
-                    transform: `translateY(${translateYvh.toFixed(3)}vh)`,
+                    transform: `translateY(${translateYvh.toFixed(2)}vh)`,
                     zIndex: i + 1,
-                    willChange: "transform, filter",
-                    filter:
-                      shadowAlpha > 0.005
-                        ? `drop-shadow(0px 0px 50px rgba(0,0,0,${shadowAlpha.toFixed(3)}))`
-                        : "none",
+                    boxShadow: showShadow
+                      ? "0 0 50px rgba(0,0,0,0.1)"
+                      : "none",
+                    transition: "box-shadow 280ms ease-out",
                   }}
                 >
                   {/* 좌측 텍스트 패널 — 패딩·gap·텍스트 모두 15% 축소 */}
