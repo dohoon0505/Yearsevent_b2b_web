@@ -14,10 +14,14 @@ export default function EventHeader() {
         href="https://pf.kakao.com/_glBxdn/chat"
         target="_blank"
         rel="noopener noreferrer"
-        className="typo-cta shrink-0 inline-flex items-center justify-center gap-1 bg-white rounded-[5px] px-3 py-[10px] text-[var(--color-brand-red)] transition-colors hover:bg-[var(--color-neutral-20)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="btn-slide-fill typo-cta group shrink-0 inline-flex items-center justify-center gap-1 bg-white rounded-[5px] px-3 py-[10px] text-[var(--color-brand-red)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
-        서비스 체험신청
-        <span aria-hidden>→</span>
+        <span
+          aria-hidden
+          className="btn-fill bg-[var(--color-brand-red)]"
+        />
+        <span className="btn-label">서비스 체험신청</span>
+        <span aria-hidden className="btn-icon">→</span>
       </a>
     </div>
   );

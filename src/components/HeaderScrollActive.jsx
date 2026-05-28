@@ -21,9 +21,9 @@ import MenuToggle from "./MenuToggle.jsx";
 export default function HeaderScrollActive({ visible, onMenuClick }) {
   return (
     <div
-      className={`fixed inset-x-0 top-3 lg:top-5 z-50 px-6 md:px-12 lg:px-[260px] pointer-events-none ${
-        visible ? "translate-y-0 opacity-100" : "-translate-y-[120%] opacity-0"
-      } transition-[transform,opacity] duration-[550ms] ease-[cubic-bezier(0.25,1,0.5,1)]`}
+      className={`scroll-header-wrap fixed inset-x-0 top-3 lg:top-5 z-50 px-6 md:px-12 lg:px-[260px] pointer-events-none ${
+        visible ? "" : "is-hidden"
+      }`}
       aria-hidden={!visible}
     >
       <header className="rounded-[16px] bg-[rgba(34,34,34,0.4)] flex items-center gap-[30px] px-5 md:px-[40px] h-[72px] pointer-events-auto">
