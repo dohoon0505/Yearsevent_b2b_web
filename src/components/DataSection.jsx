@@ -25,7 +25,8 @@ const SLOGAN_LINES = [
   ],
   [
     { text: "작은", tone: "accent" },
-    { text: "축하와", tone: "accent" },
+    { text: "축하", tone: "accent", noSpace: true },
+    { text: "와", tone: "dark" },
     { text: "깊은", tone: "accent" },
     { text: "위로", tone: "accent" },
     { text: "에서", tone: "dark" },
@@ -161,7 +162,7 @@ export default function DataSection() {
                       style={{ color: isLit ? onColor : DIM }}
                     >
                       {w.text}
-                      {i < line.length - 1 ? " " : ""}
+                      {i < line.length - 1 && !w.noSpace ? " " : ""}
                     </span>
                   );
                 })}
@@ -175,7 +176,7 @@ export default function DataSection() {
           {STATS.map((stat, i) => (
             <div
               key={stat.label}
-              className="w-full max-w-[560px] flex flex-col gap-[20px]"
+              className="w-full max-w-[560px] flex flex-col gap-[45px]"
               style={{
                 opacity: statsReady ? 1 : 0,
                 transform: statsReady ? "translateY(0)" : "translateY(40px)",
