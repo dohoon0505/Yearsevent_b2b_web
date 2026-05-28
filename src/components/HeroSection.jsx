@@ -126,16 +126,30 @@ export default function HeroSection({ onMenuClick }) {
             />
           </h1>
 
-          <p
-            className="typo-body-hero mt-6 max-w-[640px] text-white/80 hero-fade-up"
-            style={{
-              opacity: bodyReady ? 1 : 0,
-              transform: bodyReady ? "translateY(0)" : "translateY(24px)",
-            }}
-          >
-            법인·단체의 경조사 화환을 8년간 직접 운영한 메이플라워의 전담관리
-            서비스. 35% 단가 절감 · 전국 무료배송 · 월정산 · 50만원 책임배상.
-          </p>
+          <ul className="mt-8 flex flex-wrap gap-2.5 max-w-[640px]">
+            {[
+              "법무법인",
+              "세무법인",
+              "제조업",
+              "도소매업",
+              "유통업",
+              "모임/단체",
+            ].map((label, i) => (
+              <li
+                key={label}
+                className="bg-[var(--color-overlay-light-10)] backdrop-blur-[3px] rounded-full px-4 py-2 text-white text-[13px] md:text-[14px] font-medium border border-white/15 hero-fade-up"
+                style={{
+                  opacity: bodyReady ? 1 : 0,
+                  transform: bodyReady
+                    ? "translateY(0)"
+                    : "translateY(20px)",
+                  transitionDelay: `${i * 0.08}s`,
+                }}
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
