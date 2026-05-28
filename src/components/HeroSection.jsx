@@ -125,7 +125,7 @@ export default function HeroSection({ onMenuClick }) {
           </ul>
 
           {/* 메인 헤딩 — 중간 (뱃지 등장 후 cascade) */}
-          <h1 className="typo-display mt-10">
+          <h1 className="typo-display mt-6">
             <CascadeLine
               text="번번히 발생하는 경조사 소식,"
               ready={textReady}
@@ -144,7 +144,7 @@ export default function HeroSection({ onMenuClick }) {
           {/* 11년차 슬로건 — 가장 아래 (헤딩 등장 후 cascade) */}
           <CascadeLine
             as="p"
-            text="11년차 꽃배달 기업의 경조사 전담 솔루션"
+            text="기업, 대표, 담당자 모두를 고려한 기업 프로세스"
             ready={textReady}
             baseDelay={1600}
             stagger={28}
