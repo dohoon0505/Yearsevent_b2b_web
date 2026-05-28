@@ -1,7 +1,7 @@
 export default function EventHeader() {
   return (
     <div
-      className="bg-black text-white flex items-center justify-between gap-4 h-[60px] px-6 md:px-12 lg:px-[120px] xl:px-[260px]"
+      className="bg-white text-[#222] flex items-center justify-between gap-4 h-[60px] px-6 md:px-12 lg:px-[120px] xl:px-[260px] border-b border-[var(--color-neutral-20)]"
       role="region"
       aria-label="프로모션 안내"
     >
@@ -14,12 +14,9 @@ export default function EventHeader() {
         href="https://pf.kakao.com/_glBxdn/chat"
         target="_blank"
         rel="noopener noreferrer"
-        className="btn-slide-fill typo-cta group shrink-0 inline-flex items-center justify-center gap-1 bg-white rounded-[5px] px-3 py-[10px] text-[var(--color-brand-red)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="btn-slide-fill typo-cta group shrink-0 inline-flex items-center justify-center gap-1 bg-[var(--color-brand-red)] rounded-[5px] px-3 py-[10px] text-white hover:text-[var(--color-brand-red)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-red)]"
       >
-        <span
-          aria-hidden
-          className="btn-fill bg-[var(--color-brand-red)]"
-        />
+        <span aria-hidden className="btn-fill bg-white" />
         <span className="btn-label">서비스 체험신청</span>
         <span aria-hidden className="btn-icon">→</span>
       </a>
