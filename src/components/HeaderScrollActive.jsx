@@ -26,7 +26,7 @@ export default function HeaderScrollActive({ visible, onMenuClick }) {
       }`}
       aria-hidden={!visible}
     >
-      <header className="rounded-[24px] bg-[rgba(34,34,34,0.28)] backdrop-blur-[3px] border border-white/15 flex items-center gap-[30px] px-5 md:px-[30px] h-[72px] pointer-events-auto">
+      <header className="rounded-[24px] bg-[rgba(34,34,34,0.55)] backdrop-blur-[24px] backdrop-saturate-150 border border-white/15 flex items-center gap-[30px] px-5 md:px-[30px] h-[72px] pointer-events-auto">
         <div className="flex flex-1 items-center justify-between gap-6 min-w-0">
           <Logo />
           <div className="hidden lg:flex items-center gap-[30px]">
