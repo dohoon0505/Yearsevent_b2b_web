@@ -302,6 +302,45 @@
   .contain-paint {
     contain: paint;
   }
+
+  /* 글자 폭포 — 시간 기반 stagger
+     참고: scroll-text-reveal letter-cascade 패턴
+     변경점: 스크롤 진행률 → 시간 기반 transitionDelay */
+  .cascade-line {
+    display: block;
+    overflow: hidden;
+    padding-top: 0.06em;
+    padding-bottom: 0.1em;
+  }
+  .cascade-char {
+    display: inline-block;
+    transition: transform 0.85s var(--ease-out-expo);
+    will-change: transform;
+  }
+
+  /* Hero — 배경 zoom-in fade */
+  .hero-bg-rise {
+    transition:
+      opacity 1.2s var(--ease-out-expo),
+      transform 1.6s var(--ease-out-expo);
+    will-change: opacity, transform;
+  }
+
+  /* Hero — 본문 fade-up */
+  .hero-fade-up {
+    transition:
+      opacity 0.9s var(--ease-out-expo),
+      transform 0.9s var(--ease-out-expo);
+    will-change: opacity, transform;
+  }
+
+  /* Hero — 헤더 슬라이드 다운 */
+  .hero-header-drop {
+    transition:
+      transform 0.75s var(--ease-out-quart),
+      opacity 0.75s var(--ease-out-quart);
+    will-change: transform, opacity;
+  }
 }
 
 /* =============================================

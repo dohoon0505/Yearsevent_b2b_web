@@ -1,46 +1,170 @@
+import { useEffect, useState } from "react";
 import EventHeader from "./EventHeader.jsx";
 import HeaderHero from "./HeaderHero.jsx";
 import cityBg from "../assets/hero-city-bg.png";
 
+/**
+ * HeroSection — Background 우선 로드 + 텍스트 순차 로드 + 헤더 로드
+ * 참고: https://progress-template.framer.website/
+ *
+ * 시퀀스:
+ *   1) 배경 이미지 fade-in + 미세 zoom-out (1.2s)
+ *   2) 250ms 후: 텍스트 글자 폭포 (시간 기반 stagger, translateY(-115%) → 0)
+ *   3) 1.3s 후: 헤더 슬라이드 다운
+ *   4) 텍스트 마지막에 본문 paragraph fade-up
+ */
 export default function HeroSection({ onMenuClick }) {
+  const [bgLoaded, setBgLoaded] = useState(false);
+  const [textReady, setTextReady] = useState(false);
+  const [bodyReady, setBodyReady] = useState(false);
+  const [headerReady, setHeaderReady] = useState(false);
+
+  // 1) Background 우선 로드 — preload Image 객체로 캐시 확인
+  useEffect(() => {
+    const img = new Image();
+    img.src = cityBg;
+    const handleReady = () => setBgLoaded(true);
+    if (img.complete && img.naturalWidth > 0) {
+      handleReady();
+    } else {
+      img.addEventListener("load", handleReady);
+      img.addEventListener("error", handleReady);
+    }
+    return () => {
+      img.removeEventListener("load", handleReady);
+      img.removeEventListener("error", handleReady);
+    };
+  }, []);
+
+  // 2) bg 로드 완료 → 텍스트 → 본문 → 헤더 순차
+  useEffect(() => {
+    if (!bgLoaded) return;
+    const t1 = setTimeout(() => setTextReady(true), 250);
+    const t2 = setTimeout(() => setBodyReady(true), 1700);
+    const t3 = setTimeout(() => setHeaderReady(true), 1300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [bgLoaded]);
+
   return (
     <section
-      className="relative h-screen w-full overflow-hidden bg-black"
+      className="snap-section relative h-screen w-full overflow-hidden bg-black"
       aria-label="Hero"
     >
+      {/* Background — fade-in + 미세 zoom-out */}
       <img
         src={cityBg}
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover select-none"
         draggable="false"
+        className="absolute inset-0 h-full w-full object-cover select-none hero-bg-rise"
+        style={{
+          opacity: bgLoaded ? 1 : 0,
+          transform: bgLoaded ? "scale(1)" : "scale(1.08)",
+        }}
       />
-      <div className="absolute inset-0 bg-[var(--color-overlay-dark-40)]" aria-hidden />
+      <div
+        className="absolute inset-0 bg-[var(--color-overlay-dark-40)]"
+        aria-hidden
+      />
 
-      <div className="absolute top-0 left-0 right-0 z-20 anim-header-slide-in">
+      {/* EventHeader — top bar */}
+      <div
+        className="absolute top-0 left-0 right-0 z-20 hero-header-drop"
+        style={{
+          transform: headerReady ? "translateY(0)" : "translateY(-100%)",
+          opacity: headerReady ? 1 : 0,
+        }}
+      >
         <EventHeader />
       </div>
 
-      <HeaderHero onMenuClick={onMenuClick} />
+      {/* HeaderHero — main nav */}
+      <div
+        className="hero-header-drop"
+        style={{
+          transform: headerReady ? "translateY(0)" : "translateY(-110%)",
+          opacity: headerReady ? 1 : 0,
+          transitionDelay: "0.12s",
+        }}
+      >
+        <HeaderHero onMenuClick={onMenuClick} />
+      </div>
 
+      {/* 본문 — 글자 폭포 + fade-up */}
       <div className="relative z-10 mx-auto flex h-full max-w-[1320px] flex-col justify-end pb-[120px] px-6 md:px-12 lg:px-[120px] xl:px-[100px] text-white">
         <div className="max-w-[820px]">
-          <p className="typo-eyebrow text-white/75">
-            For Business · Since 2016
-          </p>
+          <CascadeLine
+            as="p"
+            text="For Business · Since 2016"
+            ready={textReady}
+            baseDelay={0}
+            stagger={20}
+            className="typo-eyebrow text-white/75"
+          />
+
           <h1 className="typo-display mt-4">
-            경조사 소식이 많이 들려온다면,
-            <br />
-            <span className="text-[var(--color-brand-peach)]">
-              전담관리 서비스는 꼭 필요합니다.
-            </span>
+            <CascadeLine
+              text="경조사 소식이 많이 들려온다면,"
+              ready={textReady}
+              baseDelay={280}
+              stagger={36}
+            />
+            <CascadeLine
+              text="전담관리 서비스는 꼭 필요합니다."
+              ready={textReady}
+              baseDelay={820}
+              stagger={36}
+              className="text-[var(--color-brand-peach)]"
+            />
           </h1>
-          <p className="typo-body-hero mt-6 max-w-[640px] text-white/80">
+
+          <p
+            className="typo-body-hero mt-6 max-w-[640px] text-white/80 hero-fade-up"
+            style={{
+              opacity: bodyReady ? 1 : 0,
+              transform: bodyReady ? "translateY(0)" : "translateY(24px)",
+            }}
+          >
             법인·단체의 경조사 화환을 8년간 직접 운영한 메이플라워의 전담관리
             서비스. 35% 단가 절감 · 전국 무료배송 · 월정산 · 50만원 책임배상.
           </p>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * CascadeLine — 글자 폭포 (시간 기반)
+ *   parent: overflow:hidden
+ *   each char: translateY(-115%) → 0, transitionDelay = baseDelay + i * stagger
+ */
+function CascadeLine({
+  as: Tag = "span",
+  text,
+  ready,
+  baseDelay = 0,
+  stagger = 30,
+  className = "",
+}) {
+  return (
+    <Tag className={`cascade-line ${className}`}>
+      {Array.from(text).map((ch, i) => (
+        <span
+          key={i}
+          className="cascade-char"
+          style={{
+            transform: ready ? "translateY(0)" : "translateY(-115%)",
+            transitionDelay: `${baseDelay + i * stagger}ms`,
+          }}
+        >
+          {ch === " " ? " " : ch}
+        </span>
+      ))}
+    </Tag>
   );
 }
