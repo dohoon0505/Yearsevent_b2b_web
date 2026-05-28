@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import Lenis from "lenis";
 import HeroSection from "../components/HeroSection.jsx";
 import ScrollSlides from "../components/ScrollSlides.jsx";
 import Footer from "../components/Footer.jsx";
@@ -9,15 +10,16 @@ import { useScrollDirection } from "../hooks/useScrollDirection.js";
  * HomePage — Hero_Section부터 시작 (Hero_Intro 제거).
  *
  * 구조:
- *   ┌─ HeroSection (100vh, snap-section)      ← Background+텍스트+헤더 시퀀스
- *   │  ScrollSlides (500vh, smooth scroll)
+ *   ┌─ HeroSection (100vh, JS snap)           ← Background+텍스트+헤더 시퀀스
+ *   │  ScrollSlides (500vh, Lenis smooth)
  *   │  Footer
  *   └ HeaderScrollActive (fixed, 본문 진입 후 ↑ 시 등장)
  *
  * 스크롤 정책:
- *   - HeroSection 영역(0 ~ vh): JS-based snap (휠 멈춤 후 120ms → 0 또는 vh로 smooth)
- *   - ScrollSlides 이후: 자유 스크롤 (smooth)
- *   - 페이지 진입 시 항상 scrollY=0에서 시작 (HeroSection 시퀀스 1회 발동)
+ *   - HeroSection 영역(0 ~ vh): native + JS snap (방향 기반, 휠 멈춤 후 110ms)
+ *   - ScrollSlides 이후: Lenis 부드러운 관성 스크롤 (asinsam·miracell 참고)
+ *   - 영역 전환 시 lenis.start() / lenis.stop() 자동 토글
+ *   - 페이지 진입 시 scrollY=0 강제 → HeroSection 시퀀스 1회 발동
  */
 
 export default function HomePage() {
@@ -32,6 +34,50 @@ export default function HomePage() {
       window.history.scrollRestoration = "manual";
     }
     window.scrollTo(0, 0);
+  }, []);
+
+  // Lenis — HeroSection 통과 후 부드러운 관성 스크롤 적용
+  // asinsam.com / miracell.co.kr 류의 RAF 기반 smooth scroll 패턴
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.15,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo out
+      smoothWheel: true,
+      smoothTouch: false, // 모바일은 native scroll
+      wheelMultiplier: 1,
+      touchMultiplier: 1.5,
+    });
+
+    // 초기: HeroSection 영역이면 비활성 (native + JS snap에 위임)
+    const HERO_GUARD = 10;
+    let prevInHero = window.scrollY < window.innerHeight - HERO_GUARD;
+    if (prevInHero) lenis.stop();
+
+    let rafId = null;
+    const raf = (time) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    };
+    rafId = requestAnimationFrame(raf);
+
+    // 영역 전환 감지 — vh 경계를 넘나들 때 start/stop 토글
+    const onScroll = () => {
+      const sy = window.scrollY;
+      const vh = window.innerHeight;
+      const inHero = sy < vh - HERO_GUARD;
+      if (inHero !== prevInHero) {
+        if (inHero) lenis.stop();
+        else lenis.start();
+        prevInHero = inHero;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+      lenis.destroy();
+    };
   }, []);
 
   // HeroSection 영역(0~vh)에서만 JS 스냅 — 사용자 의도 방향 기반
