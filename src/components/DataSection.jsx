@@ -222,7 +222,12 @@ function AboutScrollStage() {
       const sliderTop = A_TOP_PAD + textH + A_GAP;
       const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
       const cardH = Math.min(sliderH, A_CARD_MAXH);
-      const cardW = Math.round(cardH * 0.74);
+      // 데모 카드 = 14px 인셋 + 5/6 세로 이미지. 메타(제목+설명) 예상 높이를 빼고
+      // 이미지(flex-1)가 ~5/6 비율이 되도록 카드 폭을 역산.
+      const A_CARD_PAD = 14;
+      const metaEst = 96;
+      const cardW =
+        Math.round((cardH - A_CARD_PAD * 2 - metaEst) * (5 / 6)) + A_CARD_PAD * 2;
 
       sw.style.top = `${sliderTop}px`;
       vp.style.height = `${sliderH}px`;
@@ -413,13 +418,13 @@ function AboutScrollStage() {
                   <article
                     key={i}
                     ref={(el) => (cardRefs.current[i] = el)}
-                    className="flex-none flex flex-col rounded-[16px] bg-white border border-[#ececec] overflow-hidden will-change-transform"
+                    className="flex-none flex flex-col rounded-[16px] bg-white border border-[#ececec] p-[14px] will-change-transform"
                     style={{
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                       transformOrigin: "center center",
                     }}
                   >
-                    <div className="flex-1 min-h-0 overflow-hidden bg-[#e5e5e5]">
+                    <div className="flex-1 min-h-0 overflow-hidden rounded-[10px] bg-[#e5e5e5]">
                       <img
                         src={card.img}
                         alt=""
@@ -429,11 +434,11 @@ function AboutScrollStage() {
                         className="w-full h-full object-cover select-none"
                       />
                     </div>
-                    <div className="px-[18px] py-[16px]">
-                      <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
+                    <div className="pt-[14px] px-[4px] pb-[4px]">
+                      <p className="text-[16px] md:text-[18px] font-semibold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
                         {card.title}
                       </p>
-                      <p className="mt-[7px] text-[12.5px] md:text-[14px] leading-[1.55] text-[#52525b] tracking-[-0.003em]">
+                      <p className="mt-[8px] text-[12.5px] md:text-[14px] leading-[1.55] text-[#52525b] tracking-[-0.003em]">
                         {card.desc}
                       </p>
                     </div>
