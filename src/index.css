@@ -439,6 +439,16 @@
 .fb-marquee-r { animation: fb-marquee-r var(--fb-marquee-dur, 36s) linear infinite; }
 
 /* =============================================
+   For Business 경고 버튼 — 등장 시 attention-grab pulse 2회
+   ============================================= */
+@keyframes fb-warn-pulse {
+  0%   { transform: scale(1);     box-shadow: 0 0 0 0   rgba(203, 13, 53, 0.35); }
+  50%  { transform: scale(1.045); box-shadow: 0 0 0 10px rgba(203, 13, 53, 0); }
+  100% { transform: scale(1);     box-shadow: 0 0 0 0   rgba(203, 13, 53, 0); }
+}
+.fb-warn-pulse { animation: fb-warn-pulse 1.4s ease-out 2; }
+
+/* =============================================
    Reduced Motion
    ============================================= */
 @media (prefers-reduced-motion: reduce) {

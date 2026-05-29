@@ -11,7 +11,6 @@ import promotion from "../assets/promotion.jpg";
 import childbirth from "../assets/childbirth.jpg";
 import childbirth2 from "../assets/childbirth_2.jpg";
 import employees from "../assets/Employees.jpg";
-import narajangter from "../assets/narajangter.png";
 
 /**
  * DataSection — About Us(다단계 sticky 무대) + For Business(scrub 슬로건)
@@ -22,7 +21,7 @@ import narajangter from "../assets/narajangter.png";
  * │     [0.22~0.34] 텍스트가 상단(top padding 120)으로 이동 + 이미지 슬라이더 등장
  * │     [0.34~1.0 ] center-focus 가로 이미지 슬라이더 (첨부 md 패턴)
  * │   → 텍스트 + 슬라이더는 100vh 안에 공존, 100% 도달 시 sticky 해제
- * └─ For Business (TRACK 520vh / sticky 150vh) — 단계별 진입(텍스트→DATA→Partner→나라장터)
+ * └─ For Business (TRACK 600vh / sticky 150vh) — Figma 7단계 시퀀스 + count-up + 경고 pulse
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM(transform/opacity)만 기록.
  *       레이아웃 측정값(텍스트 높이·카드 중심)은 measure()에서 캐시.
@@ -49,25 +48,19 @@ const ABOUT_LINES = [
   ],
 ];
 
+// 새 슬로건 (Figma 100:22): "저희는 성공적인 비즈니스를 / 서포트하는 기업입니다."
+// 비즈니스, 서포트는 accent(brand-red)
 const BUSINESS_LINES = [
   [
     { text: "저희는", tone: "dark" },
-    { text: "2016년", tone: "accent", noSpace: true },
-    { text: "을", tone: "dark" },
-    { text: "시작으로", tone: "dark" },
+    { text: "성공적인", tone: "dark" },
+    { text: "비즈니스", tone: "accent", noSpace: true },
+    { text: "를", tone: "dark" },
   ],
   [
-    { text: "200개", tone: "accent", noSpace: true },
-    { text: "가", tone: "dark" },
-    { text: "넘는", tone: "dark" },
-    { text: "기업·단체의", tone: "dark" },
-  ],
-  [
-    { text: "경조사를", tone: "dark" },
-    { text: "전담", tone: "accent", noSpace: true },
-    { text: "하고", tone: "dark" },
-    { text: "있어요", tone: "dark" },
-    { text: ":)", tone: "dark" },
+    { text: "서포트", tone: "accent", noSpace: true },
+    { text: "하는", tone: "dark" },
+    { text: "기업입니다.", tone: "dark" },
   ],
 ];
 
@@ -86,11 +79,17 @@ const BUSINESS_FLAT = BUSINESS_LINES.map((line) =>
 const TOTAL_BUSINESS = _gb;
 
 // For Business — DATA 통계 (Figma)
+// target: count-up 목표값, suffix: 값 뒤에 붙는 문자 (예: 2016~ / 200+ / 700,000+)
+// 카운트업: floor(p * target).toLocaleString("ko-KR") + suffix — linear-count.md 패턴
 const FB_STATS = [
-  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", value: "2016~" },
-  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", value: "200+" },
-  { title: "누적 주문처리 수", sub: "일 평균 178건의 주문접수", value: "700,000+" },
+  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", target: 2016, suffix: "~" },
+  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", target: 200, suffix: "+" },
+  { title: "누적 주문처리 수", sub: "일 평균 178건의 주문접수", target: 700000, suffix: "+" },
 ];
+
+// 카운트업 포맷 — 목표값×진행률을 ko-KR 콤마 포맷 + suffix
+const formatCount = (progress, target, suffix) =>
+  `${Math.floor(progress * target).toLocaleString("ko-KR")}${suffix}`;
 
 // For Business — Partner 제휴 기업 칩 (행별 마퀴, 좌/우 교차)
 const FB_PARTNERS = [
@@ -100,19 +99,18 @@ const FB_PARTNERS = [
   ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
 ];
 
-// For Business 다단계 무대 — text+DATA(중앙→상단) + Partner/나라장터 하단 진입
-const FB_TRACK_VH = 520;
+// For Business 다단계 무대 — Figma 7개 노드 시퀀스 매핑
+// 100:22 → 103:664 → 103:773 → 103:879 → 103:909 → 103:1022 → 103:588
+const FB_TRACK_VH = 600;
 const FB_TOP_PAD = 120;
-const FB_GAP_ROW = 36; // text+DATA row → Partner Frame
-const FB_GAP_PB = 24; // Partner → 나라장터
-const FB_GAP_BTN = 24; // 나라장터 → 버튼
-const FB_TEXT_END = 0.22; // 슬로건 scrub 완료
-const FB_FRAME_END = 0.28; // 우측 DATA frame 페이드인 완료
-const FB_DATA_1_END = 0.36; // 설립일 등장
-const FB_DATA_2_END = 0.44; // 경조사 제휴기업 등장
-const FB_DATA_3_END = 0.55; // 누적 주문처리 수 등장 (DATA 로드 완료)
-const FB_MOVEUP_END = 0.70; // text+DATA 상단 이동 + Partner Frame 진입
-const FB_BID_END = 0.84; // 나라장터 배너 진입
+// 인터랙션 임계값 (스크롤 진행률 p ∈ [0, 1])
+const FB_TEXT_END = 0.14; // 슬로건 단어 scrub 완료 (100:22)
+const FB_SHIFT_END = 0.22; // 텍스트 가로 중앙 → 좌측 이동 완료 (→ 103:664)
+const FB_DATA_1_END = 0.32; // 설립일/2016~ count-up 완료 (→ 103:773)
+const FB_DATA_2_END = 0.42; // 경조사/200+ count-up 완료 (→ 103:879)
+const FB_DATA_3_END = 0.55; // 누적/700,000+ count-up + 세로 중앙→상단 (→ 103:909)
+const FB_PARTNER_END = 0.72; // Partner Frame 하단→상단 슬라이드 (→ 103:1022)
+const FB_WARN_END = 0.86; // 경고 버튼 페이드인 + pulse 트리거 (→ 103:588)
 
 const DIM = "#d4d8e2";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
@@ -483,13 +481,18 @@ function AboutScrollStage() {
 }
 
 /**
- * ForBusinessStage — 다단계 sticky 무대
- *   1) 슬로건이 좌측 세로 중앙에서 연속 스크럽
- *   2) 스크럽 완료 → 우측에 DATA frame 페이드 → 설립일·경조사·누적 순차 등장
- *   3) text+DATA가 상단으로 이동 + Partner Frame(전체폭 마퀴) 하단에서 진입
- *   4) 나라장터 배너 하단 진입
- *   5) '회사 더 살펴보기' 버튼 천천히 fade-in
- * 레이아웃: 좌(텍스트) | 우(DATA) → 그 아래 Partner(전체폭) → 나라장터(전체폭) → 버튼
+ * ForBusinessStage — Figma 7-노드 시퀀스 (100:22 → 103:588)
+ *   1) [0~0.14] 슬로건 단어 scrub (가로+세로 중앙)
+ *   2) [0.14~0.22] 텍스트 가로 중앙 → 좌측 컬럼으로 이동
+ *   3) [0.22~0.32] 우측 DATA frame + 설립일 count-up (0~ → 2016~)
+ *   4) [0.32~0.42] 경조사 제휴기업 count-up (0+ → 200+)
+ *   5) [0.42~0.55] 누적 주문처리 수 count-up (0+ → 700,000+) + 컨텐츠 세로 중앙→상단
+ *   6) [0.55~0.72] Partner Frame 하단에서 슬라이드 업 (좌측 하단)
+ *   7) [0.72~0.86] 경고 버튼 페이드인 + pulse 2회 (attention-grab)
+ * 레이아웃: 좌 (For Business 라벨 + 슬로건 + 경고 버튼 + Partner Frame) | 우 (DATA 3 entries)
+ * 2 Attention-grabs:
+ *   ① Count-up 시퀀스 (3개 숫자 0 → target)
+ *   ② Warning 버튼 등장 pulse 2회 (.fb-warn-pulse CSS)
  */
 function ForBusinessStage() {
   const sectionRef = useRef(null);
@@ -498,14 +501,14 @@ function ForBusinessStage() {
   const textWrapRef = useRef(null);
   const dataRef = useRef(null);
   const dataItemRefs = useRef([]);
-  const btnRef = useRef(null);
+  const dataValueRefs = useRef([]); // count-up <p> 엘리먼트
   const partnerRef = useRef(null);
-  const bidRef = useRef(null);
+  const warnRef = useRef(null);
   const accentRGBRef = useRef([203, 13, 53]);
-  const geo = useRef({ vh: 0, centerY: 0 });
-  const btnTriggeredRef = useRef(false);
+  // centerX: 가로 중앙 정렬 오프셋, centerY: 세로 중앙 정렬 오프셋
+  const geo = useRef({ vh: 0, centerX: 0, centerY: 0 });
+  const warnTriggeredRef = useRef(false);
   const [ready, setReady] = useState(false);
-  const [btnShown, setBtnShown] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -537,24 +540,29 @@ function ForBusinessStage() {
       /* keep fallback */
     }
 
-    // 측정 — text+DATA row의 max 높이 기반 centerY + Partner/나라장터/버튼 절대 top
+    // 측정 — 텍스트 가로/세로 중앙(centerX/Y) + Partner Frame 좌측 하단 절대 위치
     const measure = () => {
       const vh = window.innerHeight;
       const tw = textWrapRef.current;
       const dataEl = dataRef.current;
+      const partnerEl = partnerRef.current;
       if (!tw || !dataEl) return;
       const textH = tw.offsetHeight;
       const dataH = dataEl.offsetHeight;
+      // 세로 중앙: text+DATA row 둘 중 큰 높이를 기준으로 viewport 정중앙 배치
       const rowH = Math.max(textH, dataH);
-      const partnerH = partnerRef.current ? partnerRef.current.offsetHeight : 0;
-      const bidH = bidRef.current ? bidRef.current.offsetHeight : 0;
-      const partnerTop = FB_TOP_PAD + rowH + FB_GAP_ROW;
-      const bidTop = partnerTop + partnerH + FB_GAP_PB;
-      const btnTop = bidTop + bidH + FB_GAP_BTN;
-      if (partnerRef.current) partnerRef.current.style.top = `${partnerTop}px`;
-      if (bidRef.current) bidRef.current.style.top = `${bidTop}px`;
-      if (btnRef.current) btnRef.current.style.top = `${btnTop}px`;
-      geo.current = { vh, centerY: Math.max(0, (vh - rowH) / 2 - FB_TOP_PAD) };
+      const centerY = Math.max(0, (vh - rowH) / 2 - FB_TOP_PAD);
+      // 가로 중앙: 텍스트 wrapper를 inner 영역 정중앙으로 이동
+      // centerX = (innerW - wrapperW) / 2 → wrapper.left=0 기준 우측 shift량
+      const wrapperW = tw.offsetWidth;
+      const innerW = tw.parentElement ? tw.parentElement.clientWidth : 0;
+      const centerX = Math.max(0, (innerW - wrapperW) / 2);
+      // Partner Frame은 viewport 하단 (sticky pin 동안 보이는 100vh 안)
+      // partnerTop = vh - FB_TOP_PAD - partnerH (좌측 컬럼의 viewport bottom 정렬)
+      const partnerH = partnerEl ? partnerEl.offsetHeight : 0;
+      const partnerTop = Math.max(FB_TOP_PAD, vh - FB_TOP_PAD - partnerH);
+      if (partnerEl) partnerEl.style.top = `${partnerTop}px`;
+      geo.current = { vh, centerX, centerY };
     };
 
     const update = () => {
@@ -567,7 +575,7 @@ function ForBusinessStage() {
       const max = Math.max(1, rect.height - g.vh);
       const p = clamp01(-rect.top / max);
 
-      // 1) 슬로건 연속 스크럽 (About Us와 동일 방식)
+      // ───── Phase 1 [0~0.14] 슬로건 단어 scrub (Figma 100:22) ─────
       const reveal = clamp01(p / FB_TEXT_END);
       const litAmt = clamp01((reveal - 0.05) / 0.9);
       const pos = litAmt * (TOTAL_BUSINESS + 1);
@@ -588,21 +596,41 @@ function ForBusinessStage() {
         }
       }
 
-      // 2) 우측 DATA frame 컨테이너 페이드인 (텍스트 100% 스크럽 직후)
+      // ───── Phase 2 [0.14~0.22] 텍스트 가로 중앙 → 좌측 (→ Figma 103:664) ─────
+      //   tx: centerX → 0  (좌측 컬럼 위치로 이동)
+      const sE = easeInOutCubic(
+        clamp01((p - FB_TEXT_END) / (FB_SHIFT_END - FB_TEXT_END)),
+      );
+      // ───── Phase 5 [0.42~0.55] 세로 중앙 → 상단 (→ Figma 103:909) ─────
+      //   ty: centerY → 0  (3rd DATA 항목 등장 직후 컨텐츠 상단 정렬)
+      const mE = easeInOutCubic(
+        clamp01((p - FB_DATA_2_END) / (FB_DATA_3_END - FB_DATA_2_END)),
+      );
+      const tx = lerp(g.centerX, 0, sE).toFixed(1);
+      const ty = lerp(g.centerY, 0, mE).toFixed(1);
+      if (textWrapRef.current) {
+        textWrapRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+      }
+
+      // ───── Phase 3 [0.22~0.32] DATA frame 등장 + 설립일 count-up (→ 103:773) ─────
+      //   dataRef 컨테이너는 텍스트 좌측 이동 완료 시점부터 페이드인
       const fE = easeInOutCubic(
-        clamp01((p - FB_TEXT_END) / (FB_FRAME_END - FB_TEXT_END)),
+        clamp01((p - FB_SHIFT_END) / (FB_DATA_1_END - FB_SHIFT_END)),
       );
       if (dataRef.current) {
         dataRef.current.style.opacity = fE.toFixed(3);
+        dataRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
       }
 
-      // 3) DATA items — 설립일 → 경조사 → 누적 순차 등장
+      // ───── DATA 항목별 count-up + 등장 (Phase 3,4,5) ─────
+      // Attention-grab #1: linear-count.md 패턴 — 스크롤 진행률에 정비례
       const itemThresh = [
-        [FB_FRAME_END, FB_DATA_1_END],
-        [FB_DATA_1_END, FB_DATA_2_END],
-        [FB_DATA_2_END, FB_DATA_3_END],
+        [FB_SHIFT_END, FB_DATA_1_END], // 설립일 0.22~0.32
+        [FB_DATA_1_END, FB_DATA_2_END], // 경조사 0.32~0.42
+        [FB_DATA_2_END, FB_DATA_3_END], // 누적 0.42~0.55
       ];
       const items = dataItemRefs.current;
+      const valEls = dataValueRefs.current;
       for (let i = 0; i < items.length; i++) {
         const el = items[i];
         if (!el) continue;
@@ -610,37 +638,41 @@ function ForBusinessStage() {
         const ee = easeInOutCubic(clamp01((p - s) / (e - s)));
         el.style.opacity = ee.toFixed(3);
         el.style.transform = `translate3d(0, ${((1 - ee) * 20).toFixed(1)}px, 0)`;
+        // count-up: linear 진행률(이징 X) — md 패턴 그대로
+        const lin = clamp01((p - s) / (e - s));
+        const v = valEls[i];
+        if (v) {
+          const stat = FB_STATS[i];
+          const next = formatCount(lin, stat.target, stat.suffix);
+          if (v.dataset.v !== next) {
+            v.textContent = next;
+            v.dataset.v = next;
+          }
+        }
       }
 
-      // 4) text+DATA 중앙 → 상단 동시 이동 + Partner Frame 하단에서 진입
-      const mE = easeInOutCubic(
-        clamp01((p - FB_DATA_3_END) / (FB_MOVEUP_END - FB_DATA_3_END)),
+      // ───── Phase 6 [0.55~0.72] Partner Frame 하단→상단 슬라이드 (→ 103:1022) ─────
+      const pE = easeInOutCubic(
+        clamp01((p - FB_DATA_3_END) / (FB_PARTNER_END - FB_DATA_3_END)),
       );
-      const ty = lerp(g.centerY, 0, mE).toFixed(1);
-      if (textWrapRef.current) {
-        textWrapRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
-      }
-      if (dataRef.current) {
-        dataRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
-      }
       if (partnerRef.current) {
-        partnerRef.current.style.opacity = mE.toFixed(3);
-        partnerRef.current.style.transform = `translate3d(0, ${((1 - mE) * 60).toFixed(1)}px, 0)`;
+        partnerRef.current.style.opacity = pE.toFixed(3);
+        // 하단에서 위로 슬라이드: translateY 80 → 0
+        partnerRef.current.style.transform = `translate3d(0, ${((1 - pE) * 80).toFixed(1)}px, 0)`;
       }
 
-      // 5) 나라장터 배너 하단 진입 + fade
-      const bE = easeInOutCubic(
-        clamp01((p - FB_MOVEUP_END) / (FB_BID_END - FB_MOVEUP_END)),
+      // ───── Phase 7 [0.72~0.86] 경고 버튼 페이드인 + pulse 2회 (→ 103:588) ─────
+      // Attention-grab #2: .fb-warn-pulse 클래스 추가 시점 = 페이드 절반 도달
+      const wE = easeInOutCubic(
+        clamp01((p - FB_PARTNER_END) / (FB_WARN_END - FB_PARTNER_END)),
       );
-      if (bidRef.current) {
-        bidRef.current.style.opacity = bE.toFixed(3);
-        bidRef.current.style.transform = `translate3d(0, ${((1 - bE) * 50).toFixed(1)}px, 0)`;
+      if (warnRef.current) {
+        warnRef.current.style.opacity = wE.toFixed(3);
+        warnRef.current.style.transform = `translate3d(0, ${((1 - wE) * 16).toFixed(1)}px, 0)`;
       }
-
-      // 6) 모든 내용 로드 후 버튼 천천히 등장 (1회 트리거)
-      if (bE > 0.92 && !btnTriggeredRef.current) {
-        btnTriggeredRef.current = true;
-        setBtnShown(true);
+      if (wE > 0.5 && !warnTriggeredRef.current) {
+        warnTriggeredRef.current = true;
+        if (warnRef.current) warnRef.current.classList.add("fb-warn-pulse");
       }
     };
 
@@ -672,29 +704,29 @@ function ForBusinessStage() {
 
   return (
     <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-white">
-      {/* 데스크톱(lg+) — About Us 방식 다단계 sticky 무대 */}
+      {/* 데스크톱(lg+) — Figma 7단계 sticky 시퀀스 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
           <div className="sticky top-0 h-[150vh] w-full overflow-hidden">
             <div className="relative h-full mx-[120px] xl:mx-[260px]">
-              {/* 좌측 텍스트 — 중앙에서 스크럽 → 상단 이동 */}
+              {/* 좌측 텍스트(For Business 라벨 + 슬로건 + 경고 버튼) */}
               <div
                 ref={textWrapRef}
-                className="absolute left-0 w-[calc(50%-24px)] will-change-transform"
+                className="absolute left-0 w-[calc(50%-50px)] will-change-transform"
                 style={{
                   top: `${FB_TOP_PAD}px`,
                   opacity: ready ? 1 : 0,
                   transition: "opacity .5s ease-out",
                 }}
               >
-                <p className="text-[var(--color-brand-red)] font-bold text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                <p className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
                   <span>For Business</span>
                   <span
                     aria-hidden
-                    className="inline-block w-[8px] h-[8px] rounded-full bg-[var(--color-brand-red)]"
+                    className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
                   />
                 </p>
-                <h2 className="mt-[22px] font-bold text-[40px] xl:text-[46px] leading-[1.32] tracking-[-0.018em] text-left">
+                <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[44px] xl:text-[56px] leading-[1.32] tracking-[-0.018em] text-left">
                   {BUSINESS_FLAT.map((line, li) => (
                     <span key={li} className="block">
                       {line.map((w, wi) => (
@@ -712,12 +744,33 @@ function ForBusinessStage() {
                     </span>
                   ))}
                 </h2>
+                {/* 경고 버튼 — Phase 7 등장 + pulse 2회 attention-grab */}
+                <button
+                  ref={warnRef}
+                  type="button"
+                  className="mt-[30px] inline-flex items-center gap-[8px] rounded-[10px] bg-[#ffeff3] px-[18px] py-[16px] text-[#cb0d35] text-[15px] xl:text-[16px] font-medium tracking-[-0.005em] will-change-transform hover:-translate-y-[1px] transition-transform"
+                  style={{ opacity: 0, transformOrigin: "left center" }}
+                >
+                  <span>혹시, 지금 이용하는 곳이 대행사는 아니신가요?</span>
+                  <svg
+                    aria-hidden
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="shrink-0"
+                  >
+                    <circle cx="12" cy="12" r="10" stroke="#cb0d35" strokeWidth="1.5" />
+                    <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14" stroke="#cb0d35" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="12" cy="16.5" r="0.9" fill="#cb0d35" />
+                  </svg>
+                </button>
               </div>
 
-              {/* 우측 DATA frame — 텍스트 스크럽 완료 후 페이드, 항목 순차 등장 */}
+              {/* 우측 DATA frame — Phase 3~5: 페이드 + 항목 순차 등장 + count-up */}
               <div
                 ref={dataRef}
-                className="absolute right-0 w-[calc(50%-24px)] flex flex-col gap-[18px] xl:gap-[24px] will-change-transform"
+                className="absolute right-0 w-[calc(50%-50px)] flex flex-col gap-[40px] xl:gap-[52px] will-change-transform"
                 style={{ top: `${FB_TOP_PAD}px`, opacity: 0 }}
               >
                 {FB_STATS.map((s, i) => (
@@ -727,35 +780,39 @@ function ForBusinessStage() {
                     className="will-change-transform"
                     style={{ opacity: 0 }}
                   >
-                    <div className="flex items-end justify-between gap-4">
+                    <div className="flex items-end justify-between gap-4 px-[5px]">
                       <div>
-                        <p className="font-semibold text-[#222] text-[20px] xl:text-[24px] leading-[1.3]">
+                        <p className="font-semibold text-[#222] text-[22px] xl:text-[26px] leading-[1.3]">
                           {s.title}
                         </p>
-                        <p className="mt-[8px] font-medium text-[#555] text-[14px] xl:text-[16px] leading-[1.3]">
+                        <p className="mt-[10px] font-medium text-[#555] text-[15px] xl:text-[18px] leading-[1.3]">
                           {s.sub}
                         </p>
                       </div>
-                      <p className="shrink-0 font-extrabold text-[#222] text-[30px] xl:text-[40px] leading-[1] tracking-[-0.02em]">
-                        {s.value}
+                      <p
+                        ref={(el) => (dataValueRefs.current[i] = el)}
+                        data-v={`0${s.suffix}`}
+                        className="shrink-0 font-bold text-[#222] text-[38px] xl:text-[50px] leading-[1] tracking-[-0.02em] tabular-nums"
+                      >
+                        {`0${s.suffix}`}
                       </p>
                     </div>
-                    <div className="mt-[14px] xl:mt-[16px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
+                    <div className="mt-[24px] xl:mt-[32px] h-[7px] xl:h-[8px] w-full bg-[#e2ef5d] rounded-[55px]" />
                   </div>
                 ))}
               </div>
 
-              {/* 하단 Partner Frame (전체폭) — 하단에서 위로 진입 */}
+              {/* 좌측 하단 Partner Frame — Phase 6: 하단→상단 슬라이드 */}
               <div
                 ref={partnerRef}
-                className="absolute inset-x-0 rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[22px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
+                className="absolute left-0 w-[calc(50%-50px)] rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[22px] xl:p-[30px] flex flex-col gap-[10px] will-change-transform"
                 style={{ top: 0, opacity: 0 }}
                 aria-label="제휴 기업"
               >
-                {FB_PARTNERS.map((row, ri) => (
+                {FB_PARTNERS.slice(0, 2).map((row, ri) => (
                   <div key={ri} className="overflow-hidden">
                     <div
-                      className={`flex w-max gap-[10px] xl:gap-[12px] ${
+                      className={`flex w-max gap-[10px] ${
                         ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
                       }`}
                       style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
@@ -764,7 +821,7 @@ function ForBusinessStage() {
                         <span
                           key={ci}
                           aria-hidden={ci >= row.length}
-                          className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[10px] text-[14px] xl:text-[15px] font-medium text-[#333] whitespace-nowrap"
+                          className="shrink-0 rounded-[10px] bg-white px-[16px] py-[14px] xl:px-[18px] xl:py-[16px] text-[16px] xl:text-[18px] font-medium text-[#333] whitespace-nowrap"
                         >
                           {name}
                         </span>
@@ -773,44 +830,13 @@ function ForBusinessStage() {
                   </div>
                 ))}
               </div>
-
-              {/* 하단 나라장터 배너 (전체폭) — 하단에서 등장 */}
-              <div
-                ref={bidRef}
-                className="absolute inset-x-0 rounded-[20px] bg-[#f8f8f8] p-[22px] xl:p-[26px] flex items-center min-h-[100px] xl:min-h-[120px] will-change-transform"
-                style={{ top: 0, opacity: 0 }}
-                aria-label="나라장터 조달청 등록"
-              >
-                <img
-                  src={narajangter}
-                  alt="나라장터"
-                  className="h-[36px] xl:h-[42px] w-auto select-none"
-                  draggable="false"
-                />
-              </div>
-
-              {/* 버튼 — 모든 내용 로드 후 천천히 등장 (나라장터 아래) */}
-              <a
-                ref={btnRef}
-                href="#"
-                className="absolute left-0 inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] hover:-translate-y-[1px]"
-                style={{
-                  top: 0,
-                  opacity: btnShown ? 1 : 0,
-                  transform: btnShown ? "translateY(0)" : "translateY(12px)",
-                  transition: "opacity 1.3s ease-out, transform 1.3s ease-out",
-                  pointerEvents: btnShown ? "auto" : "none",
-                }}
-              >
-                회사 더 살펴보기 →
-              </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 모바일(<lg) — 정적 스택(애니메이션 없이 전체 노출) */}
-      <div className="lg:hidden px-6 md:px-12 py-[72px] flex flex-col gap-[40px]">
+      {/* 모바일(<lg) — 정적 스택 (Figma 103:588 단순화) */}
+      <div className="lg:hidden px-6 md:px-12 py-[72px] flex flex-col gap-[36px]">
         <div>
           <p className="text-[var(--color-brand-red)] font-bold text-[18px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
             <span>For Business</span>
@@ -819,7 +845,7 @@ function ForBusinessStage() {
               className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--color-brand-red)]"
             />
           </p>
-          <h2 className="mt-[18px] font-bold text-[28px] md:text-[36px] leading-[1.34] tracking-[-0.018em]">
+          <h2 className="mt-[18px] font-bold text-[30px] md:text-[40px] leading-[1.34] tracking-[-0.018em]">
             {BUSINESS_FLAT.map((line, li) => (
               <span key={li} className="block">
                 {line.map((w, wi) => (
@@ -837,30 +863,30 @@ function ForBusinessStage() {
               </span>
             ))}
           </h2>
-          <a
-            href="#"
-            className="mt-[24px] inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[12px] text-[15px] font-semibold text-white"
+          <button
+            type="button"
+            className="mt-[20px] inline-flex items-center gap-[8px] rounded-[10px] bg-[#ffeff3] px-[16px] py-[12px] text-[#cb0d35] text-[14px] font-medium"
           >
-            회사 더 살펴보기 →
-          </a>
+            <span>혹시, 지금 이용하는 곳이 대행사는 아니신가요?</span>
+          </button>
         </div>
-        <div className="flex flex-col gap-[22px]">
+        <div className="flex flex-col gap-[28px]">
           {FB_STATS.map((s, i) => (
             <div key={i}>
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-[#222] text-[19px] leading-[1.3]">
+                  <p className="font-semibold text-[#222] text-[20px] leading-[1.3]">
                     {s.title}
                   </p>
                   <p className="mt-[6px] font-medium text-[#555] text-[13px] leading-[1.3]">
                     {s.sub}
                   </p>
                 </div>
-                <p className="shrink-0 font-extrabold text-[#222] text-[28px] leading-[1] tracking-[-0.02em]">
-                  {s.value}
+                <p className="shrink-0 font-bold text-[#222] text-[32px] leading-[1] tracking-[-0.02em] tabular-nums">
+                  {`${s.target.toLocaleString("ko-KR")}${s.suffix}`}
                 </p>
               </div>
-              <div className="mt-[14px] h-[5px] w-full bg-[#e2ef5d]" />
+              <div className="mt-[16px] h-[6px] w-full bg-[#e2ef5d] rounded-[55px]" />
             </div>
           ))}
         </div>
@@ -868,7 +894,7 @@ function ForBusinessStage() {
           className="rounded-[18px] bg-[#f8f8f8] overflow-hidden p-[16px] flex flex-col gap-[10px]"
           aria-label="제휴 기업"
         >
-          {FB_PARTNERS.map((row, ri) => (
+          {FB_PARTNERS.slice(0, 2).map((row, ri) => (
             <div key={ri} className="overflow-hidden">
               <div
                 className={`flex w-max gap-[10px] ${
@@ -880,7 +906,7 @@ function ForBusinessStage() {
                   <span
                     key={ci}
                     aria-hidden={ci >= row.length}
-                    className="shrink-0 rounded-[9px] border border-[#ececec] bg-white px-[12px] py-[8px] text-[13px] font-medium text-[#333] whitespace-nowrap"
+                    className="shrink-0 rounded-[9px] bg-white px-[14px] py-[10px] text-[14px] font-medium text-[#333] whitespace-nowrap"
                   >
                     {name}
                   </span>
@@ -888,17 +914,6 @@ function ForBusinessStage() {
               </div>
             </div>
           ))}
-        </div>
-        <div
-          className="rounded-[18px] bg-[#f8f8f8] p-[22px] flex items-center min-h-[110px]"
-          aria-label="나라장터 조달청 등록"
-        >
-          <img
-            src={narajangter}
-            alt="나라장터"
-            className="h-[38px] w-auto select-none"
-            draggable="false"
-          />
         </div>
       </div>
     </section>
