@@ -1,9 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import slideLegal from "../assets/slide-legal.webp";
-import slideIndustry from "../assets/slide-industry.webp";
-import slideCorporate from "../assets/slide-corporate.webp";
-import slideCommunity from "../assets/slide-community.webp";
-import slideEvent from "../assets/slide-event.webp";
+import obituary from "../assets/Obituary.jpg";
+import obituary2 from "../assets/Obituary_2.jpg";
+import marriage from "../assets/marriage.jpg";
+import marriage2 from "../assets/marriage_2.jpg";
+import inauguration from "../assets/inauguration.jpg";
+import expansionRelocation from "../assets/Expansion relocation.jpg";
+import opening from "../assets/Opening.jpg";
+import opening2 from "../assets/Opening_2.jpg";
+import promotion from "../assets/promotion.jpg";
+import childbirth from "../assets/childbirth.jpg";
+import childbirth2 from "../assets/childbirth_2.jpg";
+import employees from "../assets/Employees.jpg";
 
 /**
  * DataSection — About Us(다단계 sticky 무대) + For Business(scrub 슬로건)
@@ -81,45 +88,45 @@ const DIM_RGB = [212, 216, 226];
 const DARK_RGB = [34, 34, 34];
 const smoothstep = (t) => t * t * (3 - 2 * t);
 
-// About Us 이미지 슬라이더 — 이미지는 기존 slide 5종을 인접 중복 없이 순환 매핑(플레이스홀더)
+// About Us 이미지 슬라이더 — 카드명에 맞춘 이미지. imgs 후보가 2개 이상이면 랜덤 1개 선택.
 const SLIDER_CARDS = [
   {
-    img: slideLegal,
+    imgs: [obituary, obituary2],
     title: "부고장 수령",
     desc: "가장 힘든 순간에 전하는 위로가, 가장 깊은 신뢰로 남습니다.",
   },
   {
-    img: slideCommunity,
+    imgs: [marriage, marriage2],
     title: "청첩장 수령",
     desc: "거래처의 기쁜 날, 귀사의 이름이 담긴 아름다운 축복을 더해주세요.",
   },
   {
-    img: slideCorporate,
+    imgs: [inauguration],
     title: "이·취임식",
     desc: "새로운 리더의 탄생, 귀사의 든든한 지지를 가장 먼저 보여주세요.",
   },
   {
-    img: slideIndustry,
+    imgs: [expansionRelocation],
     title: "확장·이전",
     desc: "파트너의 성장은 곧 귀사의 기회입니다. 더 큰 도약을 응원 해주세요.",
   },
   {
-    img: slideEvent,
+    imgs: [opening, opening2],
     title: "개업축하",
     desc: "파트너의 새로운 시작, 첫인상이 평생의 비즈니스를 좌우합니다.",
   },
   {
-    img: slideCorporate,
+    imgs: [promotion],
     title: "승진 · 영전",
     desc: "핵심 파트너의 성취를 축하하는 것, 가장 확실한 네트워킹의 완성입니다.",
   },
   {
-    img: slideCommunity,
+    imgs: [childbirth, childbirth2],
     title: "출산·득남·득녀",
     desc: "비즈니스를 넘어 가족의 기쁨까지 챙기는 세심함, 진정한 신뢰의 증거입니다.",
   },
   {
-    img: slideIndustry,
+    imgs: [employees],
     title: "임직원 경조사",
     desc: "‘우리를 챙겨주는 든든한 회사’라는 자부심, 꼼꼼한 경조사 지원에서 출발합니다.",
   },
@@ -130,8 +137,16 @@ const SLIDER_CARDS = [
 // 양옆에 항상 이웃 카드가 채워져(빈 공간 없음) 중앙 카드가 Active 되는 캐러셀.
 // 마지막 카드 다음에 첫 카드가 다시 중앙으로 들어온다.
 const UNIQUE_N = SLIDER_CARDS.length;
-const LOOP_CARDS = [...SLIDER_CARDS, ...SLIDER_CARDS, ...SLIDER_CARDS];
-const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 임직원
+const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 첫 카드
+// 카드별로 후보 이미지 중 1개를 랜덤 선택(페이지 로드 1회 고정) → 3벌 이어 붙임.
+// 3벌 모두 같은 선택을 공유하므로 한 카드는 캐러셀 내내 동일 이미지로 일관됨.
+const LOOP_CARDS = (() => {
+  const picked = SLIDER_CARDS.map((c) => ({
+    ...c,
+    img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
+  }));
+  return [...picked, ...picked, ...picked];
+})();
 
 // ───────── About Us 다단계 무대 ─────────
 const A_TRACK_VH = 460;
