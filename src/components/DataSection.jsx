@@ -76,6 +76,10 @@ const TOTAL_BUSINESS = BUSINESS_LINES.reduce((acc, l) => acc + l.length, 0);
 const DIM = "#d4d8e2";
 const DARK = "#222222";
 const ACCENT = "var(--color-brand-red)";
+// 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
+const DIM_RGB = [212, 216, 226];
+const DARK_RGB = [34, 34, 34];
+const smoothstep = (t) => t * t * (3 - 2 * t);
 
 // About Us 이미지 슬라이더 — 프로젝트 기존 slide 이미지 재사용
 const SLIDER_CARDS = [
@@ -120,6 +124,7 @@ function AboutScrollStage() {
   const cardRefs = useRef([]);
   const endSpacerRef = useRef(null);
   const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, refW: 1, cardCx: [] });
+  const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
 
   // 진입 시 텍스트 블록 fade-in
@@ -141,6 +146,18 @@ function AboutScrollStage() {
 
   useLayoutEffect(() => {
     let ticking = false;
+
+    // --color-brand-red 를 rgb 로 1회 해석 (연속 보간용)
+    try {
+      const probe = document.createElement("span");
+      probe.style.cssText = "color:var(--color-brand-red);position:absolute;visibility:hidden";
+      document.body.appendChild(probe);
+      const m = getComputedStyle(probe).color.match(/\d+/g);
+      if (m && m.length >= 3) accentRGBRef.current = m.slice(0, 3).map(Number);
+      document.body.removeChild(probe);
+    } catch {
+      /* keep fallback */
+    }
 
     // 레이아웃 측정 → geo 캐시 (mount / resize / font load 시)
     const measure = () => {
@@ -207,16 +224,24 @@ function AboutScrollStage() {
       const max = Math.max(1, rect.height - vh);
       const p = clamp01(-rect.top / max);
 
-      // 1) 텍스트 단어 scrub reveal
+      // 1) 텍스트 단어 scrub reveal — 연속 보간(스크롤 위치에 직결)으로 색을 채운다.
+      //    이산 단계(litIdx)가 아니라 각 단어의 채움 정도를 부드럽게 lerp →
+      //    스크롤 속도·방향과 무관하게 매끄럽게 칠해짐(딱딱한 단계감 제거).
       const reveal = clamp01(p / A_TEXT_END);
-      const lit = clamp01((reveal - 0.05) / 0.9);
-      const litIdx = Math.floor(lit * (TOTAL_ABOUT + 1));
+      const litAmt = clamp01((reveal - 0.05) / 0.9);
+      const pos = litAmt * (TOTAL_ABOUT + 1); // 0..N+1 연속 채움 위치
+      const acc = accentRGBRef.current;
       const words = wordRefs.current;
       for (let i = 0; i < words.length; i++) {
         const el = words[i];
         if (!el) continue;
-        const on = i < litIdx;
-        const c = on ? (el.dataset.accent === "1" ? ACCENT : DARK) : DIM;
+        // 단어 i 는 1.6칸 폭 창에서 채워짐(이웃과 겹쳐 부드러운 채움 front)
+        const wf = smoothstep(clamp01((pos - i) / 1.6));
+        const t = el.dataset.accent === "1" ? acc : DARK_RGB;
+        const r = Math.round(DIM_RGB[0] + (t[0] - DIM_RGB[0]) * wf);
+        const g = Math.round(DIM_RGB[1] + (t[1] - DIM_RGB[1]) * wf);
+        const b = Math.round(DIM_RGB[2] + (t[2] - DIM_RGB[2]) * wf);
+        const c = `rgb(${r}, ${g}, ${b})`;
         if (el.dataset.c !== c) {
           el.style.color = c;
           el.dataset.c = c;
@@ -307,7 +332,7 @@ function AboutScrollStage() {
                       key={wi}
                       ref={(el) => (wordRefs.current[w.gi] = el)}
                       data-accent={w.tone === "accent" ? "1" : "0"}
-                      className="inline-block whitespace-pre transition-colors duration-300 ease-out"
+                      className="inline-block whitespace-pre"
                       style={{ color: DIM }}
                     >
                       {w.text}
@@ -348,7 +373,7 @@ function AboutScrollStage() {
                       <img
                         src={card.img}
                         alt=""
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
                         draggable="false"
                         className="w-full h-full object-cover select-none"
