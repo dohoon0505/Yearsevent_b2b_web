@@ -11,7 +11,7 @@ import MenuToggle from "./MenuToggle.jsx";
  *   - 로고 150×28.846px
  *   - 4 GNB SemiBold 18px 화이트
  *   - 햄버거 30×30 (윗줄 빨간 액센트)
- *   - rounded-[16px]
+ *   - rounded-[14px]
  *   - bg rgba(34,34,34,0.4) — 단순 다크 반투명
  *   - Figma effect 미명시 → backdrop-blur 미세 / shadow 없음
  *
@@ -26,7 +26,7 @@ export default function HeaderScrollActive({ visible, onMenuClick }) {
       }`}
       aria-hidden={!visible}
     >
-      <header className="rounded-[24px] bg-[rgba(34,34,34,0.55)] backdrop-blur-[24px] backdrop-saturate-150 border border-white/15 flex items-center gap-[30px] px-5 md:px-[30px] h-[72px] pointer-events-auto">
+      <header className="rounded-[14px] bg-[rgba(34,34,34,0.55)] backdrop-blur-[24px] backdrop-saturate-150 border border-white/15 flex items-center gap-[30px] px-5 md:px-[30px] h-[72px] pointer-events-auto">
         <div className="flex flex-1 items-center justify-between gap-6 min-w-0">
           <Logo />
           <div className="hidden lg:flex items-center gap-[30px]">

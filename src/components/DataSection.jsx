@@ -184,8 +184,8 @@ const A_TEXT_END = 0.32; // 텍스트 scrub 완료 (~1화면)
 const A_TRANS_END = 0.52; // 텍스트 상단 이동 + 슬라이더 등장 완료 (전환 구간 ↑ 매끄럽게)
 const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
 const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
-const A_BOTTOM_PAD = 72;
-const A_CARD_MAXH = 460;
+const A_BOTTOM_PAD = 48; // 카드 +15% 확대에 따라 하단 여백 축소 (72 → 48)
+const A_CARD_MAXH = 530; // 460 → 530 (+15% 확대)
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -424,10 +424,10 @@ function AboutScrollStage() {
             </h2>
           </div>
 
-          {/* 이미지 슬라이더 — center-focus (top/height JS 제어) */}
+          {/* 이미지 슬라이더 — center-focus (top/height JS 제어), 좌우 패딩 0 (full-bleed) */}
           <div
             ref={sliderWrapRef}
-            className="absolute inset-x-0 px-6 md:px-12 lg:px-[120px] xl:px-[260px] will-change-transform"
+            className="absolute inset-x-0 will-change-transform"
             style={{ top: `${A_TOP_PAD}px`, opacity: 0 }}
             aria-label="회사 소개 갤러리"
           >
