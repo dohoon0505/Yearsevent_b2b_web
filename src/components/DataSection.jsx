@@ -433,7 +433,7 @@ function AboutScrollStage() {
                       <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
                         {card.title}
                       </p>
-                      <p className="mt-[7px] text-[12.5px] md:text-[13.5px] leading-[1.55] text-[#71717a] tracking-[-0.003em]">
+                      <p className="mt-[7px] text-[12.5px] md:text-[14px] leading-[1.55] text-[#71717a] tracking-[-0.003em]">
                         {card.desc}
                       </p>
                     </div>
