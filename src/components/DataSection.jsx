@@ -86,17 +86,18 @@ const SLIDER_CARDS = [
   { img: slideEvent, title: "행사 현장", cat: "수천 송이, 30분" },
 ];
 
-// 반복(loop) 렌더 — 카드를 2벌 이어 붙여 행사 현장 다음에 임직원 경조사가
-// 이음새 없이 다시 나오게 함. focal은 한 바퀴(UNIQUE_N step)만 이동하고,
-// 2번째 벌이 우측을 채워 끝까지 빈 공간 없이 "반복되는" 느낌을 준다.
+// 반복(loop) 렌더 — 카드를 3벌 이어 붙여 이음새 없는 center-focus 루프 구성.
+// focal은 가운데 벌의 임직원(A_START_I)부터 한 바퀴(UNIQUE_N step) 이동 →
+// 양옆에 항상 이웃 카드가 채워져(빈 공간 없음) 중앙 카드가 Active 되는 캐러셀.
+// 행사 다음에 임직원이 다시 중앙으로 들어온다.
 const UNIQUE_N = SLIDER_CARDS.length;
-const LOOP_CARDS = [...SLIDER_CARDS, ...SLIDER_CARDS];
+const LOOP_CARDS = [...SLIDER_CARDS, ...SLIDER_CARDS, ...SLIDER_CARDS];
+const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 임직원
 
 // ───────── About Us 다단계 무대 ─────────
-// 트랙 길이/구간 = 스크롤 페이스. 카드 5장(maxX 작음) 기준 440vh가 적정.
-const A_TRACK_VH = 440;
-const A_TEXT_END = 0.33; // 텍스트 scrub 완료 (~1화면)
-const A_TRANS_END = 0.5; // 텍스트 상단 이동 + 슬라이더 등장 완료
+const A_TRACK_VH = 460;
+const A_TEXT_END = 0.32; // 텍스트 scrub 완료 (~1화면)
+const A_TRANS_END = 0.52; // 텍스트 상단 이동 + 슬라이더 등장 완료 (전환 구간 ↑ 매끄럽게)
 const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
 const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
 const A_BOTTOM_PAD = 72;
@@ -104,7 +105,9 @@ const A_CARD_MAXH = 460;
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+// 시작·끝 속도 0 → 전환(텍스트 이동/슬라이더 등장)이 툭 튀지 않고 매끄럽게 가감속
+const easeInOutCubic = (t) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 function AboutScrollStage() {
   const sectionRef = useRef(null);
@@ -116,7 +119,7 @@ function AboutScrollStage() {
   const sliderTrackRef = useRef(null);
   const cardRefs = useRef([]);
   const endSpacerRef = useRef(null);
-  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, focalX: 0, refW: 1, cardCx: [] });
+  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, refW: 1, cardCx: [] });
   const [ready, setReady] = useState(false);
 
   // 진입 시 텍스트 블록 fade-in
@@ -162,8 +165,9 @@ function AboutScrollStage() {
         c.style.width = `${cardW}px`;
       });
 
-      // 좌측 정렬: 첫 카드(임직원)를 레일 좌측(260px 인셋)에서 시작·포커스.
-      // 2벌 렌더가 우측을 채우므로 끝 여백 불필요.
+      // center-focus 루프: 트랙 좌측 패딩 0, 대신 dx0 오프셋으로 가운데 벌의
+      // 임직원(A_START_I)을 레일 중앙(focalX)에 놓는다. 3벌 렌더라 양옆이 항상
+      // 채워지고(빈 공간 없음), focal은 한 바퀴(UNIQUE_N step)만 이동.
       const vpW = vp.clientWidth;
       track.style.paddingLeft = "0px";
       if (endSpacerRef.current) endSpacerRef.current.style.width = "0px";
@@ -178,15 +182,15 @@ function AboutScrollStage() {
         const r = c.getBoundingClientRect();
         return r.left + r.width / 2 - vpLeft;
       });
-      // focal은 첫 카드 → UNIQUE_N번째 카드(=임직원 반복)까지 딱 한 바퀴 이동.
-      // 그동안 임직원→제조→법무→모임→행사→임직원(반복) 모두 포커스됨.
       const step = (cardCx[1] || 0) - (cardCx[0] || 0);
-      const maxX = Math.max(0, step * UNIQUE_N);
+      const focalX = vpW / 2; // 레일(인셋 뷰포트) 중앙 = Active 카드 위치
+      const dx0 = focalX - (cardCx[A_START_I] || 0); // 시작 시 가운데 임직원을 중앙에
       geo.current = {
         vh,
         centerY: (vh - textH) / 2 - A_TOP_PAD,
-        maxX,
-        focalX: cardCx[0] || 0, // 포커스 지점 = 첫 카드 위치(좌측) → 임직원부터 시작
+        maxX: Math.max(0, step * UNIQUE_N),
+        dx0,
+        focalX,
         refW: window.innerWidth, // falloff 정규화(전체 폭) — 부드러운 포커스 유지
         cardCx,
       };
@@ -219,28 +223,20 @@ function AboutScrollStage() {
         }
       }
 
-      // 2) 텍스트 중앙 → 상단 이동
-      let ty;
-      if (p <= A_TEXT_END) ty = g.centerY;
-      else if (p < A_TRANS_END)
-        ty = lerp(
-          g.centerY,
-          0,
-          easeOutCubic((p - A_TEXT_END) / (A_TRANS_END - A_TEXT_END)),
-        );
-      else ty = 0;
-      textWrapRef.current.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
+      // 2)+3) 텍스트 상단 이동 + 슬라이더 등장 — 동일 eased 진행으로 매끄럽게 동기화.
+      //   easeInOutCubic: 전환 시작·끝 속도 0 → "툭" 튀지 않고 부드럽게 가감속.
+      const tt = clamp01((p - A_TEXT_END) / (A_TRANS_END - A_TEXT_END));
+      const e = easeInOutCubic(tt);
+      textWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
 
-      // 3) 슬라이더 등장 (transition 구간 fade + slide up)
-      const appear = clamp01((p - A_TEXT_END) / (A_TRANS_END - A_TEXT_END));
       const sw = sliderWrapRef.current;
-      sw.style.opacity = appear.toFixed(3);
-      sw.style.transform = `translate3d(0, ${((1 - appear) * 40).toFixed(1)}px, 0)`;
-      sw.style.pointerEvents = appear > 0.99 ? "auto" : "none";
+      sw.style.opacity = e.toFixed(3);
+      sw.style.transform = `translate3d(0, ${((1 - e) * 48).toFixed(1)}px, 0)`;
+      sw.style.pointerEvents = e > 0.99 ? "auto" : "none";
 
-      // 4) center-focus 가로 스크롤
+      // 4) center-focus 가로 스크롤 (dx0 = 시작 중앙 정렬 오프셋)
       const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
-      const dx = -g.maxX * sp;
+      const dx = g.dx0 - g.maxX * sp;
       sliderTrackRef.current.style.transform = `translate3d(${dx.toFixed(1)}px, 0, 0)`;
       const cards = cardRefs.current;
       for (let i = 0; i < cards.length; i++) {
