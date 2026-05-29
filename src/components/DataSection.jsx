@@ -1,27 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * DataSection — 100vh sticky 안에 두 개의 scrub reveal 슬로건
+ * DataSection — 두 개의 독립된 100vh scrub reveal 슬로건 섹션
  *
- * 레이아웃 (zigzag):
- *   ┌────────────────────────────────────┐
- *   │ About Us •                         │
- *   │ 모든 위대한 비즈니스는              │
- *   │ 작은 축하와 깊은 위로에서           │
- *   │ 시작됩니다.                         │
- *   │                                    │
- *   │                       For Business │
- *   │                  2016년을 시작으로  │
- *   │           200개가 넘는 기업·단체의  │
- *   │            경조사를 전담하고 있어요 │
- *   └────────────────────────────────────┘
+ * 구조 (각각 별도 <section>):
+ *   ┌─ About Us (200vh track / sticky 100vh) ── 좌측 정렬
+ *   │   모든 위대한 비즈니스는 …          ← 스크롤하며 단어 scrub reveal
+ *   └─ For Business (200vh track / sticky 100vh) ── 우측 정렬
+ *       저희는 2016년을 시작으로 …       ← 스크롤하며 단어 scrub reveal
  *
- * 인터랙션 phase:
- *   Phase 1 (progress 0 → 0.5): About Us 슬로건 단어 scrub reveal
- *   Phase 2 (progress 0.5 → 1.0): For Business 슬로건 단어 scrub reveal
- *   progress 1.0 → sticky 해제, 다음 섹션
- *
- * Track: 250vh / sticky 100vh
+ * 각 섹션:
+ *   - 자기만의 sticky 100vh 프레임 (시각적으로 한 화면을 가득 채움)
+ *   - 자기만의 트랙(200vh) 위에서 progress 0 → 1 동안 슬로건 단어가 순차 reveal
+ *   - 진입 시 IntersectionObserver 로 label·슬로건 fade-up
  */
 
 const ABOUT_LINES = [
@@ -77,7 +68,7 @@ const DARK = "#222222";
 const ACCENT = "var(--color-brand-red)";
 
 /** 라벨 컴포넌트 — 텍스트 + 작은 dot */
-function SectionLabel({ text, align = "left", style }) {
+function SectionLabel({ text, style }) {
   return (
     <p
       className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px] hero-fade-up"
@@ -125,12 +116,26 @@ function Slogan({ lines, litIndex, align = "left", style }) {
   );
 }
 
-export default function DataSection() {
+/**
+ * ScrubSloganSection — 100vh sticky 프레임 1개 + 스크럽 단어 reveal
+ *
+ * 자기만의 트랙(trackVh) 위에서 progress 0 → 1 을 계산하고,
+ * progress 0.05 → 0.95 구간 동안 슬로건 단어를 순차적으로 lit 시킨다.
+ */
+function ScrubSloganSection({
+  ariaLabel,
+  label,
+  lines,
+  total,
+  align = "left",
+  trackVh = 200,
+}) {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
 
+  // 진입 시 label·슬로건 fade-up
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -147,6 +152,7 @@ export default function DataSection() {
     return () => obs.disconnect();
   }, []);
 
+  // 트랙 위치 → progress
   useEffect(() => {
     let ticking = false;
     const update = () => {
@@ -177,77 +183,60 @@ export default function DataSection() {
     };
   }, []);
 
-  // Phase 1: About Us (progress 0 → 0.5)
-  const aboutProgress = Math.max(0, Math.min(1, progress / 0.5));
-  const aboutLit = Math.max(0, Math.min(1, (aboutProgress - 0.05) / 0.9));
-  const aboutLitIdx = Math.floor(aboutLit * (TOTAL_ABOUT + 1));
+  const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.9));
+  const litIdx = Math.floor(lit * (total + 1));
 
-  // Phase 2: For Business (progress 0.5 → 1.0)
-  const businessProgress = Math.max(0, Math.min(1, (progress - 0.5) / 0.5));
-  const businessLit = Math.max(0, Math.min(1, (businessProgress - 0.05) / 0.9));
-  const businessLitIdx = Math.floor(businessLit * (TOTAL_BUSINESS + 1));
-
-  // About Us 100% 완료 전까지 For Business 영역 숨김
-  const businessReady = ready && progress >= 0.5;
+  const itemsAlign = align === "right" ? "items-end" : "items-start";
 
   return (
-    <section
-      ref={sectionRef}
-      aria-label="회사 데이터"
-      className="relative bg-white"
-    >
-      {/* sticky track — 250vh / sticky 100vh */}
-      <div ref={trackRef} style={{ height: "250vh" }} className="relative">
+    <section ref={sectionRef} aria-label={ariaLabel} className="relative bg-white">
+      {/* sticky track — trackVh / sticky 100vh */}
+      <div ref={trackRef} style={{ height: `${trackVh}vh` }} className="relative">
         <div className="sticky top-0 h-screen w-full overflow-hidden">
-          <div className="h-full w-full flex flex-col justify-between px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[100px] md:py-[120px]">
-            {/* 상단 좌측 — About Us */}
-            <div className="flex flex-col gap-[24px] items-start">
-              <SectionLabel
-                text="About Us"
-                style={{
-                  opacity: ready ? 1 : 0,
-                  transform: ready ? "translateY(0)" : "translateY(20px)",
-                }}
-              />
-              <Slogan
-                lines={ABOUT_LINES}
-                litIndex={aboutLitIdx}
-                align="left"
-                style={{
-                  opacity: ready ? 1 : 0,
-                  transform: ready ? "translateY(0)" : "translateY(28px)",
-                  transitionDelay: "0.14s",
-                }}
-              />
-            </div>
-
-            {/* 하단 우측 — For Business (About Us 100% 완료 후 등장) */}
-            <div className="flex flex-col gap-[24px] items-end">
-              <SectionLabel
-                text="For Business"
-                style={{
-                  opacity: businessReady ? 1 : 0,
-                  transform: businessReady
-                    ? "translateY(0)"
-                    : "translateY(20px)",
-                }}
-              />
-              <Slogan
-                lines={BUSINESS_LINES}
-                litIndex={businessLitIdx}
-                align="right"
-                style={{
-                  opacity: businessReady ? 1 : 0,
-                  transform: businessReady
-                    ? "translateY(0)"
-                    : "translateY(28px)",
-                  transitionDelay: "0.14s",
-                }}
-              />
-            </div>
+          <div
+            className={`h-full w-full flex flex-col justify-center gap-[24px] px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[100px] md:py-[120px] ${itemsAlign}`}
+          >
+            <SectionLabel
+              text={label}
+              style={{
+                opacity: ready ? 1 : 0,
+                transform: ready ? "translateY(0)" : "translateY(20px)",
+              }}
+            />
+            <Slogan
+              lines={lines}
+              litIndex={litIdx}
+              align={align}
+              style={{
+                opacity: ready ? 1 : 0,
+                transform: ready ? "translateY(0)" : "translateY(28px)",
+                transitionDelay: "0.14s",
+              }}
+            />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+export default function DataSection() {
+  return (
+    <>
+      <ScrubSloganSection
+        ariaLabel="회사 소개"
+        label="About Us"
+        lines={ABOUT_LINES}
+        total={TOTAL_ABOUT}
+        align="left"
+      />
+      <ScrubSloganSection
+        ariaLabel="비즈니스 소개"
+        label="For Business"
+        lines={BUSINESS_LINES}
+        total={TOTAL_BUSINESS}
+        align="right"
+      />
+    </>
   );
 }
