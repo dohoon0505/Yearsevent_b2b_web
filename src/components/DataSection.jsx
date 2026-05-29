@@ -22,7 +22,7 @@ import narajangter from "../assets/narajangter.png";
  * │     [0.22~0.34] 텍스트가 상단(top padding 120)으로 이동 + 이미지 슬라이더 등장
  * │     [0.34~1.0 ] center-focus 가로 이미지 슬라이더 (첨부 md 패턴)
  * │   → 텍스트 + 슬라이더는 100vh 안에 공존, 100% 도달 시 sticky 해제
- * └─ For Business (TRACK 200vh / sticky 100vh) — 우측 정렬 scrub 슬로건
+ * └─ For Business (TRACK 520vh / sticky 150vh) — 단계별 진입(텍스트→DATA→Partner→나라장터)
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM(transform/opacity)만 기록.
  *       레이아웃 측정값(텍스트 높이·카드 중심)은 measure()에서 캐시.
@@ -100,16 +100,19 @@ const FB_PARTNERS = [
   ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
 ];
 
-// For Business 다단계 무대 — About Us 방식(텍스트 중앙→상단) + 순차 등장
+// For Business 다단계 무대 — text+DATA(중앙→상단) + Partner/나라장터 하단 진입
 const FB_TRACK_VH = 520;
-const FB_TOP_PAD = 120; // 텍스트가 정착할 상단 padding
-const FB_GAP_TD = 44; // 텍스트 → DATA 간격
-const FB_GAP_DB = 28; // DATA → 버튼 간격
-const FB_GAP_PB = 28; // Partner → bid 간격
-const FB_TEXT_END = 0.28; // 슬로건 scrub 완료
-const FB_MOVE_END = 0.44; // 텍스트 상단 이동 + DATA 등장 완료
-const FB_PARTNER_END = 0.62; // Partner 우측 진입 완료
-const FB_BID_END = 0.78; // bid 등장 완료 → 직후 버튼 천천히 등장
+const FB_TOP_PAD = 120;
+const FB_GAP_ROW = 36; // text+DATA row → Partner Frame
+const FB_GAP_PB = 24; // Partner → 나라장터
+const FB_GAP_BTN = 24; // 나라장터 → 버튼
+const FB_TEXT_END = 0.22; // 슬로건 scrub 완료
+const FB_FRAME_END = 0.28; // 우측 DATA frame 페이드인 완료
+const FB_DATA_1_END = 0.36; // 설립일 등장
+const FB_DATA_2_END = 0.44; // 경조사 제휴기업 등장
+const FB_DATA_3_END = 0.55; // 누적 주문처리 수 등장 (DATA 로드 완료)
+const FB_MOVEUP_END = 0.70; // text+DATA 상단 이동 + Partner Frame 진입
+const FB_BID_END = 0.84; // 나라장터 배너 진입
 
 const DIM = "#d4d8e2";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
@@ -480,14 +483,13 @@ function AboutScrollStage() {
 }
 
 /**
- * ForBusinessStage — About Us 방식 다단계 sticky 무대 (Figma 100:22)
- *   1) 슬로건이 좌측 세로 중앙에서 연속 스크럽 (About Us와 동일)
- *   2) 스크럽 완료 → 텍스트 상단 이동 + DATA(통계) 아래에서 상승
- *   3) Partner(제휴기업 칩) 우측에서 진입
- *   4) bid(나라장터) 아래에서 등장
- *   5) 모든 내용 로드 후 → '회사 더 살펴보기' 버튼 천천히 fade-in
- * 좌: 라벨+슬로건 → DATA → 버튼 / 우: Partner(마퀴) → bid
- * (About Us처럼 절대배치 + 측정: 텍스트가 단독으로 중앙에 오도록)
+ * ForBusinessStage — 다단계 sticky 무대
+ *   1) 슬로건이 좌측 세로 중앙에서 연속 스크럽
+ *   2) 스크럽 완료 → 우측에 DATA frame 페이드 → 설립일·경조사·누적 순차 등장
+ *   3) text+DATA가 상단으로 이동 + Partner Frame(전체폭 마퀴) 하단에서 진입
+ *   4) 나라장터 배너 하단 진입
+ *   5) '회사 더 살펴보기' 버튼 천천히 fade-in
+ * 레이아웃: 좌(텍스트) | 우(DATA) → 그 아래 Partner(전체폭) → 나라장터(전체폭) → 버튼
  */
 function ForBusinessStage() {
   const sectionRef = useRef(null);
@@ -495,6 +497,7 @@ function ForBusinessStage() {
   const wordRefs = useRef([]);
   const textWrapRef = useRef(null);
   const dataRef = useRef(null);
+  const dataItemRefs = useRef([]);
   const btnRef = useRef(null);
   const partnerRef = useRef(null);
   const bidRef = useRef(null);
@@ -534,22 +537,24 @@ function ForBusinessStage() {
       /* keep fallback */
     }
 
-    // 측정 — 텍스트 단독 중앙(centerY) + DATA/버튼/Partner/bid 절대 top 좌표
+    // 측정 — text+DATA row의 max 높이 기반 centerY + Partner/나라장터/버튼 절대 top
     const measure = () => {
       const vh = window.innerHeight;
       const tw = textWrapRef.current;
-      if (!tw) return;
+      const dataEl = dataRef.current;
+      if (!tw || !dataEl) return;
       const textH = tw.offsetHeight;
-      const dataH = dataRef.current ? dataRef.current.offsetHeight : 0;
+      const dataH = dataEl.offsetHeight;
+      const rowH = Math.max(textH, dataH);
       const partnerH = partnerRef.current ? partnerRef.current.offsetHeight : 0;
-      const dataTop = FB_TOP_PAD + textH + FB_GAP_TD;
-      const btnTop = dataTop + dataH + FB_GAP_DB;
-      const bidTop = FB_TOP_PAD + partnerH + FB_GAP_PB;
-      if (dataRef.current) dataRef.current.style.top = `${dataTop}px`;
-      if (btnRef.current) btnRef.current.style.top = `${btnTop}px`;
-      if (partnerRef.current) partnerRef.current.style.top = `${FB_TOP_PAD}px`;
+      const bidH = bidRef.current ? bidRef.current.offsetHeight : 0;
+      const partnerTop = FB_TOP_PAD + rowH + FB_GAP_ROW;
+      const bidTop = partnerTop + partnerH + FB_GAP_PB;
+      const btnTop = bidTop + bidH + FB_GAP_BTN;
+      if (partnerRef.current) partnerRef.current.style.top = `${partnerTop}px`;
       if (bidRef.current) bidRef.current.style.top = `${bidTop}px`;
-      geo.current = { vh, centerY: Math.max(0, (vh - textH) / 2 - FB_TOP_PAD) };
+      if (btnRef.current) btnRef.current.style.top = `${btnTop}px`;
+      geo.current = { vh, centerY: Math.max(0, (vh - rowH) / 2 - FB_TOP_PAD) };
     };
 
     const update = () => {
@@ -583,38 +588,56 @@ function ForBusinessStage() {
         }
       }
 
-      // 2) 텍스트 center → top
-      const mE = easeInOutCubic(
-        clamp01((p - FB_TEXT_END) / (FB_MOVE_END - FB_TEXT_END)),
+      // 2) 우측 DATA frame 컨테이너 페이드인 (텍스트 100% 스크럽 직후)
+      const fE = easeInOutCubic(
+        clamp01((p - FB_TEXT_END) / (FB_FRAME_END - FB_TEXT_END)),
       );
-      if (textWrapRef.current) {
-        textWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, mE).toFixed(1)}px, 0)`;
-      }
-      // 2b) DATA 아래에서 상승 + fade (텍스트 이동과 동시)
       if (dataRef.current) {
-        dataRef.current.style.opacity = mE.toFixed(3);
-        dataRef.current.style.transform = `translate3d(0, ${((1 - mE) * 48).toFixed(1)}px, 0)`;
+        dataRef.current.style.opacity = fE.toFixed(3);
       }
 
-      // 3) Partner 우측에서 진입 + fade
-      const pE = easeInOutCubic(
-        clamp01((p - FB_MOVE_END) / (FB_PARTNER_END - FB_MOVE_END)),
+      // 3) DATA items — 설립일 → 경조사 → 누적 순차 등장
+      const itemThresh = [
+        [FB_FRAME_END, FB_DATA_1_END],
+        [FB_DATA_1_END, FB_DATA_2_END],
+        [FB_DATA_2_END, FB_DATA_3_END],
+      ];
+      const items = dataItemRefs.current;
+      for (let i = 0; i < items.length; i++) {
+        const el = items[i];
+        if (!el) continue;
+        const [s, e] = itemThresh[i];
+        const ee = easeInOutCubic(clamp01((p - s) / (e - s)));
+        el.style.opacity = ee.toFixed(3);
+        el.style.transform = `translate3d(0, ${((1 - ee) * 20).toFixed(1)}px, 0)`;
+      }
+
+      // 4) text+DATA 중앙 → 상단 동시 이동 + Partner Frame 하단에서 진입
+      const mE = easeInOutCubic(
+        clamp01((p - FB_DATA_3_END) / (FB_MOVEUP_END - FB_DATA_3_END)),
       );
+      const ty = lerp(g.centerY, 0, mE).toFixed(1);
+      if (textWrapRef.current) {
+        textWrapRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
+      }
+      if (dataRef.current) {
+        dataRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
+      }
       if (partnerRef.current) {
-        partnerRef.current.style.opacity = pE.toFixed(3);
-        partnerRef.current.style.transform = `translate3d(${((1 - pE) * 96).toFixed(1)}px, 0, 0)`;
+        partnerRef.current.style.opacity = mE.toFixed(3);
+        partnerRef.current.style.transform = `translate3d(0, ${((1 - mE) * 60).toFixed(1)}px, 0)`;
       }
 
-      // 4) bid 아래에서 등장 + fade
+      // 5) 나라장터 배너 하단 진입 + fade
       const bE = easeInOutCubic(
-        clamp01((p - FB_PARTNER_END) / (FB_BID_END - FB_PARTNER_END)),
+        clamp01((p - FB_MOVEUP_END) / (FB_BID_END - FB_MOVEUP_END)),
       );
       if (bidRef.current) {
         bidRef.current.style.opacity = bE.toFixed(3);
-        bidRef.current.style.transform = `translate3d(0, ${((1 - bE) * 40).toFixed(1)}px, 0)`;
+        bidRef.current.style.transform = `translate3d(0, ${((1 - bE) * 50).toFixed(1)}px, 0)`;
       }
 
-      // 5) 모든 내용 로드 후 버튼 천천히 등장 (1회 트리거 → 느린 CSS fade)
+      // 6) 모든 내용 로드 후 버튼 천천히 등장 (1회 트리거)
       if (bE > 0.92 && !btnTriggeredRef.current) {
         btnTriggeredRef.current = true;
         setBtnShown(true);
@@ -657,7 +680,7 @@ function ForBusinessStage() {
               {/* 좌측 텍스트 — 중앙에서 스크럽 → 상단 이동 */}
               <div
                 ref={textWrapRef}
-                className="absolute left-0 w-[calc(50%-36px)] will-change-transform"
+                className="absolute left-0 w-[calc(50%-24px)] will-change-transform"
                 style={{
                   top: `${FB_TOP_PAD}px`,
                   opacity: ready ? 1 : 0,
@@ -671,7 +694,7 @@ function ForBusinessStage() {
                     className="inline-block w-[8px] h-[8px] rounded-full bg-[var(--color-brand-red)]"
                   />
                 </p>
-                <h2 className="mt-[22px] font-bold text-[42px] xl:text-[48px] leading-[1.32] tracking-[-0.018em] text-left">
+                <h2 className="mt-[22px] font-bold text-[40px] xl:text-[46px] leading-[1.32] tracking-[-0.018em] text-left">
                   {BUSINESS_FLAT.map((line, li) => (
                     <span key={li} className="block">
                       {line.map((w, wi) => (
@@ -691,14 +714,19 @@ function ForBusinessStage() {
                 </h2>
               </div>
 
-              {/* 좌측 DATA — 아래에서 상승 */}
+              {/* 우측 DATA frame — 텍스트 스크럽 완료 후 페이드, 항목 순차 등장 */}
               <div
                 ref={dataRef}
-                className="absolute left-0 w-[calc(50%-36px)] flex flex-col gap-[22px] xl:gap-[30px] will-change-transform"
-                style={{ top: 0, opacity: 0 }}
+                className="absolute right-0 w-[calc(50%-24px)] flex flex-col gap-[18px] xl:gap-[24px] will-change-transform"
+                style={{ top: `${FB_TOP_PAD}px`, opacity: 0 }}
               >
                 {FB_STATS.map((s, i) => (
-                  <div key={i}>
+                  <div
+                    key={i}
+                    ref={(el) => (dataItemRefs.current[i] = el)}
+                    className="will-change-transform"
+                    style={{ opacity: 0 }}
+                  >
                     <div className="flex items-end justify-between gap-4">
                       <div>
                         <p className="font-semibold text-[#222] text-[20px] xl:text-[24px] leading-[1.3]">
@@ -708,35 +736,19 @@ function ForBusinessStage() {
                           {s.sub}
                         </p>
                       </div>
-                      <p className="shrink-0 font-extrabold text-[#222] text-[32px] xl:text-[44px] leading-[1] tracking-[-0.02em]">
+                      <p className="shrink-0 font-extrabold text-[#222] text-[30px] xl:text-[40px] leading-[1] tracking-[-0.02em]">
                         {s.value}
                       </p>
                     </div>
-                    <div className="mt-[16px] xl:mt-[18px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
+                    <div className="mt-[14px] xl:mt-[16px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
                   </div>
                 ))}
               </div>
 
-              {/* 좌측 버튼 — 모든 내용 로드 후 천천히 등장 */}
-              <a
-                ref={btnRef}
-                href="#"
-                className="absolute left-0 inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] hover:-translate-y-[1px]"
-                style={{
-                  top: 0,
-                  opacity: btnShown ? 1 : 0,
-                  transform: btnShown ? "translateY(0)" : "translateY(12px)",
-                  transition: "opacity 1.3s ease-out, transform 1.3s ease-out",
-                  pointerEvents: btnShown ? "auto" : "none",
-                }}
-              >
-                회사 더 살펴보기 →
-              </a>
-
-              {/* 우측 Partner — 우측에서 진입 */}
+              {/* 하단 Partner Frame (전체폭) — 하단에서 위로 진입 */}
               <div
                 ref={partnerRef}
-                className="absolute right-0 w-[calc(50%-36px)] rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[26px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
+                className="absolute inset-x-0 rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[22px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
                 style={{ top: 0, opacity: 0 }}
                 aria-label="제휴 기업"
               >
@@ -752,7 +764,7 @@ function ForBusinessStage() {
                         <span
                           key={ci}
                           aria-hidden={ci >= row.length}
-                          className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[11px] text-[14px] xl:text-[16px] font-medium text-[#333] whitespace-nowrap"
+                          className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[10px] text-[14px] xl:text-[15px] font-medium text-[#333] whitespace-nowrap"
                         >
                           {name}
                         </span>
@@ -762,20 +774,36 @@ function ForBusinessStage() {
                 ))}
               </div>
 
-              {/* 우측 bid — 아래에서 등장 */}
+              {/* 하단 나라장터 배너 (전체폭) — 하단에서 등장 */}
               <div
                 ref={bidRef}
-                className="absolute right-0 w-[calc(50%-36px)] rounded-[20px] bg-[#f8f8f8] p-[24px] xl:p-[30px] flex items-center min-h-[120px] xl:min-h-[150px] will-change-transform"
+                className="absolute inset-x-0 rounded-[20px] bg-[#f8f8f8] p-[22px] xl:p-[26px] flex items-center min-h-[100px] xl:min-h-[120px] will-change-transform"
                 style={{ top: 0, opacity: 0 }}
                 aria-label="나라장터 조달청 등록"
               >
                 <img
                   src={narajangter}
                   alt="나라장터"
-                  className="h-[40px] xl:h-[48px] w-auto select-none"
+                  className="h-[36px] xl:h-[42px] w-auto select-none"
                   draggable="false"
                 />
               </div>
+
+              {/* 버튼 — 모든 내용 로드 후 천천히 등장 (나라장터 아래) */}
+              <a
+                ref={btnRef}
+                href="#"
+                className="absolute left-0 inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] hover:-translate-y-[1px]"
+                style={{
+                  top: 0,
+                  opacity: btnShown ? 1 : 0,
+                  transform: btnShown ? "translateY(0)" : "translateY(12px)",
+                  transition: "opacity 1.3s ease-out, transform 1.3s ease-out",
+                  pointerEvents: btnShown ? "auto" : "none",
+                }}
+              >
+                회사 더 살펴보기 →
+              </a>
             </div>
           </div>
         </div>
