@@ -109,7 +109,8 @@ function AboutScrollStage() {
   const sliderViewportRef = useRef(null);
   const sliderTrackRef = useRef(null);
   const cardRefs = useRef([]);
-  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, vpW: 1, cardCx: [] });
+  const endSpacerRef = useRef(null);
+  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, focalX: 0, refW: 1, cardCx: [] });
   const [ready, setReady] = useState(false);
 
   // 진입 시 텍스트 블록 fade-in
@@ -155,16 +156,30 @@ function AboutScrollStage() {
         c.style.width = `${cardW}px`;
       });
 
-      // 사이즈 적용 후 기하 측정 (transform은 offsetLeft에 영향 없음 → 1회 캐시)
-      const maxX = Math.max(0, track.scrollWidth - vp.clientWidth);
-      const cardCx = cardRefs.current.map((c) =>
-        c ? c.offsetLeft + c.offsetWidth / 2 : 0,
-      );
+      // 좌측 정렬: 첫 카드(임직원)를 레일 좌측(260px 인셋)에서 시작·포커스.
+      // lead-out 여백으로 마지막 카드까지 좌측 포커스 지점에 도달.
+      const vpW = vp.clientWidth;
+      track.style.paddingLeft = "0px";
+      if (endSpacerRef.current)
+        endSpacerRef.current.style.width = `${Math.max(0, Math.round(vpW - cardW))}px`;
+
+      // dx=0 기준으로 카드 중심을 "뷰포트 좌측 상대 좌표"로 측정.
+      // 트랙/래퍼 transform 때문에 offsetParent가 달라져 offsetLeft 좌표계가
+      // 어긋나므로 getBoundingClientRect 사용 (scale은 center-origin → 중심 불변).
+      track.style.transform = "translate3d(0,0,0)";
+      const maxX = Math.max(0, track.scrollWidth - vpW);
+      const vpLeft = vp.getBoundingClientRect().left;
+      const cardCx = cardRefs.current.map((c) => {
+        if (!c) return 0;
+        const r = c.getBoundingClientRect();
+        return r.left + r.width / 2 - vpLeft;
+      });
       geo.current = {
         vh,
         centerY: (vh - textH) / 2 - A_TOP_PAD,
         maxX,
-        vpW: vp.clientWidth,
+        focalX: cardCx[0] || 0, // 포커스 지점 = 첫 카드 위치(좌측) → 임직원부터 시작
+        refW: window.innerWidth, // falloff 정규화(전체 폭) — 부드러운 포커스 유지
         cardCx,
       };
     };
@@ -219,13 +234,12 @@ function AboutScrollStage() {
       const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
       const dx = -g.maxX * sp;
       sliderTrackRef.current.style.transform = `translate3d(${dx.toFixed(1)}px, 0, 0)`;
-      const vw = g.vpW;
       const cards = cardRefs.current;
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         if (!c) continue;
         const cx = g.cardCx[i] + dx;
-        const d = Math.abs(cx - vw / 2) / vw;
+        const d = Math.abs(cx - g.focalX) / g.refW;
         c.style.transform = `scale(${Math.max(0.82, 1 - d * 0.5).toFixed(3)})`;
         c.style.opacity = Math.max(0.4, 1 - d * 1.1).toFixed(3);
       }
@@ -304,7 +318,7 @@ function AboutScrollStage() {
           {/* 이미지 슬라이더 — center-focus (top/height JS 제어) */}
           <div
             ref={sliderWrapRef}
-            className="absolute inset-x-0 will-change-transform"
+            className="absolute inset-x-0 px-6 md:px-12 lg:px-[120px] xl:px-[260px] will-change-transform"
             style={{ top: `${A_TOP_PAD}px`, opacity: 0 }}
             aria-label="회사 소개 갤러리"
           >
@@ -315,7 +329,6 @@ function AboutScrollStage() {
               <div
                 ref={sliderTrackRef}
                 className="flex items-center gap-[24px] will-change-transform"
-                style={{ paddingLeft: "clamp(24px, 6vw, 120px)" }}
               >
                 {SLIDER_CARDS.map((card, i) => (
                   <article
@@ -347,12 +360,8 @@ function AboutScrollStage() {
                     </div>
                   </article>
                 ))}
-                {/* 끝 여백 — 마지막 카드가 중앙까지 도달 */}
-                <div
-                  className="flex-none"
-                  style={{ width: "clamp(120px, 40vw, 720px)" }}
-                  aria-hidden
-                />
+                {/* 끝 여백(lead-out) — 마지막 카드가 레일 중앙까지 도달 (width JS 계산) */}
+                <div ref={endSpacerRef} className="flex-none" aria-hidden />
               </div>
             </div>
           </div>
