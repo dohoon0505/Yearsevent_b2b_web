@@ -652,7 +652,7 @@ function ForBusinessStage() {
       {/* 데스크톱(lg+) — About Us 방식 다단계 sticky 무대 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
-          <div className="sticky top-0 h-screen w-full overflow-hidden">
+          <div className="sticky top-0 h-[150vh] w-full overflow-hidden">
             <div className="relative h-full mx-[120px] xl:mx-[260px]">
               {/* 좌측 텍스트 — 중앙에서 스크럽 → 상단 이동 */}
               <div
