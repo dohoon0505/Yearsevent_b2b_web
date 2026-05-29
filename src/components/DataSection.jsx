@@ -100,13 +100,16 @@ const FB_PARTNERS = [
   ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
 ];
 
-// For Business 다단계 무대 — phase 경계(progress)
-const FB_TRACK_VH = 480;
-const FB_TEXT_END = 0.3; // 슬로건 scrub 완료
-const FB_DATA_END = 0.48; // DATA 아래에서 올라옴 완료
-const FB_PARTNER_END = 0.72; // Partner 우측에서 들어옴 완료
-const FB_TOP_PAD = 120;
-const FB_BID_DELAY = 3000; // Partner 등장 후 3초 뒤 bid fade-in
+// For Business 다단계 무대 — About Us 방식(텍스트 중앙→상단) + 순차 등장
+const FB_TRACK_VH = 520;
+const FB_TOP_PAD = 120; // 텍스트가 정착할 상단 padding
+const FB_GAP_TD = 44; // 텍스트 → DATA 간격
+const FB_GAP_DB = 28; // DATA → 버튼 간격
+const FB_GAP_PB = 28; // Partner → bid 간격
+const FB_TEXT_END = 0.28; // 슬로건 scrub 완료
+const FB_MOVE_END = 0.44; // 텍스트 상단 이동 + DATA 등장 완료
+const FB_PARTNER_END = 0.62; // Partner 우측 진입 완료
+const FB_BID_END = 0.78; // bid 등장 완료 → 직후 버튼 천천히 등장
 
 const DIM = "#d4d8e2";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
@@ -477,24 +480,29 @@ function AboutScrollStage() {
 }
 
 /**
- * ForBusinessStage — 다단계 sticky 무대 (Figma 100:22 반영)
- *   1) 슬로건 연속 스크럽(About Us와 동일)
- *   2) 텍스트 완료 → DATA(통계) 아래에서 상승 등장
- *   3) 스크롤 → Partner(제휴기업 칩) 우측에서 진입
- *   4) Partner 등장 3초 뒤 → bid(나라장터) 서서히 fade-in
- * 좌: 라벨+슬로건+버튼+DATA / 우: Partner(마퀴)+bid
+ * ForBusinessStage — About Us 방식 다단계 sticky 무대 (Figma 100:22)
+ *   1) 슬로건이 좌측 세로 중앙에서 연속 스크럽 (About Us와 동일)
+ *   2) 스크럽 완료 → 텍스트 상단 이동 + DATA(통계) 아래에서 상승
+ *   3) Partner(제휴기업 칩) 우측에서 진입
+ *   4) bid(나라장터) 아래에서 등장
+ *   5) 모든 내용 로드 후 → '회사 더 살펴보기' 버튼 천천히 fade-in
+ * 좌: 라벨+슬로건 → DATA → 버튼 / 우: Partner(마퀴) → bid
+ * (About Us처럼 절대배치 + 측정: 텍스트가 단독으로 중앙에 오도록)
  */
 function ForBusinessStage() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const wordRefs = useRef([]);
+  const textWrapRef = useRef(null);
   const dataRef = useRef(null);
+  const btnRef = useRef(null);
   const partnerRef = useRef(null);
+  const bidRef = useRef(null);
   const accentRGBRef = useRef([203, 13, 53]);
-  const bidTriggeredRef = useRef(false);
-  const bidTimerRef = useRef(null);
+  const geo = useRef({ vh: 0, centerY: 0 });
+  const btnTriggeredRef = useRef(false);
   const [ready, setReady] = useState(false);
-  const [bidShown, setBidShown] = useState(false);
+  const [btnShown, setBtnShown] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -526,13 +534,32 @@ function ForBusinessStage() {
       /* keep fallback */
     }
 
+    // 측정 — 텍스트 단독 중앙(centerY) + DATA/버튼/Partner/bid 절대 top 좌표
+    const measure = () => {
+      const vh = window.innerHeight;
+      const tw = textWrapRef.current;
+      if (!tw) return;
+      const textH = tw.offsetHeight;
+      const dataH = dataRef.current ? dataRef.current.offsetHeight : 0;
+      const partnerH = partnerRef.current ? partnerRef.current.offsetHeight : 0;
+      const dataTop = FB_TOP_PAD + textH + FB_GAP_TD;
+      const btnTop = dataTop + dataH + FB_GAP_DB;
+      const bidTop = FB_TOP_PAD + partnerH + FB_GAP_PB;
+      if (dataRef.current) dataRef.current.style.top = `${dataTop}px`;
+      if (btnRef.current) btnRef.current.style.top = `${btnTop}px`;
+      if (partnerRef.current) partnerRef.current.style.top = `${FB_TOP_PAD}px`;
+      if (bidRef.current) bidRef.current.style.top = `${bidTop}px`;
+      geo.current = { vh, centerY: Math.max(0, (vh - textH) / 2 - FB_TOP_PAD) };
+    };
+
     const update = () => {
       ticking = false;
       const node = trackRef.current;
       if (!node) return;
+      if (window.innerHeight !== geo.current.vh) measure();
+      const g = geo.current;
       const rect = node.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const max = Math.max(1, rect.height - vh);
+      const max = Math.max(1, rect.height - g.vh);
       const p = clamp01(-rect.top / max);
 
       // 1) 슬로건 연속 스크럽 (About Us와 동일 방식)
@@ -547,37 +574,50 @@ function ForBusinessStage() {
         const wf = smoothstep(clamp01((pos - i) / 1.6));
         const t = el.dataset.accent === "1" ? acc : DARK_RGB;
         const r = Math.round(DIM_RGB[0] + (t[0] - DIM_RGB[0]) * wf);
-        const g = Math.round(DIM_RGB[1] + (t[1] - DIM_RGB[1]) * wf);
+        const gg = Math.round(DIM_RGB[1] + (t[1] - DIM_RGB[1]) * wf);
         const b = Math.round(DIM_RGB[2] + (t[2] - DIM_RGB[2]) * wf);
-        const c = `rgb(${r}, ${g}, ${b})`;
+        const c = `rgb(${r}, ${gg}, ${b})`;
         if (el.dataset.c !== c) {
           el.style.color = c;
           el.dataset.c = c;
         }
       }
 
-      // 2) DATA 아래에서 상승 + fade
-      const dE = easeInOutCubic(
-        clamp01((p - FB_TEXT_END) / (FB_DATA_END - FB_TEXT_END)),
+      // 2) 텍스트 center → top
+      const mE = easeInOutCubic(
+        clamp01((p - FB_TEXT_END) / (FB_MOVE_END - FB_TEXT_END)),
       );
+      if (textWrapRef.current) {
+        textWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, mE).toFixed(1)}px, 0)`;
+      }
+      // 2b) DATA 아래에서 상승 + fade (텍스트 이동과 동시)
       if (dataRef.current) {
-        dataRef.current.style.opacity = dE.toFixed(3);
-        dataRef.current.style.transform = `translate3d(0, ${((1 - dE) * 64).toFixed(1)}px, 0)`;
+        dataRef.current.style.opacity = mE.toFixed(3);
+        dataRef.current.style.transform = `translate3d(0, ${((1 - mE) * 48).toFixed(1)}px, 0)`;
       }
 
       // 3) Partner 우측에서 진입 + fade
       const pE = easeInOutCubic(
-        clamp01((p - FB_DATA_END) / (FB_PARTNER_END - FB_DATA_END)),
+        clamp01((p - FB_MOVE_END) / (FB_PARTNER_END - FB_MOVE_END)),
       );
       if (partnerRef.current) {
         partnerRef.current.style.opacity = pE.toFixed(3);
-        partnerRef.current.style.transform = `translate3d(${((1 - pE) * 90).toFixed(1)}px, 0, 0)`;
+        partnerRef.current.style.transform = `translate3d(${((1 - pE) * 96).toFixed(1)}px, 0, 0)`;
       }
 
-      // 4) Partner 등장 후 3초 뒤 bid 서서히 fade-in (1회)
-      if (pE > 0.85 && !bidTriggeredRef.current) {
-        bidTriggeredRef.current = true;
-        bidTimerRef.current = setTimeout(() => setBidShown(true), FB_BID_DELAY);
+      // 4) bid 아래에서 등장 + fade
+      const bE = easeInOutCubic(
+        clamp01((p - FB_PARTNER_END) / (FB_BID_END - FB_PARTNER_END)),
+      );
+      if (bidRef.current) {
+        bidRef.current.style.opacity = bE.toFixed(3);
+        bidRef.current.style.transform = `translate3d(0, ${((1 - bE) * 40).toFixed(1)}px, 0)`;
+      }
+
+      // 5) 모든 내용 로드 후 버튼 천천히 등장 (1회 트리거 → 느린 CSS fade)
+      if (bE > 0.92 && !btnTriggeredRef.current) {
+        btnTriggeredRef.current = true;
+        setBtnShown(true);
       }
     };
 
@@ -587,142 +627,250 @@ function ForBusinessStage() {
         requestAnimationFrame(update);
       }
     };
+    const onResize = () => {
+      measure();
+      onScroll();
+    };
+    measure();
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+    window.addEventListener("resize", onResize, { passive: true });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        measure();
+        update();
+      });
+    }
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (bidTimerRef.current) clearTimeout(bidTimerRef.current);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
 
   return (
     <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-white">
-      <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
-          <div className="h-full w-full flex items-center px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[80px] xl:py-[100px]">
-            <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-[40px] lg:gap-[72px] items-start">
-              {/* 좌측 — 라벨 + 슬로건 + 버튼 + DATA */}
-              <div className="flex flex-col">
-                <div
-                  style={{
-                    opacity: ready ? 1 : 0,
-                    transform: ready ? "translateY(0)" : "translateY(16px)",
-                    transition: "opacity .5s ease-out, transform .5s ease-out",
-                  }}
-                >
-                  <p className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
-                    <span>For Business</span>
-                    <span
-                      aria-hidden
-                      className="inline-block w-[8px] h-[8px] rounded-full bg-[var(--color-brand-red)]"
-                    />
-                  </p>
-                  <h2 className="mt-[22px] font-bold text-[28px] md:text-[38px] lg:text-[42px] xl:text-[48px] leading-[1.32] tracking-[-0.018em] text-left">
-                    {BUSINESS_FLAT.map((line, li) => (
-                      <span key={li} className="block">
-                        {line.map((w, wi) => (
-                          <span
-                            key={wi}
-                            ref={(el) => (wordRefs.current[w.gi] = el)}
-                            data-accent={w.tone === "accent" ? "1" : "0"}
-                            className="inline-block whitespace-pre"
-                            style={{ color: DIM }}
-                          >
-                            {w.text}
-                            {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                          </span>
-                        ))}
-                      </span>
-                    ))}
-                  </h2>
-                </div>
-                <a
-                  href="#"
-                  className="mt-[26px] self-start rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] transition-transform hover:-translate-y-[1px]"
-                  style={{
-                    opacity: ready ? 1 : 0,
-                    transition: "opacity .5s ease-out .12s",
-                  }}
-                >
-                  회사 더 살펴보기 →
-                </a>
-                <div
-                  ref={dataRef}
-                  className="mt-[44px] xl:mt-[60px] flex flex-col gap-[22px] xl:gap-[30px] will-change-transform"
-                  style={{ opacity: 0 }}
-                >
-                  {FB_STATS.map((s, i) => (
-                    <div key={i}>
-                      <div className="flex items-end justify-between gap-4">
-                        <div>
-                          <p className="font-semibold text-[#222] text-[20px] xl:text-[24px] leading-[1.3]">
-                            {s.title}
-                          </p>
-                          <p className="mt-[8px] font-medium text-[#555] text-[14px] xl:text-[16px] leading-[1.3]">
-                            {s.sub}
-                          </p>
-                        </div>
-                        <p className="shrink-0 font-extrabold text-[#222] text-[32px] xl:text-[44px] leading-[1] tracking-[-0.02em]">
-                          {s.value}
-                        </p>
-                      </div>
-                      <div className="mt-[16px] xl:mt-[18px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
-                    </div>
+      {/* 데스크톱(lg+) — About Us 방식 다단계 sticky 무대 */}
+      <div className="hidden lg:block">
+        <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
+          <div className="sticky top-0 h-screen w-full overflow-hidden">
+            <div className="relative h-full mx-[120px] xl:mx-[260px]">
+              {/* 좌측 텍스트 — 중앙에서 스크럽 → 상단 이동 */}
+              <div
+                ref={textWrapRef}
+                className="absolute left-0 w-[calc(50%-36px)] will-change-transform"
+                style={{
+                  top: `${FB_TOP_PAD}px`,
+                  opacity: ready ? 1 : 0,
+                  transition: "opacity .5s ease-out",
+                }}
+              >
+                <p className="text-[var(--color-brand-red)] font-bold text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                  <span>For Business</span>
+                  <span
+                    aria-hidden
+                    className="inline-block w-[8px] h-[8px] rounded-full bg-[var(--color-brand-red)]"
+                  />
+                </p>
+                <h2 className="mt-[22px] font-bold text-[42px] xl:text-[48px] leading-[1.32] tracking-[-0.018em] text-left">
+                  {BUSINESS_FLAT.map((line, li) => (
+                    <span key={li} className="block">
+                      {line.map((w, wi) => (
+                        <span
+                          key={wi}
+                          ref={(el) => (wordRefs.current[w.gi] = el)}
+                          data-accent={w.tone === "accent" ? "1" : "0"}
+                          className="inline-block whitespace-pre"
+                          style={{ color: DIM }}
+                        >
+                          {w.text}
+                          {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                        </span>
+                      ))}
+                    </span>
                   ))}
-                </div>
+                </h2>
               </div>
 
-              {/* 우측 — Partner(우측 진입) + bid(3초 후 fade) */}
-              <div className="flex flex-col gap-[22px] xl:gap-[30px]">
-                <div
-                  ref={partnerRef}
-                  className="rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[26px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
-                  style={{ opacity: 0 }}
-                  aria-label="제휴 기업"
-                >
-                  {FB_PARTNERS.map((row, ri) => (
-                    <div key={ri} className="overflow-hidden">
-                      <div
-                        className={`flex w-max gap-[10px] xl:gap-[12px] ${
-                          ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
-                        }`}
-                        style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
-                      >
-                        {[...row, ...row].map((name, ci) => (
-                          <span
-                            key={ci}
-                            aria-hidden={ci >= row.length}
-                            className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[11px] text-[14px] xl:text-[16px] font-medium text-[#333] whitespace-nowrap"
-                          >
-                            {name}
-                          </span>
-                        ))}
+              {/* 좌측 DATA — 아래에서 상승 */}
+              <div
+                ref={dataRef}
+                className="absolute left-0 w-[calc(50%-36px)] flex flex-col gap-[22px] xl:gap-[30px] will-change-transform"
+                style={{ top: 0, opacity: 0 }}
+              >
+                {FB_STATS.map((s, i) => (
+                  <div key={i}>
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-[#222] text-[20px] xl:text-[24px] leading-[1.3]">
+                          {s.title}
+                        </p>
+                        <p className="mt-[8px] font-medium text-[#555] text-[14px] xl:text-[16px] leading-[1.3]">
+                          {s.sub}
+                        </p>
                       </div>
+                      <p className="shrink-0 font-extrabold text-[#222] text-[32px] xl:text-[44px] leading-[1] tracking-[-0.02em]">
+                        {s.value}
+                      </p>
                     </div>
-                  ))}
-                </div>
-                <div
-                  className="rounded-[20px] bg-[#f8f8f8] p-[24px] xl:p-[30px] flex items-center min-h-[120px] xl:min-h-[150px]"
-                  style={{
-                    opacity: bidShown ? 1 : 0,
-                    transform: bidShown ? "translateY(0)" : "translateY(14px)",
-                    transition: "opacity 1.4s ease-out, transform 1.4s ease-out",
-                  }}
-                  aria-label="나라장터 조달청 등록"
-                >
-                  <img
-                    src={narajangter}
-                    alt="나라장터"
-                    className="h-[40px] xl:h-[48px] w-auto select-none"
-                    draggable="false"
-                  />
-                </div>
+                    <div className="mt-[16px] xl:mt-[18px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
+                  </div>
+                ))}
+              </div>
+
+              {/* 좌측 버튼 — 모든 내용 로드 후 천천히 등장 */}
+              <a
+                ref={btnRef}
+                href="#"
+                className="absolute left-0 inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] hover:-translate-y-[1px]"
+                style={{
+                  top: 0,
+                  opacity: btnShown ? 1 : 0,
+                  transform: btnShown ? "translateY(0)" : "translateY(12px)",
+                  transition: "opacity 1.3s ease-out, transform 1.3s ease-out",
+                  pointerEvents: btnShown ? "auto" : "none",
+                }}
+              >
+                회사 더 살펴보기 →
+              </a>
+
+              {/* 우측 Partner — 우측에서 진입 */}
+              <div
+                ref={partnerRef}
+                className="absolute right-0 w-[calc(50%-36px)] rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[26px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
+                style={{ top: 0, opacity: 0 }}
+                aria-label="제휴 기업"
+              >
+                {FB_PARTNERS.map((row, ri) => (
+                  <div key={ri} className="overflow-hidden">
+                    <div
+                      className={`flex w-max gap-[10px] xl:gap-[12px] ${
+                        ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
+                      }`}
+                      style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
+                    >
+                      {[...row, ...row].map((name, ci) => (
+                        <span
+                          key={ci}
+                          aria-hidden={ci >= row.length}
+                          className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[11px] text-[14px] xl:text-[16px] font-medium text-[#333] whitespace-nowrap"
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 우측 bid — 아래에서 등장 */}
+              <div
+                ref={bidRef}
+                className="absolute right-0 w-[calc(50%-36px)] rounded-[20px] bg-[#f8f8f8] p-[24px] xl:p-[30px] flex items-center min-h-[120px] xl:min-h-[150px] will-change-transform"
+                style={{ top: 0, opacity: 0 }}
+                aria-label="나라장터 조달청 등록"
+              >
+                <img
+                  src={narajangter}
+                  alt="나라장터"
+                  className="h-[40px] xl:h-[48px] w-auto select-none"
+                  draggable="false"
+                />
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 모바일(<lg) — 정적 스택(애니메이션 없이 전체 노출) */}
+      <div className="lg:hidden px-6 md:px-12 py-[72px] flex flex-col gap-[40px]">
+        <div>
+          <p className="text-[var(--color-brand-red)] font-bold text-[18px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+            <span>For Business</span>
+            <span
+              aria-hidden
+              className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--color-brand-red)]"
+            />
+          </p>
+          <h2 className="mt-[18px] font-bold text-[28px] md:text-[36px] leading-[1.34] tracking-[-0.018em]">
+            {BUSINESS_FLAT.map((line, li) => (
+              <span key={li} className="block">
+                {line.map((w, wi) => (
+                  <span
+                    key={wi}
+                    className="inline-block whitespace-pre"
+                    style={{
+                      color: w.tone === "accent" ? "var(--color-brand-red)" : "#222",
+                    }}
+                  >
+                    {w.text}
+                    {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </h2>
+          <a
+            href="#"
+            className="mt-[24px] inline-flex w-max items-center rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[12px] text-[15px] font-semibold text-white"
+          >
+            회사 더 살펴보기 →
+          </a>
+        </div>
+        <div className="flex flex-col gap-[22px]">
+          {FB_STATS.map((s, i) => (
+            <div key={i}>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-[#222] text-[19px] leading-[1.3]">
+                    {s.title}
+                  </p>
+                  <p className="mt-[6px] font-medium text-[#555] text-[13px] leading-[1.3]">
+                    {s.sub}
+                  </p>
+                </div>
+                <p className="shrink-0 font-extrabold text-[#222] text-[28px] leading-[1] tracking-[-0.02em]">
+                  {s.value}
+                </p>
+              </div>
+              <div className="mt-[14px] h-[5px] w-full bg-[#e2ef5d]" />
+            </div>
+          ))}
+        </div>
+        <div
+          className="rounded-[18px] bg-[#f8f8f8] overflow-hidden p-[16px] flex flex-col gap-[10px]"
+          aria-label="제휴 기업"
+        >
+          {FB_PARTNERS.map((row, ri) => (
+            <div key={ri} className="overflow-hidden">
+              <div
+                className={`flex w-max gap-[10px] ${
+                  ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
+                }`}
+                style={{ "--fb-marquee-dur": `${30 + ri * 5}s` }}
+              >
+                {[...row, ...row].map((name, ci) => (
+                  <span
+                    key={ci}
+                    aria-hidden={ci >= row.length}
+                    className="shrink-0 rounded-[9px] border border-[#ececec] bg-white px-[12px] py-[8px] text-[13px] font-medium text-[#333] whitespace-nowrap"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div
+          className="rounded-[18px] bg-[#f8f8f8] p-[22px] flex items-center min-h-[110px]"
+          aria-label="나라장터 조달청 등록"
+        >
+          <img
+            src={narajangter}
+            alt="나라장터"
+            className="h-[38px] w-auto select-none"
+            draggable="false"
+          />
         </div>
       </div>
     </section>
