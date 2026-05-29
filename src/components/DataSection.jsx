@@ -87,9 +87,10 @@ const SLIDER_CARDS = [
 ];
 
 // ───────── About Us 다단계 무대 ─────────
-const A_TRACK_VH = 600;
-const A_TEXT_END = 0.22; // 텍스트 scrub 완료
-const A_TRANS_END = 0.34; // 텍스트 상단 이동 + 슬라이더 등장 완료
+// 트랙 길이/구간 = 스크롤 페이스. 카드 5장(maxX 작음) 기준 440vh가 적정.
+const A_TRACK_VH = 440;
+const A_TEXT_END = 0.33; // 텍스트 scrub 완료 (~1화면)
+const A_TRANS_END = 0.5; // 텍스트 상단 이동 + 슬라이더 등장 완료
 const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
 const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
 const A_BOTTOM_PAD = 72;
