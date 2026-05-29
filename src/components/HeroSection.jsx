@@ -83,9 +83,9 @@ export default function HeroSection({ onMenuClick }) {
         <EventHeader />
       </div>
 
-      {/* HeaderHero — main nav */}
+      {/* HeaderHero — main nav (relative z-40: 본문 콘텐츠 z-10 위로 올려 hover/dropdown 보장) */}
       <div
-        className="hero-header-drop"
+        className="relative z-40 hero-header-drop"
         style={{
           transform: headerReady ? "translateY(0)" : "translateY(-110%)",
           opacity: headerReady ? 1 : 0,
