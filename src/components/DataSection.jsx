@@ -307,7 +307,7 @@ function AboutScrollStage() {
                       key={wi}
                       ref={(el) => (wordRefs.current[w.gi] = el)}
                       data-accent={w.tone === "accent" ? "1" : "0"}
-                      className="inline-block whitespace-pre"
+                      className="inline-block whitespace-pre transition-colors duration-300 ease-out"
                       style={{ color: DIM }}
                     >
                       {w.text}
