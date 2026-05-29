@@ -59,10 +59,12 @@ const BUSINESS_LINES = [
     { text: "기업·단체의", tone: "dark" },
   ],
   [
-    { text: "경조사를", tone: "dark" },
-    { text: "전담", tone: "accent", noSpace: true },
-    { text: "하고", tone: "dark" },
-    { text: "있어요", tone: "dark" },
+    { text: "축하", tone: "accent", noSpace: true },
+    { text: "와", tone: "dark" },
+    { text: "위로", tone: "accent", noSpace: true },
+    { text: "를", tone: "dark" },
+    { text: "함께하고", tone: "dark" },
+    { text: "있어요", tone: "dark", noSpace: true },
     { text: ":)", tone: "dark" },
   ],
 ];
