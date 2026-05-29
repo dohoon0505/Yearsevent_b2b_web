@@ -86,6 +86,12 @@ const SLIDER_CARDS = [
   { img: slideEvent, title: "행사 현장", cat: "수천 송이, 30분" },
 ];
 
+// 반복(loop) 렌더 — 카드를 2벌 이어 붙여 행사 현장 다음에 임직원 경조사가
+// 이음새 없이 다시 나오게 함. focal은 한 바퀴(UNIQUE_N step)만 이동하고,
+// 2번째 벌이 우측을 채워 끝까지 빈 공간 없이 "반복되는" 느낌을 준다.
+const UNIQUE_N = SLIDER_CARDS.length;
+const LOOP_CARDS = [...SLIDER_CARDS, ...SLIDER_CARDS];
+
 // ───────── About Us 다단계 무대 ─────────
 // 트랙 길이/구간 = 스크롤 페이스. 카드 5장(maxX 작음) 기준 440vh가 적정.
 const A_TRACK_VH = 440;
@@ -157,23 +163,25 @@ function AboutScrollStage() {
       });
 
       // 좌측 정렬: 첫 카드(임직원)를 레일 좌측(260px 인셋)에서 시작·포커스.
-      // lead-out 여백으로 마지막 카드까지 좌측 포커스 지점에 도달.
+      // 2벌 렌더가 우측을 채우므로 끝 여백 불필요.
       const vpW = vp.clientWidth;
       track.style.paddingLeft = "0px";
-      if (endSpacerRef.current)
-        endSpacerRef.current.style.width = `${Math.max(0, Math.round(vpW - cardW))}px`;
+      if (endSpacerRef.current) endSpacerRef.current.style.width = "0px";
 
       // dx=0 기준으로 카드 중심을 "뷰포트 좌측 상대 좌표"로 측정.
       // 트랙/래퍼 transform 때문에 offsetParent가 달라져 offsetLeft 좌표계가
       // 어긋나므로 getBoundingClientRect 사용 (scale은 center-origin → 중심 불변).
       track.style.transform = "translate3d(0,0,0)";
-      const maxX = Math.max(0, track.scrollWidth - vpW);
       const vpLeft = vp.getBoundingClientRect().left;
       const cardCx = cardRefs.current.map((c) => {
         if (!c) return 0;
         const r = c.getBoundingClientRect();
         return r.left + r.width / 2 - vpLeft;
       });
+      // focal은 첫 카드 → UNIQUE_N번째 카드(=임직원 반복)까지 딱 한 바퀴 이동.
+      // 그동안 임직원→제조→법무→모임→행사→임직원(반복) 모두 포커스됨.
+      const step = (cardCx[1] || 0) - (cardCx[0] || 0);
+      const maxX = Math.max(0, step * UNIQUE_N);
       geo.current = {
         vh,
         centerY: (vh - textH) / 2 - A_TOP_PAD,
@@ -330,7 +338,7 @@ function AboutScrollStage() {
                 ref={sliderTrackRef}
                 className="flex items-center gap-[24px] will-change-transform"
               >
-                {SLIDER_CARDS.map((card, i) => (
+                {LOOP_CARDS.map((card, i) => (
                   <article
                     key={i}
                     ref={(el) => (cardRefs.current[i] = el)}
