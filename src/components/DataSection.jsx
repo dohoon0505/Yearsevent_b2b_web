@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import slideLegal from "../assets/slide-legal.png";
-import slideIndustry from "../assets/slide-industry.png";
-import slideCorporate from "../assets/slide-corporate.png";
-import slideCommunity from "../assets/slide-community.png";
-import slideEvent from "../assets/slide-event.png";
+import slideLegal from "../assets/slide-legal.webp";
+import slideIndustry from "../assets/slide-industry.webp";
+import slideCorporate from "../assets/slide-corporate.webp";
+import slideCommunity from "../assets/slide-community.webp";
+import slideEvent from "../assets/slide-event.webp";
 
 /**
  * DataSection — About Us(다단계 sticky 무대) + For Business(scrub 슬로건)

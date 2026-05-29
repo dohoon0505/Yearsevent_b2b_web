@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import slideEvent from "../assets/slide-event.png";
-import slideCommunity from "../assets/slide-community.png";
-import slideLegal from "../assets/slide-legal.png";
-import slideCorporate from "../assets/slide-corporate.png";
-import slideIndustry from "../assets/slide-industry.png";
+import slideEvent from "../assets/slide-event.webp";
+import slideCommunity from "../assets/slide-community.webp";
+import slideLegal from "../assets/slide-legal.webp";
+import slideCorporate from "../assets/slide-corporate.webp";
+import slideIndustry from "../assets/slide-industry.webp";
 
 const SLIDES = [
   {

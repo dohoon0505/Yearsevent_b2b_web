@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import EventHeader from "./EventHeader.jsx";
 import HeaderHero from "./HeaderHero.jsx";
 import PetalCanvas from "./PetalCanvas.jsx";
-import cityBg from "../assets/hero-city-bg.png";
+import cityBg from "../assets/hero-city-bg.webp";
 
 /**
  * HeroSection — Background 우선 로드 + 텍스트 순차 로드 + 헤더 로드

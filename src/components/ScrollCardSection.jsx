@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import slideLegal from "../assets/slide-legal.png";
-import slideIndustry from "../assets/slide-industry.png";
-import slideCorporate from "../assets/slide-corporate.png";
-import slideCommunity from "../assets/slide-community.png";
+import slideLegal from "../assets/slide-legal.webp";
+import slideIndustry from "../assets/slide-industry.webp";
+import slideCorporate from "../assets/slide-corporate.webp";
+import slideCommunity from "../assets/slide-community.webp";
 
 /**
  * ScrollCardSection — Figma 95:212 + base44 stack-up + 성능 최적화
