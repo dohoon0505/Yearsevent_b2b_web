@@ -81,19 +81,54 @@ const DIM_RGB = [212, 216, 226];
 const DARK_RGB = [34, 34, 34];
 const smoothstep = (t) => t * t * (3 - 2 * t);
 
-// About Us 이미지 슬라이더 — 프로젝트 기존 slide 이미지 재사용
+// About Us 이미지 슬라이더 — 이미지는 기존 slide 5종을 인접 중복 없이 순환 매핑(플레이스홀더)
 const SLIDER_CARDS = [
-  { img: slideCorporate, title: "임직원 경조사", cat: "기업 복지의 시작" },
-  { img: slideIndustry, title: "제조 · 도소매", cat: "현장 곁의 파트너" },
-  { img: slideLegal, title: "법무 · 세무법인", cat: "격식 있는 자리" },
-  { img: slideCommunity, title: "모임 · 단체", cat: "소속감을 꽃으로" },
-  { img: slideEvent, title: "행사 현장", cat: "수천 송이, 30분" },
+  {
+    img: slideLegal,
+    title: "부고장 수령",
+    desc: "가장 힘든 순간에 전하는 위로가, 가장 깊은 신뢰로 남습니다.",
+  },
+  {
+    img: slideCommunity,
+    title: "청첩장 수령",
+    desc: "거래처의 기쁜 날, 귀사의 이름이 담긴 아름다운 축복을 더해주세요.",
+  },
+  {
+    img: slideCorporate,
+    title: "이·취임식",
+    desc: "새로운 리더의 탄생, 귀사의 든든한 지지를 가장 먼저 보여주세요.",
+  },
+  {
+    img: slideIndustry,
+    title: "확장·이전",
+    desc: "파트너의 성장은 곧 귀사의 기회입니다. 더 큰 도약을 응원 해주세요.",
+  },
+  {
+    img: slideEvent,
+    title: "개업축하",
+    desc: "파트너의 새로운 시작, 첫인상이 평생의 비즈니스를 좌우합니다.",
+  },
+  {
+    img: slideCorporate,
+    title: "승진 · 영전",
+    desc: "핵심 파트너의 성취를 축하하는 것, 가장 확실한 네트워킹의 완성입니다.",
+  },
+  {
+    img: slideCommunity,
+    title: "출산·득남·득녀",
+    desc: "비즈니스를 넘어 가족의 기쁨까지 챙기는 세심함, 진정한 신뢰의 증거입니다.",
+  },
+  {
+    img: slideIndustry,
+    title: "임직원 경조사",
+    desc: "‘우리를 챙겨주는 든든한 회사’라는 자부심, 꼼꼼한 경조사 지원에서 출발합니다.",
+  },
 ];
 
 // 반복(loop) 렌더 — 카드를 3벌 이어 붙여 이음새 없는 center-focus 루프 구성.
-// focal은 가운데 벌의 임직원(A_START_I)부터 한 바퀴(UNIQUE_N step) 이동 →
+// focal은 가운데 벌의 첫 카드(A_START_I)부터 한 바퀴(UNIQUE_N step) 이동 →
 // 양옆에 항상 이웃 카드가 채워져(빈 공간 없음) 중앙 카드가 Active 되는 캐러셀.
-// 행사 다음에 임직원이 다시 중앙으로 들어온다.
+// 마지막 카드 다음에 첫 카드가 다시 중앙으로 들어온다.
 const UNIQUE_N = SLIDER_CARDS.length;
 const LOOP_CARDS = [...SLIDER_CARDS, ...SLIDER_CARDS, ...SLIDER_CARDS];
 const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 임직원
@@ -172,7 +207,7 @@ function AboutScrollStage() {
       const sliderTop = A_TOP_PAD + textH + A_GAP;
       const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
       const cardH = Math.min(sliderH, A_CARD_MAXH);
-      const cardW = Math.round(cardH * 0.74);
+      const cardW = Math.round(cardH * 0.82); // 긴 설명 텍스트가 들어갈 폭
 
       sw.style.top = `${sliderTop}px`;
       vp.style.height = `${sliderH}px`;
@@ -379,12 +414,12 @@ function AboutScrollStage() {
                         className="w-full h-full object-cover select-none"
                       />
                     </div>
-                    <div className="px-[16px] py-[14px]">
-                      <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.2]">
+                    <div className="px-[18px] py-[16px]">
+                      <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
                         {card.title}
                       </p>
-                      <p className="mt-[5px] text-[12.5px] md:text-[13px] text-[#71717a] tracking-[-0.003em]">
-                        {card.cat}
+                      <p className="mt-[7px] text-[12.5px] md:text-[13.5px] leading-[1.55] text-[#71717a] tracking-[-0.003em]">
+                        {card.desc}
                       </p>
                     </div>
                   </article>
