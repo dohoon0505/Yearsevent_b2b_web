@@ -207,7 +207,7 @@ function AboutScrollStage() {
       const sliderTop = A_TOP_PAD + textH + A_GAP;
       const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
       const cardH = Math.min(sliderH, A_CARD_MAXH);
-      const cardW = Math.round(cardH * 0.82); // 긴 설명 텍스트가 들어갈 폭
+      const cardW = Math.round(cardH * 0.74);
 
       sw.style.top = `${sliderTop}px`;
       vp.style.height = `${sliderH}px`;
