@@ -11,6 +11,7 @@ import promotion from "../assets/promotion.jpg";
 import childbirth from "../assets/childbirth.jpg";
 import childbirth2 from "../assets/childbirth_2.jpg";
 import employees from "../assets/Employees.jpg";
+import narajangter from "../assets/narajangter.png";
 
 /**
  * DataSection — About Us(다단계 sticky 무대) + For Business(scrub 슬로건)
@@ -62,12 +63,10 @@ const BUSINESS_LINES = [
     { text: "기업·단체의", tone: "dark" },
   ],
   [
-    { text: "축하", tone: "accent", noSpace: true },
-    { text: "와", tone: "dark" },
-    { text: "위로", tone: "accent", noSpace: true },
-    { text: "를", tone: "dark" },
-    { text: "함께하고", tone: "dark" },
-    { text: "있어요", tone: "dark", noSpace: true },
+    { text: "경조사를", tone: "dark" },
+    { text: "전담", tone: "accent", noSpace: true },
+    { text: "하고", tone: "dark" },
+    { text: "있어요", tone: "dark" },
     { text: ":)", tone: "dark" },
   ],
 ];
@@ -78,11 +77,38 @@ const ABOUT_FLAT = ABOUT_LINES.map((line) =>
   line.map((w) => ({ ...w, gi: _gi++ })),
 );
 const TOTAL_ABOUT = _gi;
-const TOTAL_BUSINESS = BUSINESS_LINES.reduce((acc, l) => acc + l.length, 0);
+
+// For Business 슬로건 평탄화(연속 스크럽용)
+let _gb = 0;
+const BUSINESS_FLAT = BUSINESS_LINES.map((line) =>
+  line.map((w) => ({ ...w, gi: _gb++ })),
+);
+const TOTAL_BUSINESS = _gb;
+
+// For Business — DATA 통계 (Figma)
+const FB_STATS = [
+  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", value: "2016~" },
+  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", value: "200+" },
+  { title: "누적 주문처리 수", sub: "일 평균 178건의 주문접수", value: "700,000+" },
+];
+
+// For Business — Partner 제휴 기업 칩 (행별 마퀴, 좌/우 교차)
+const FB_PARTNERS = [
+  ["다산중공업", "세종대학교", "우리은행", "DB손해보험", "삼성전자", "LG디스플레이", "현대자동차"],
+  ["법무법인 율촌", "김앤장 법률사무소", "교보생명", "한화생명", "법무법인 로고스", "법무법인 바른"],
+  ["세종텔레콤", "SK텔레콤", "(주)화현메디칼", "성은실버케어스", "우리은행", "현대자동차"],
+  ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
+];
+
+// For Business 다단계 무대 — phase 경계(progress)
+const FB_TRACK_VH = 480;
+const FB_TEXT_END = 0.3; // 슬로건 scrub 완료
+const FB_DATA_END = 0.48; // DATA 아래에서 올라옴 완료
+const FB_PARTNER_END = 0.72; // Partner 우측에서 들어옴 완료
+const FB_TOP_PAD = 120;
+const FB_BID_DELAY = 3000; // Partner 등장 후 3초 뒤 bid fade-in
 
 const DIM = "#d4d8e2";
-const DARK = "#222222";
-const ACCENT = "var(--color-brand-red)";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
 const DIM_RGB = [212, 216, 226];
 const DARK_RGB = [34, 34, 34];
@@ -450,45 +476,25 @@ function AboutScrollStage() {
   );
 }
 
-/** 슬로건 단어 스크럽 렌더러 (For Business — React state 기반) */
-function Slogan({ lines, litIndex, align = "left", style }) {
-  let wordCounter = 0;
-  return (
-    <h2
-      className={`font-bold text-[36px] md:text-[46px] lg:text-[52px] xl:text-[58px] leading-[1.25] tracking-[-0.018em] hero-fade-up ${
-        align === "right" ? "text-right" : "text-left"
-      }`}
-      style={style}
-    >
-      {lines.map((line, lineIdx) => (
-        <span key={lineIdx} className="block">
-          {line.map((w, i) => {
-            const idx = wordCounter++;
-            const isLit = idx < litIndex;
-            const onColor = w.tone === "accent" ? ACCENT : DARK;
-            return (
-              <span
-                key={i}
-                className="inline-block whitespace-pre transition-colors duration-300 ease-out"
-                style={{ color: isLit ? onColor : DIM }}
-              >
-                {w.text}
-                {i < line.length - 1 && !w.noSpace ? " " : ""}
-              </span>
-            );
-          })}
-        </span>
-      ))}
-    </h2>
-  );
-}
-
-/** For Business — 100vh sticky 프레임 + 스크럽 단어 reveal */
-function ScrubSloganSection({ ariaLabel, label, lines, total, trackVh = 200 }) {
+/**
+ * ForBusinessStage — 다단계 sticky 무대 (Figma 100:22 반영)
+ *   1) 슬로건 연속 스크럽(About Us와 동일)
+ *   2) 텍스트 완료 → DATA(통계) 아래에서 상승 등장
+ *   3) 스크롤 → Partner(제휴기업 칩) 우측에서 진입
+ *   4) Partner 등장 3초 뒤 → bid(나라장터) 서서히 fade-in
+ * 좌: 라벨+슬로건+버튼+DATA / 우: Partner(마퀴)+bid
+ */
+function ForBusinessStage() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const [progress, setProgress] = useState(0);
+  const wordRefs = useRef([]);
+  const dataRef = useRef(null);
+  const partnerRef = useRef(null);
+  const accentRGBRef = useRef([203, 13, 53]);
+  const bidTriggeredRef = useRef(false);
+  const bidTimerRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [bidShown, setBidShown] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -500,73 +506,222 @@ function ScrubSloganSection({ ariaLabel, label, lines, total, trackVh = 200 }) {
           obs.disconnect();
         }
       },
-      { threshold: 0.05 },
+      { threshold: 0.02 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let ticking = false;
+
+    try {
+      const probe = document.createElement("span");
+      probe.style.cssText = "color:var(--color-brand-red);position:absolute;visibility:hidden";
+      document.body.appendChild(probe);
+      const m = getComputedStyle(probe).color.match(/\d+/g);
+      if (m && m.length >= 3) accentRGBRef.current = m.slice(0, 3).map(Number);
+      document.body.removeChild(probe);
+    } catch {
+      /* keep fallback */
+    }
+
     const update = () => {
+      ticking = false;
       const node = trackRef.current;
-      if (!node) {
-        ticking = false;
-        return;
-      }
+      if (!node) return;
       const rect = node.getBoundingClientRect();
       const vh = window.innerHeight;
       const max = Math.max(1, rect.height - vh);
-      const raw = -rect.top / max;
-      setProgress(Math.max(0, Math.min(1, raw)));
-      ticking = false;
-    };
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(update);
-        ticking = true;
+      const p = clamp01(-rect.top / max);
+
+      // 1) 슬로건 연속 스크럽 (About Us와 동일 방식)
+      const reveal = clamp01(p / FB_TEXT_END);
+      const litAmt = clamp01((reveal - 0.05) / 0.9);
+      const pos = litAmt * (TOTAL_BUSINESS + 1);
+      const acc = accentRGBRef.current;
+      const words = wordRefs.current;
+      for (let i = 0; i < words.length; i++) {
+        const el = words[i];
+        if (!el) continue;
+        const wf = smoothstep(clamp01((pos - i) / 1.6));
+        const t = el.dataset.accent === "1" ? acc : DARK_RGB;
+        const r = Math.round(DIM_RGB[0] + (t[0] - DIM_RGB[0]) * wf);
+        const g = Math.round(DIM_RGB[1] + (t[1] - DIM_RGB[1]) * wf);
+        const b = Math.round(DIM_RGB[2] + (t[2] - DIM_RGB[2]) * wf);
+        const c = `rgb(${r}, ${g}, ${b})`;
+        if (el.dataset.c !== c) {
+          el.style.color = c;
+          el.dataset.c = c;
+        }
+      }
+
+      // 2) DATA 아래에서 상승 + fade
+      const dE = easeInOutCubic(
+        clamp01((p - FB_TEXT_END) / (FB_DATA_END - FB_TEXT_END)),
+      );
+      if (dataRef.current) {
+        dataRef.current.style.opacity = dE.toFixed(3);
+        dataRef.current.style.transform = `translate3d(0, ${((1 - dE) * 64).toFixed(1)}px, 0)`;
+      }
+
+      // 3) Partner 우측에서 진입 + fade
+      const pE = easeInOutCubic(
+        clamp01((p - FB_DATA_END) / (FB_PARTNER_END - FB_DATA_END)),
+      );
+      if (partnerRef.current) {
+        partnerRef.current.style.opacity = pE.toFixed(3);
+        partnerRef.current.style.transform = `translate3d(${((1 - pE) * 90).toFixed(1)}px, 0, 0)`;
+      }
+
+      // 4) Partner 등장 후 3초 뒤 bid 서서히 fade-in (1회)
+      if (pE > 0.85 && !bidTriggeredRef.current) {
+        bidTriggeredRef.current = true;
+        bidTimerRef.current = setTimeout(() => setBidShown(true), FB_BID_DELAY);
       }
     };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
-    update();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      if (bidTimerRef.current) clearTimeout(bidTimerRef.current);
     };
   }, []);
 
-  const lit = Math.max(0, Math.min(1, (progress - 0.05) / 0.9));
-  const litIdx = Math.floor(lit * (total + 1));
-
   return (
-    <section ref={sectionRef} aria-label={ariaLabel} className="relative bg-white">
-      <div ref={trackRef} style={{ height: `${trackVh}vh` }} className="relative">
+    <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-white">
+      <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
         <div className="sticky top-0 h-screen w-full overflow-hidden">
-          <div className="h-full w-full flex flex-col justify-center gap-[24px] px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[100px] md:py-[120px] items-end">
-            <p
-              className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px] hero-fade-up"
-              style={{
-                opacity: ready ? 1 : 0,
-                transform: ready ? "translateY(0)" : "translateY(20px)",
-              }}
-            >
-              <span>{label}</span>
-              <span
-                aria-hidden
-                className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--color-brand-red)]"
-              />
-            </p>
-            <Slogan
-              lines={lines}
-              litIndex={litIdx}
-              align="right"
-              style={{
-                opacity: ready ? 1 : 0,
-                transform: ready ? "translateY(0)" : "translateY(28px)",
-                transitionDelay: "0.14s",
-              }}
-            />
+          <div className="h-full w-full flex items-center px-6 md:px-12 lg:px-[120px] xl:px-[260px] py-[80px] xl:py-[100px]">
+            <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-[40px] lg:gap-[72px] items-start">
+              {/* 좌측 — 라벨 + 슬로건 + 버튼 + DATA */}
+              <div className="flex flex-col">
+                <div
+                  style={{
+                    opacity: ready ? 1 : 0,
+                    transform: ready ? "translateY(0)" : "translateY(16px)",
+                    transition: "opacity .5s ease-out, transform .5s ease-out",
+                  }}
+                >
+                  <p className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                    <span>For Business</span>
+                    <span
+                      aria-hidden
+                      className="inline-block w-[8px] h-[8px] rounded-full bg-[var(--color-brand-red)]"
+                    />
+                  </p>
+                  <h2 className="mt-[22px] font-bold text-[28px] md:text-[38px] lg:text-[42px] xl:text-[48px] leading-[1.32] tracking-[-0.018em] text-left">
+                    {BUSINESS_FLAT.map((line, li) => (
+                      <span key={li} className="block">
+                        {line.map((w, wi) => (
+                          <span
+                            key={wi}
+                            ref={(el) => (wordRefs.current[w.gi] = el)}
+                            data-accent={w.tone === "accent" ? "1" : "0"}
+                            className="inline-block whitespace-pre"
+                            style={{ color: DIM }}
+                          >
+                            {w.text}
+                            {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                          </span>
+                        ))}
+                      </span>
+                    ))}
+                  </h2>
+                </div>
+                <a
+                  href="#"
+                  className="mt-[26px] self-start rounded-[6px] bg-[var(--color-brand-red)] px-[18px] py-[13px] text-[15px] font-semibold text-white tracking-[-0.01em] transition-transform hover:-translate-y-[1px]"
+                  style={{
+                    opacity: ready ? 1 : 0,
+                    transition: "opacity .5s ease-out .12s",
+                  }}
+                >
+                  회사 더 살펴보기 →
+                </a>
+                <div
+                  ref={dataRef}
+                  className="mt-[44px] xl:mt-[60px] flex flex-col gap-[22px] xl:gap-[30px] will-change-transform"
+                  style={{ opacity: 0 }}
+                >
+                  {FB_STATS.map((s, i) => (
+                    <div key={i}>
+                      <div className="flex items-end justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-[#222] text-[20px] xl:text-[24px] leading-[1.3]">
+                            {s.title}
+                          </p>
+                          <p className="mt-[8px] font-medium text-[#555] text-[14px] xl:text-[16px] leading-[1.3]">
+                            {s.sub}
+                          </p>
+                        </div>
+                        <p className="shrink-0 font-extrabold text-[#222] text-[32px] xl:text-[44px] leading-[1] tracking-[-0.02em]">
+                          {s.value}
+                        </p>
+                      </div>
+                      <div className="mt-[16px] xl:mt-[18px] h-[5px] xl:h-[6px] w-full bg-[#e2ef5d]" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 우측 — Partner(우측 진입) + bid(3초 후 fade) */}
+              <div className="flex flex-col gap-[22px] xl:gap-[30px]">
+                <div
+                  ref={partnerRef}
+                  className="rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[18px] xl:p-[26px] flex flex-col gap-[10px] xl:gap-[12px] will-change-transform"
+                  style={{ opacity: 0 }}
+                  aria-label="제휴 기업"
+                >
+                  {FB_PARTNERS.map((row, ri) => (
+                    <div key={ri} className="overflow-hidden">
+                      <div
+                        className={`flex w-max gap-[10px] xl:gap-[12px] ${
+                          ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
+                        }`}
+                        style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
+                      >
+                        {[...row, ...row].map((name, ci) => (
+                          <span
+                            key={ci}
+                            aria-hidden={ci >= row.length}
+                            className="shrink-0 rounded-[10px] border border-[#ececec] bg-white px-[14px] py-[9px] xl:px-[16px] xl:py-[11px] text-[14px] xl:text-[16px] font-medium text-[#333] whitespace-nowrap"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="rounded-[20px] bg-[#f8f8f8] p-[24px] xl:p-[30px] flex items-center min-h-[120px] xl:min-h-[150px]"
+                  style={{
+                    opacity: bidShown ? 1 : 0,
+                    transform: bidShown ? "translateY(0)" : "translateY(14px)",
+                    transition: "opacity 1.4s ease-out, transform 1.4s ease-out",
+                  }}
+                  aria-label="나라장터 조달청 등록"
+                >
+                  <img
+                    src={narajangter}
+                    alt="나라장터"
+                    className="h-[40px] xl:h-[48px] w-auto select-none"
+                    draggable="false"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -578,12 +733,7 @@ export default function DataSection() {
   return (
     <>
       <AboutScrollStage />
-      <ScrubSloganSection
-        ariaLabel="비즈니스 소개"
-        label="For Business"
-        lines={BUSINESS_LINES}
-        total={TOTAL_BUSINESS}
-      />
+      <ForBusinessStage />
     </>
   );
 }

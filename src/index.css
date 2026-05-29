@@ -425,6 +425,20 @@
 }
 
 /* =============================================
+   Partner 칩 마퀴 (For Business) — 두 벌 이어붙여 무한 흐름
+   ============================================= */
+@keyframes fb-marquee-l {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes fb-marquee-r {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.fb-marquee-l { animation: fb-marquee-l var(--fb-marquee-dur, 36s) linear infinite; }
+.fb-marquee-r { animation: fb-marquee-r var(--fb-marquee-dur, 36s) linear infinite; }
+
+/* =============================================
    Reduced Motion
    ============================================= */
 @media (prefers-reduced-motion: reduce) {
