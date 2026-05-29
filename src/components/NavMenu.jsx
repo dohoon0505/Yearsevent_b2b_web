@@ -1,17 +1,17 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * NavMenu — Footer SITEMAP 기반 dropdown navigation
  *
  * 참고: nav-bar-dropdown icon-list (Linear 스타일)
- * 각 메뉴 hover 시 sub-items 드롭다운 (아이콘 + 제목 + 설명)
  *
- * 톤:
- *   - 메뉴 텍스트: 흰색 (HeroHeader / HeaderScrollActive 모두 어두운 배경 위)
- *   - dropdown: 밝은 흰색 패널 + 어두운 텍스트 (Linear 시그니처)
+ * dropdown을 React Portal로 document.body에 직접 부착 →
+ *   HeaderHero / HeaderScrollActive 어디서 사용해도 stacking context 무관
+ *   z-index 100으로 page 최상위 보장
  *
- * 아이콘:
- *   - 36x36 rounded-8, 메뉴 카테고리별 단일 accent 컬러
+ * 위치 계산: 각 메뉴 li의 getBoundingClientRect 기준 fixed positioning
+ *   scroll / resize 시 자동 업데이트 (open된 dropdown만)
  */
 
 const MENU = [
@@ -60,13 +60,111 @@ const MENU = [
   },
 ];
 
+function DropdownPortal({
+  menu,
+  isOpen,
+  anchorEl,
+  onMouseEnter,
+  onMouseLeave,
+}) {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!anchorEl) return;
+    const updatePos = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 12,
+        left: rect.left + rect.width / 2,
+      });
+    };
+    updatePos();
+
+    if (!isOpen) return;
+    window.addEventListener("resize", updatePos, { passive: true });
+    window.addEventListener("scroll", updatePos, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updatePos);
+      window.removeEventListener("scroll", updatePos);
+    };
+  }, [isOpen, anchorEl]);
+
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{
+        position: "fixed",
+        top: `${pos.top}px`,
+        left: `${pos.left}px`,
+        zIndex: 100,
+        pointerEvents: isOpen ? "auto" : "none",
+      }}
+    >
+      <div
+        className="bg-white text-[#171717] rounded-[16px] origin-top"
+        style={{
+          boxShadow:
+            "0 18px 48px -12px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.04)",
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen
+            ? "translate(-50%, 0)"
+            : "translate(-50%, -6px)",
+          visibility: isOpen ? "visible" : "hidden",
+          transition:
+            "opacity 200ms cubic-bezier(0.2,0,0,1), transform 200ms cubic-bezier(0.2,0,0,1), visibility 200ms",
+        }}
+        role="menu"
+      >
+        <ul className="flex flex-col gap-[2px] p-[10px] min-w-[360px]">
+          {menu.items.map((item, j) => (
+            <li key={j}>
+              <a
+                href="#"
+                className="flex items-center gap-[14px] px-[14px] py-[11px] rounded-[10px] hover:bg-[#f4f4f5] transition-colors duration-150"
+                role="menuitem"
+              >
+                <span
+                  className="w-9 h-9 rounded-[8px] shrink-0"
+                  style={{
+                    background: menu.accent,
+                    boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.08)",
+                  }}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold leading-[1.2] tracking-[-0.003em] text-[#171717]">
+                    {item.title}
+                  </p>
+                  <p className="mt-[3px] text-[12.5px] text-[#71717a] leading-[1.4] tracking-[-0.003em]">
+                    {item.desc}
+                  </p>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function NavMenu({
   size = 16,
   fontClass = "font-semibold",
   className = "",
 }) {
   const [openIdx, setOpenIdx] = useState(-1);
+  const [mounted, setMounted] = useState(false);
   const closeTimerRef = useRef(null);
+  const liRefs = useRef([]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const openMenu = (idx) => {
     if (closeTimerRef.current) {
@@ -90,7 +188,7 @@ export default function NavMenu({
           return (
             <li
               key={menu.href}
-              className="relative"
+              ref={(el) => (liRefs.current[i] = el)}
               onMouseEnter={() => openMenu(i)}
               onMouseLeave={closeMenu}
               onFocus={() => openMenu(i)}
@@ -105,64 +203,26 @@ export default function NavMenu({
               >
                 {menu.label}
               </a>
-
-              {/* Dropdown panel — icon-list pattern */}
-              <div
-                className="absolute left-1/2 top-full pt-3 z-50"
-                style={{
-                  pointerEvents: isOpen ? "auto" : "none",
-                }}
-              >
-                <div
-                  className="bg-white text-[#171717] rounded-[16px] origin-top"
-                  style={{
-                    boxShadow:
-                      "0 18px 48px -12px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.04)",
-                    opacity: isOpen ? 1 : 0,
-                    transform: isOpen
-                      ? "translate(-50%, 0)"
-                      : "translate(-50%, -6px)",
-                    visibility: isOpen ? "visible" : "hidden",
-                    transition:
-                      "opacity 200ms cubic-bezier(0.2,0,0,1), transform 200ms cubic-bezier(0.2,0,0,1), visibility 200ms",
-                  }}
-                  role="menu"
-                >
-                  <ul className="flex flex-col gap-[2px] p-[10px] min-w-[360px]">
-                    {menu.items.map((item, j) => (
-                      <li key={j}>
-                        <a
-                          href="#"
-                          className="flex items-center gap-[14px] px-[14px] py-[11px] rounded-[10px] hover:bg-[#f4f4f5] transition-colors duration-150"
-                          role="menuitem"
-                        >
-                          <span
-                            className="w-9 h-9 rounded-[8px] shrink-0"
-                            style={{
-                              background: menu.accent,
-                              boxShadow:
-                                "inset 0 -2px 0 rgba(0,0,0,0.08)",
-                            }}
-                            aria-hidden
-                          />
-                          <div className="min-w-0">
-                            <p className="text-[14px] font-semibold leading-[1.2] tracking-[-0.003em] text-[#171717]">
-                              {item.title}
-                            </p>
-                            <p className="mt-[3px] text-[12.5px] text-[#71717a] leading-[1.4] tracking-[-0.003em]">
-                              {item.desc}
-                            </p>
-                          </div>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
             </li>
           );
         })}
       </ul>
+
+      {/* dropdown을 body에 직접 portal — stacking context 우회 */}
+      {mounted &&
+        MENU.map((menu, i) =>
+          createPortal(
+            <DropdownPortal
+              key={i}
+              menu={menu}
+              isOpen={openIdx === i}
+              anchorEl={liRefs.current[i]}
+              onMouseEnter={() => openMenu(i)}
+              onMouseLeave={closeMenu}
+            />,
+            document.body,
+          ),
+        )}
     </nav>
   );
 }
