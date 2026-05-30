@@ -499,6 +499,7 @@ function ForBusinessStage() {
   const trackRef = useRef(null);
   const wordRefs = useRef([]);
   const textWrapRef = useRef(null);
+  const headRef = useRef(null); // For Business 라벨+슬로건 (경고 버튼 제외) — 세로 중앙 정렬 기준
   const dataRef = useRef(null);
   const dataItemRefs = useRef([]);
   const dataValueRefs = useRef([]); // count-up <p> 엘리먼트
@@ -547,11 +548,10 @@ function ForBusinessStage() {
       const dataEl = dataRef.current;
       const partnerEl = partnerRef.current;
       if (!tw || !dataEl) return;
-      const textH = tw.offsetHeight;
-      const dataH = dataEl.offsetHeight;
-      // 세로 중앙: text+DATA row 둘 중 큰 높이를 기준으로 viewport 정중앙 배치
-      const rowH = Math.max(textH, dataH);
-      const centerY = Math.max(0, (vh - rowH) / 2 - FB_TOP_PAD);
+      // 세로 중앙(시퀀스 01): 헤드(For Business 라벨+슬로건)만 viewport 정중앙 기준.
+      //   경고 버튼은 시퀀스 07에서만 보이므로 중앙 정렬 계산에서 제외 → 슬로건이 정확히 중앙.
+      const headH = headRef.current ? headRef.current.offsetHeight : tw.offsetHeight;
+      const centerY = Math.max(0, (vh - headH) / 2 - FB_TOP_PAD);
       // 가로 중앙: 텍스트 wrapper를 inner 영역 정중앙으로 이동
       // centerX = (innerW - wrapperW) / 2 → wrapper.left=0 기준 우측 shift량
       const wrapperW = tw.offsetWidth;
@@ -719,31 +719,33 @@ function ForBusinessStage() {
                   transition: "opacity .5s ease-out",
                 }}
               >
-                <p className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
-                  <span>For Business</span>
-                  <span
-                    aria-hidden
-                    className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
-                  />
-                </p>
-                <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[36px] xl:text-[44px] leading-[1.32] tracking-[-0.018em] text-left">
-                  {BUSINESS_FLAT.map((line, li) => (
-                    <span key={li} className="block whitespace-nowrap">
-                      {line.map((w, wi) => (
-                        <span
-                          key={wi}
-                          ref={(el) => (wordRefs.current[w.gi] = el)}
-                          data-accent={w.tone === "accent" ? "1" : "0"}
-                          className="inline-block whitespace-pre"
-                          style={{ color: DIM }}
-                        >
-                          {w.text}
-                          {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                        </span>
-                      ))}
-                    </span>
-                  ))}
-                </h2>
+                <div ref={headRef}>
+                  <p className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                    <span>For Business</span>
+                    <span
+                      aria-hidden
+                      className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
+                    />
+                  </p>
+                  <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[36px] xl:text-[44px] leading-[1.32] tracking-[-0.018em] text-left">
+                    {BUSINESS_FLAT.map((line, li) => (
+                      <span key={li} className="block whitespace-nowrap">
+                        {line.map((w, wi) => (
+                          <span
+                            key={wi}
+                            ref={(el) => (wordRefs.current[w.gi] = el)}
+                            data-accent={w.tone === "accent" ? "1" : "0"}
+                            className="inline-block whitespace-pre"
+                            style={{ color: DIM }}
+                          >
+                            {w.text}
+                            {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                          </span>
+                        ))}
+                      </span>
+                    ))}
+                  </h2>
+                </div>
                 {/* 경고 버튼 — Phase 7 등장 + pulse 2회 attention-grab */}
                 <button
                   ref={warnRef}
