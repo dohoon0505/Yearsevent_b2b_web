@@ -500,6 +500,7 @@ function ForBusinessStage() {
   const wordRefs = useRef([]);
   const textWrapRef = useRef(null);
   const headRef = useRef(null); // For Business 라벨+슬로건 (경고 버튼 제외) — 세로 중앙 정렬 기준
+  const lineRefs = useRef([]); // [라벨, 슬로건1, 슬로건2] — center↔left 정렬 보간용
   const dataRef = useRef(null);
   const dataItemRefs = useRef([]);
   const dataValueRefs = useRef([]); // count-up <p> 엘리먼트
@@ -548,21 +549,27 @@ function ForBusinessStage() {
       const dataEl = dataRef.current;
       const partnerEl = partnerRef.current;
       if (!tw || !dataEl) return;
+      const headEl = headRef.current;
       // 세로 중앙(시퀀스 01): 헤드(For Business 라벨+슬로건)만 viewport 정중앙 기준.
       //   경고 버튼은 시퀀스 07에서만 보이므로 중앙 정렬 계산에서 제외 → 슬로건이 정확히 중앙.
-      const headH = headRef.current ? headRef.current.offsetHeight : tw.offsetHeight;
+      const headH = headEl ? headEl.offsetHeight : tw.offsetHeight;
+      const headW = headEl ? headEl.offsetWidth : tw.offsetWidth;
       const centerY = Math.max(0, (vh - headH) / 2 - FB_TOP_PAD);
-      // 가로 중앙: 텍스트 wrapper를 inner 영역 정중앙으로 이동
-      // centerX = (innerW - wrapperW) / 2 → wrapper.left=0 기준 우측 shift량
-      const wrapperW = tw.offsetWidth;
+      // 가로 중앙(시퀀스 01): 헤드 실제 폭 기준으로 inner 영역 정중앙에 배치.
+      //   inner div는 좌우 대칭 마진(mx) → inner 중앙 = 화면 중앙. centerX = 헤드를 그 중앙으로 미는 양.
       const innerW = tw.parentElement ? tw.parentElement.clientWidth : 0;
-      const centerX = Math.max(0, (innerW - wrapperW) / 2);
+      const centerX = Math.max(0, (innerW - headW) / 2);
+      // 줄별 center 오프셋: 시퀀스 01에서 각 줄(라벨·슬로건1·슬로건2)을 헤드 폭 안에서 가운데로.
+      //   text-align:center 효과를 transform으로 — (headW - 줄폭)/2 만큼 우측 이동, 시퀀스 02(left)에선 0.
+      const lineOffsets = lineRefs.current.map((el) =>
+        el ? (headW - el.offsetWidth) / 2 : 0,
+      );
       // Partner Frame은 viewport 하단 (sticky pin 동안 보이는 100vh 안)
       // partnerTop = vh - FB_TOP_PAD - partnerH (좌측 컬럼의 viewport bottom 정렬)
       const partnerH = partnerEl ? partnerEl.offsetHeight : 0;
       const partnerTop = Math.max(FB_TOP_PAD, vh - FB_TOP_PAD - partnerH);
       if (partnerEl) partnerEl.style.top = `${partnerTop}px`;
-      geo.current = { vh, centerX, centerY };
+      geo.current = { vh, centerX, centerY, lineOffsets };
     };
 
     const update = () => {
@@ -610,6 +617,19 @@ function ForBusinessStage() {
       const ty = lerp(g.centerY, 0, mE).toFixed(1);
       if (textWrapRef.current) {
         textWrapRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+      }
+      // 줄별 정렬 보간: 시퀀스 01 center(alignT=1) → 시퀀스 02 left(alignT=0)
+      const alignT = 1 - sE;
+      const lineOffsets = g.lineOffsets || [];
+      const lines = lineRefs.current;
+      for (let i = 0; i < lines.length; i++) {
+        const el = lines[i];
+        if (!el) continue;
+        const ox = ((lineOffsets[i] || 0) * alignT).toFixed(1);
+        if (el.dataset.ox !== ox) {
+          el.style.transform = `translate3d(${ox}px, 0, 0)`;
+          el.dataset.ox = ox;
+        }
       }
 
       // ───── Phase 3 [0.22~0.32] DATA frame 등장 + 설립일 count-up (→ 103:773) ─────
@@ -719,17 +739,25 @@ function ForBusinessStage() {
                   transition: "opacity .5s ease-out",
                 }}
               >
-                <div ref={headRef}>
-                  <p className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                <div ref={headRef} className="inline-block">
+                  <p
+                    ref={(el) => (lineRefs.current[0] = el)}
+                    className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px] will-change-transform"
+                  >
                     <span>For Business</span>
                     <span
                       aria-hidden
                       className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
                     />
                   </p>
-                  <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[36px] xl:text-[44px] leading-[1.32] tracking-[-0.018em] text-left">
+                  <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[36px] xl:text-[44px] leading-[1.32] tracking-[-0.018em]">
                     {BUSINESS_FLAT.map((line, li) => (
-                      <span key={li} className="block whitespace-nowrap">
+                      <span
+                        key={li}
+                        ref={(el) => (lineRefs.current[li + 1] = el)}
+                        className="block whitespace-nowrap will-change-transform"
+                        style={{ width: "fit-content" }}
+                      >
                         {line.map((w, wi) => (
                           <span
                             key={wi}
