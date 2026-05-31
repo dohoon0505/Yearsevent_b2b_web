@@ -82,14 +82,18 @@ const TOTAL_BUSINESS = _gb;
 // target: count-up 목표값, suffix: 값 뒤에 붙는 문자 (예: 2016~ / 200+ / 700,000+)
 // 카운트업: floor(p * target).toLocaleString("ko-KR") + suffix — linear-count.md 패턴
 const FB_STATS = [
-  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", target: 2016, suffix: "~" },
-  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", target: 200, suffix: "+" },
+  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", target: 2016, suffix: "~", noComma: true },
   { title: "누적 주문처리 수", sub: "일 평균 178건의 주문접수", target: 700000, suffix: "+" },
+  { title: "오직 생화 매출", sub: "신뢰할 수 있는 정량적 데이터", target: 15, suffix: "억+" },
+  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", target: 200, suffix: "+" },
 ];
 
 // 카운트업 포맷 — 목표값×진행률을 ko-KR 콤마 포맷 + suffix
-const formatCount = (progress, target, suffix) =>
-  `${Math.floor(progress * target).toLocaleString("ko-KR")}${suffix}`;
+//   noComma: 설립일(연도)처럼 천단위 콤마가 어색한 값은 콤마 없이 출력 (2,016~ 아님 → 2016~)
+const formatCount = (progress, target, suffix, noComma) => {
+  const n = Math.floor(progress * target);
+  return `${noComma ? n : n.toLocaleString("ko-KR")}${suffix}`;
+};
 
 // For Business — Partner 제휴 기업 칩 (행별 마퀴, 좌/우 교차)
 const FB_PARTNERS = [
@@ -106,11 +110,13 @@ const FB_TOP_PAD = 120;
 // 인터랙션 임계값 (스크롤 진행률 p ∈ [0, 1])
 const FB_TEXT_END = 0.14; // 슬로건 단어 scrub 완료 (100:22)
 const FB_SHIFT_END = 0.22; // 텍스트 가로 중앙 → 좌측 이동 완료 (→ 103:664)
-const FB_DATA_1_END = 0.32; // 설립일/2016~ count-up 완료 (→ 103:773)
-const FB_DATA_2_END = 0.42; // 경조사/200+ count-up 완료 (→ 103:879)
-const FB_DATA_3_END = 0.55; // 누적/700,000+ count-up + 세로 중앙→상단 (→ 103:909)
-const FB_PARTNER_END = 0.72; // Partner Frame 하단→상단 슬라이드 (→ 103:1022)
-const FB_WARN_END = 0.86; // 경고 버튼 페이드인 + pulse 트리거 (→ 103:588)
+const FB_RISE_END = 0.3; // 컨텐츠 세로 중앙 → 상단 정렬 완료 (DATA 등장 전)
+const FB_DATA_1_END = 0.4; // 설립일/2016~ count-up
+const FB_DATA_2_END = 0.5; // 누적 주문처리 수/700,000+ count-up
+const FB_DATA_3_END = 0.6; // 오직 생화 매출/15억+ count-up
+const FB_DATA_4_END = 0.7; // 경조사 제휴기업/200+ count-up
+const FB_PARTNER_END = 0.82; // Partner Frame 하단→상단 슬라이드 (→ 103:1022)
+const FB_WARN_END = 0.92; // 경고 버튼 페이드인 + pulse 트리거 (→ 103:588)
 
 const DIM = "#d4d8e2";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
@@ -569,6 +575,17 @@ function ForBusinessStage() {
       const partnerH = partnerEl ? partnerEl.offsetHeight : 0;
       const partnerTop = Math.max(FB_TOP_PAD, vh - FB_TOP_PAD - partnerH);
       if (partnerEl) partnerEl.style.top = `${partnerTop}px`;
+      // 좌우 정렬(시퀀스 07): DATA를 [슬로건 상단 ~ 로고슬라이더 하단] 범위에 stretch + justify-between.
+      //   → 첫 항목(설립일) 상단 = 슬로건 상단, 마지막 항목(경조사) 하단 = 로고슬라이더 하단.
+      //   sloganOffset = headRef 안 h2(슬로건)의 offsetTop(라벨+간격) → "For Business" 라벨은 그 위로 남음.
+      const h2El = headEl ? headEl.querySelector("h2") : null;
+      const sloganOffset = h2El ? h2El.offsetTop : 0;
+      const dataTop = FB_TOP_PAD + sloganOffset;
+      const dataHeight = Math.max(0, partnerTop + partnerH - dataTop);
+      if (dataEl) {
+        dataEl.style.top = `${dataTop}px`;
+        dataEl.style.height = `${dataHeight}px`;
+      }
       geo.current = { vh, centerX, centerY, lineOffsets };
     };
 
@@ -608,10 +625,10 @@ function ForBusinessStage() {
       const sE = easeInOutCubic(
         clamp01((p - FB_TEXT_END) / (FB_SHIFT_END - FB_TEXT_END)),
       );
-      // ───── Phase 5 [0.42~0.55] 세로 중앙 → 상단 (→ Figma 103:909) ─────
-      //   ty: centerY → 0  (3rd DATA 항목 등장 직후 컨텐츠 상단 정렬)
+      // ───── Phase 2.5 [0.22~0.30] 세로 중앙 → 상단 (DATA 등장 전 상단 정렬) ─────
+      //   ty: centerY → 0  (이후 DATA가 슬로건 상단에 맞춰 등장하므로 미리 상단 정렬)
       const mE = easeInOutCubic(
-        clamp01((p - FB_DATA_2_END) / (FB_DATA_3_END - FB_DATA_2_END)),
+        clamp01((p - FB_SHIFT_END) / (FB_RISE_END - FB_SHIFT_END)),
       );
       const tx = lerp(g.centerX, 0, sE).toFixed(1);
       const ty = lerp(g.centerY, 0, mE).toFixed(1);
@@ -632,10 +649,10 @@ function ForBusinessStage() {
         }
       }
 
-      // ───── Phase 3 [0.22~0.32] DATA frame 등장 + 설립일 count-up (→ 103:773) ─────
-      //   dataRef 컨테이너는 텍스트 좌측 이동 완료 시점부터 페이드인
+      // ───── Phase 3 DATA frame 등장 + 설립일 count-up ─────
+      //   dataRef 컨테이너는 상단 정렬 완료(FB_RISE_END) 직후 페이드인
       const fE = easeInOutCubic(
-        clamp01((p - FB_SHIFT_END) / (FB_DATA_1_END - FB_SHIFT_END)),
+        clamp01((p - FB_RISE_END) / (FB_DATA_1_END - FB_RISE_END)),
       );
       if (dataRef.current) {
         dataRef.current.style.opacity = fE.toFixed(3);
@@ -645,9 +662,10 @@ function ForBusinessStage() {
       // ───── DATA 항목별 count-up + 등장 (Phase 3,4,5) ─────
       // Attention-grab #1: linear-count.md 패턴 — 스크롤 진행률에 정비례
       const itemThresh = [
-        [FB_SHIFT_END, FB_DATA_1_END], // 설립일 0.22~0.32
-        [FB_DATA_1_END, FB_DATA_2_END], // 경조사 0.32~0.42
-        [FB_DATA_2_END, FB_DATA_3_END], // 누적 0.42~0.55
+        [FB_RISE_END, FB_DATA_1_END], // 설립일
+        [FB_DATA_1_END, FB_DATA_2_END], // 누적 주문처리 수
+        [FB_DATA_2_END, FB_DATA_3_END], // 오직 생화 매출
+        [FB_DATA_3_END, FB_DATA_4_END], // 경조사 제휴기업
       ];
       const items = dataItemRefs.current;
       const valEls = dataValueRefs.current;
@@ -663,7 +681,7 @@ function ForBusinessStage() {
         const v = valEls[i];
         if (v) {
           const stat = FB_STATS[i];
-          const next = formatCount(lin, stat.target, stat.suffix);
+          const next = formatCount(lin, stat.target, stat.suffix, stat.noComma);
           if (v.dataset.v !== next) {
             v.textContent = next;
             v.dataset.v = next;
@@ -671,9 +689,9 @@ function ForBusinessStage() {
         }
       }
 
-      // ───── Phase 6 [0.55~0.72] Partner Frame 하단→상단 슬라이드 (→ 103:1022) ─────
+      // ───── Phase 6 Partner Frame 하단→상단 슬라이드 (→ 103:1022) ─────
       const pE = easeInOutCubic(
-        clamp01((p - FB_DATA_3_END) / (FB_PARTNER_END - FB_DATA_3_END)),
+        clamp01((p - FB_DATA_4_END) / (FB_PARTNER_END - FB_DATA_4_END)),
       );
       if (partnerRef.current) {
         partnerRef.current.style.opacity = pE.toFixed(3);
@@ -800,7 +818,7 @@ function ForBusinessStage() {
               {/* 우측 DATA frame — Phase 3~5: 페이드 + 항목 순차 등장 + count-up */}
               <div
                 ref={dataRef}
-                className="absolute right-0 w-[calc(50%-50px)] flex flex-col gap-[40px] xl:gap-[52px] will-change-transform"
+                className="absolute right-0 w-[calc(50%-50px)] flex flex-col justify-between will-change-transform"
                 style={{ top: `${FB_TOP_PAD}px`, opacity: 0 }}
               >
                 {FB_STATS.map((s, i) => (
@@ -913,7 +931,7 @@ function ForBusinessStage() {
                   </p>
                 </div>
                 <p className="shrink-0 font-bold text-[#222] text-[32px] leading-[1] tracking-[-0.02em] tabular-nums">
-                  {`${s.target.toLocaleString("ko-KR")}${s.suffix}`}
+                  {`${s.noComma ? s.target : s.target.toLocaleString("ko-KR")}${s.suffix}`}
                 </p>
               </div>
               <div className="mt-[16px] h-[6px] w-full bg-[#e2ef5d] rounded-[55px]" />
