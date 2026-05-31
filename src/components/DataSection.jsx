@@ -760,7 +760,7 @@ function ForBusinessStage() {
                 <div ref={headRef} className="inline-block">
                   <p
                     ref={(el) => (lineRefs.current[0] = el)}
-                    className="text-[var(--color-brand-red)] font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px] will-change-transform"
+                    className="text-[var(--color-brand-red)] font-bold text-[20px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px] will-change-transform"
                   >
                     <span>For Business</span>
                     <span
@@ -768,7 +768,7 @@ function ForBusinessStage() {
                       className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
                     />
                   </p>
-                  <h2 className="mt-[26px] xl:mt-[30px] font-bold text-[36px] xl:text-[44px] leading-[1.32] tracking-[-0.018em]">
+                  <h2 className="mt-[26px] xl:mt-[34px] font-bold text-[44px] xl:text-[58px] leading-[1.32] tracking-[-0.018em]">
                     {BUSINESS_FLAT.map((line, li) => (
                       <span
                         key={li}
@@ -830,17 +830,17 @@ function ForBusinessStage() {
                   >
                     <div className="flex items-end justify-between gap-4 px-[5px]">
                       <div>
-                        <p className="font-semibold text-[#222] text-[24px] xl:text-[28px] leading-[1.3]">
+                        <p className="font-semibold text-[#222] text-[21px] xl:text-[24px] leading-[1.3] tracking-[-0.02em]">
                           {s.title}
                         </p>
-                        <p className="mt-[10px] font-medium text-[#555] text-[16px] xl:text-[20px] leading-[1.3]">
+                        <p className="mt-[10px] font-medium text-[#555] text-[15px] xl:text-[18px] leading-[1.3] tracking-[-0.02em]">
                           {s.sub}
                         </p>
                       </div>
                       <p
                         ref={(el) => (dataValueRefs.current[i] = el)}
                         data-v={`0${s.suffix}`}
-                        className="shrink-0 font-bold text-[#222] text-[42px] xl:text-[54px] leading-[1] tracking-[-0.02em] tabular-nums"
+                        className="shrink-0 font-bold text-[#222] text-[48px] xl:text-[58px] leading-[1] tracking-[-0.02em] tabular-nums"
                       >
                         {`0${s.suffix}`}
                       </p>
@@ -869,7 +869,7 @@ function ForBusinessStage() {
                         <span
                           key={ci}
                           aria-hidden={ci >= row.length}
-                          className="shrink-0 rounded-[10px] bg-white p-[14px] xl:p-[16px] text-[18px] xl:text-[20px] font-medium text-[#333] whitespace-nowrap"
+                          className="shrink-0 rounded-[10px] bg-white p-[14px] xl:p-[16px] text-[16px] xl:text-[18px] font-medium text-[#333] whitespace-nowrap tracking-[-0.02em]"
                         >
                           {name}
                         </span>
