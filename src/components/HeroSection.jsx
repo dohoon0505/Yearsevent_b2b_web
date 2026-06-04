@@ -96,7 +96,7 @@ export default function HeroSection({ onMenuClick }) {
       </div>
 
       {/* 본문 — 글자 폭포 + fade-up (좌우 padding 0 / margin 260px @ lg+) */}
-      <div className="relative z-10 flex h-full flex-col justify-end pb-[120px] px-0 mx-6 md:mx-12 lg:mx-[260px] text-white">
+      <div className="relative z-10 flex h-full flex-col justify-end pb-[120px] px-0 mx-[clamp(24px,7.8vw,150px)] text-white">
         <div className="max-w-[820px]">
           {/* 뱃지 6개 — 가장 위 (textReady 시점 stagger 등장) */}
           <ul className="flex flex-wrap gap-2.5 max-w-[640px]">

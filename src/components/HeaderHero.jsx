@@ -5,7 +5,7 @@ import MenuToggle from "./MenuToggle.jsx";
 export default function HeaderHero({ onMenuClick }) {
   return (
     <header
-      className="absolute top-[60px] left-0 right-0 h-[64px] z-30 flex items-center px-6 md:px-10 lg:px-[100px] xl:px-[260px] anim-header-slide-in"
+      className="absolute top-[60px] left-0 right-0 h-[64px] z-30 flex items-center px-[clamp(24px,7.8vw,150px)] anim-header-slide-in"
     >
       <div className="flex flex-1 items-center justify-between gap-8">
         <Logo size="large" />

@@ -1,7 +1,7 @@
 export default function EventHeader() {
   return (
     <div
-      className="bg-white text-[#222] flex items-center justify-between gap-4 h-[50px] px-6 md:px-12 lg:px-[120px] xl:px-[260px] border-b border-[var(--color-neutral-20)]"
+      className="bg-white text-[#222] flex items-center justify-between gap-4 h-[50px] px-[clamp(24px,7.8vw,150px)] border-b border-[var(--color-neutral-20)]"
       role="region"
       aria-label="프로모션 안내"
     >
