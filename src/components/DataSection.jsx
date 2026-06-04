@@ -168,21 +168,27 @@ const SLIDER_CARDS = [
   },
 ];
 
-// 반복(loop) 렌더 — 카드를 3벌 이어 붙여 이음새 없는 center-focus 루프 구성.
-// focal은 가운데 벌의 첫 카드(A_START_I)부터 한 바퀴(UNIQUE_N step) 이동 →
-// 양옆에 항상 이웃 카드가 채워져(빈 공간 없음) 중앙 카드가 Active 되는 캐러셀.
-// 마지막 카드 다음에 첫 카드가 다시 중앙으로 들어온다.
-const UNIQUE_N = SLIDER_CARDS.length;
-const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 첫 카드
-// 카드별로 후보 이미지 중 1개를 랜덤 선택(페이지 로드 1회 고정) → 3벌 이어 붙임.
-// 3벌 모두 같은 선택을 공유하므로 한 카드는 캐러셀 내내 동일 이미지로 일관됨.
-const LOOP_CARDS = (() => {
-  const picked = SLIDER_CARDS.map((c) => ({
-    ...c,
-    img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
-  }));
-  return [...picked, ...picked, ...picked];
-})();
+// 흩어진(scattered) 패럴랙스 갤러리 — 카드마다 높이(hf)·세로 오프셋(oy)·깊이(depth)가 달라
+// 가로 스크롤 시 카드별로 다른 속도(depth)로 이동 → 레이어가 분리되는 깊이감(패럴랙스).
+//   hf    : 최대 카드 높이 대비 비율 (박스 높이 제각각)
+//   oy    : 뷰포트 높이 대비 세로 오프셋 (중앙 기준 위/아래로 흩어짐)
+//   depth : 가로 이동 속도 배수 (클수록 빠르게=가깝게 보임)
+const CARD_LAYOUT = [
+  { hf: 0.66, oy: -0.03, depth: 1.12 },
+  { hf: 0.84, oy: 0.11, depth: 0.92 },
+  { hf: 0.72, oy: -0.12, depth: 1.06 },
+  { hf: 1.0, oy: 0.02, depth: 0.86 },
+  { hf: 0.54, oy: 0.16, depth: 1.18 },
+  { hf: 0.88, oy: -0.07, depth: 0.95 },
+  { hf: 0.7, oy: 0.13, depth: 1.09 },
+  { hf: 0.94, oy: -0.02, depth: 0.9 },
+];
+// 카드별로 후보 이미지 중 1개를 랜덤 선택(페이지 로드 1회 고정).
+const PARALLAX_CARDS = SLIDER_CARDS.map((c, i) => ({
+  ...c,
+  img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
+  ...CARD_LAYOUT[i % CARD_LAYOUT.length],
+}));
 
 // ───────── About Us 다단계 무대 ─────────
 const A_TRACK_VH = 460;
@@ -192,6 +198,8 @@ const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
 const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
 const A_BOTTOM_PAD = 48; // 카드 +15% 확대에 따라 하단 여백 축소 (72 → 48)
 const A_CARD_MAXH = 530; // 460 → 530 (+15% 확대)
+const A_RAIL_GAP = 44; // 흩어진 박스 가로 간격
+const A_RAIL_PAD = 24; // 레일 좌측 시작 여백
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -206,10 +214,8 @@ function AboutScrollStage() {
   const wordRefs = useRef([]);
   const sliderWrapRef = useRef(null);
   const sliderViewportRef = useRef(null);
-  const sliderTrackRef = useRef(null);
   const cardRefs = useRef([]);
-  const endSpacerRef = useRef(null);
-  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, refW: 1, cardCx: [] });
+  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, baseX: [], baseY: [] });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
 
@@ -250,52 +256,44 @@ function AboutScrollStage() {
       const vh = window.innerHeight;
       const tw = textWrapRef.current;
       const vp = sliderViewportRef.current;
-      const track = sliderTrackRef.current;
       const sw = sliderWrapRef.current;
-      if (!tw || !vp || !track || !sw) return;
+      if (!tw || !vp || !sw) return;
 
       const textH = tw.offsetHeight;
       const sliderTop = A_TOP_PAD + textH + A_GAP;
       const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
-      const cardH = Math.min(sliderH, A_CARD_MAXH);
-      const cardW = Math.round(cardH * 0.74);
+      const cardMaxH = Math.min(sliderH, A_CARD_MAXH);
+      const cardW = Math.round(cardMaxH * 0.6); // 폭은 고정, 높이만 카드별로 변동
 
       sw.style.top = `${sliderTop}px`;
       vp.style.height = `${sliderH}px`;
-      cardRefs.current.forEach((c) => {
+
+      // 카드별 높이(hf)·세로 오프셋(oy) 적용 + baseX/baseY 좌표 캐시.
+      // baseX: 가로 레일 위 정지 좌표(sp=0). baseY: 세로 흩어짐 위치.
+      const baseX = [];
+      const baseY = [];
+      cardRefs.current.forEach((c, i) => {
         if (!c) return;
+        const lay = PARALLAX_CARDS[i] || { hf: 0.8, oy: 0 };
+        const cardH = Math.round(lay.hf * cardMaxH);
         c.style.height = `${cardH}px`;
         c.style.width = `${cardW}px`;
+        baseX[i] = A_RAIL_PAD + i * (cardW + A_RAIL_GAP);
+        baseY[i] = (sliderH - cardH) / 2 + lay.oy * sliderH;
       });
 
-      // center-focus 루프: 트랙 좌측 패딩 0, 대신 dx0 오프셋으로 가운데 벌의
-      // 임직원(A_START_I)을 레일 중앙(focalX)에 놓는다. 3벌 렌더라 양옆이 항상
-      // 채워지고(빈 공간 없음), focal은 한 바퀴(UNIQUE_N step)만 이동.
       const vpW = vp.clientWidth;
-      track.style.paddingLeft = "0px";
-      if (endSpacerRef.current) endSpacerRef.current.style.width = "0px";
-
-      // dx=0 기준으로 카드 중심을 "뷰포트 좌측 상대 좌표"로 측정.
-      // 트랙/래퍼 transform 때문에 offsetParent가 달라져 offsetLeft 좌표계가
-      // 어긋나므로 getBoundingClientRect 사용 (scale은 center-origin → 중심 불변).
-      track.style.transform = "translate3d(0,0,0)";
-      const vpLeft = vp.getBoundingClientRect().left;
-      const cardCx = cardRefs.current.map((c) => {
-        if (!c) return 0;
-        const r = c.getBoundingClientRect();
-        return r.left + r.width / 2 - vpLeft;
-      });
-      const step = (cardCx[1] || 0) - (cardCx[0] || 0);
-      const focalX = vpW / 2; // 레일(인셋 뷰포트) 중앙 = Active 카드 위치
-      const dx0 = focalX - (cardCx[A_START_I] || 0); // 시작 시 가운데 임직원을 중앙에
+      const n = PARALLAX_CARDS.length;
+      const contentW = A_RAIL_PAD + n * cardW + (n - 1) * A_RAIL_GAP;
+      const minDepth = Math.min(...PARALLAX_CARDS.map((c) => c.depth));
+      // 가장 느린(min depth) 카드도 콘텐츠 끝까지 통과하도록 maxX 보정 → 마지막 박스 노출.
+      const maxX = Math.max(0, (contentW - vpW + cardW * 0.5) / minDepth);
       geo.current = {
         vh,
         centerY: (vh - textH) / 2 - A_TOP_PAD,
-        maxX: Math.max(0, step * UNIQUE_N),
-        dx0,
-        focalX,
-        refW: window.innerWidth, // falloff 정규화(전체 폭) — 부드러운 포커스 유지
-        cardCx,
+        maxX,
+        baseX,
+        baseY,
       };
     };
 
@@ -345,18 +343,18 @@ function AboutScrollStage() {
       sw.style.transform = `translate3d(0, ${((1 - e) * 48).toFixed(1)}px, 0)`;
       sw.style.pointerEvents = e > 0.99 ? "auto" : "none";
 
-      // 4) center-focus 가로 스크롤 (dx0 = 시작 중앙 정렬 오프셋)
+      // 4) 흩어진 박스 가로 스크롤 패럴랙스 — 카드마다 depth 배수로 이동량이 달라
+      //    레이어가 분리되는 깊이감. 가까운 카드(depth↑)는 빠르게, 먼 카드는 느리게 흐른다.
       const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
-      const dx = g.dx0 - g.maxX * sp;
-      sliderTrackRef.current.style.transform = `translate3d(${dx.toFixed(1)}px, 0, 0)`;
       const cards = cardRefs.current;
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         if (!c) continue;
-        const cx = g.cardCx[i] + dx;
-        const d = Math.abs(cx - g.focalX) / g.refW;
-        c.style.transform = `scale(${Math.max(0.82, 1 - d * 0.5).toFixed(3)})`;
-        c.style.opacity = Math.max(0.4, 1 - d * 1.1).toFixed(3);
+        const lay = PARALLAX_CARDS[i];
+        const x = (g.baseX[i] || 0) - g.maxX * sp * (lay ? lay.depth : 1);
+        // 세로 미세 드리프트 — depth에 비례해 살짝 떠올라 깊이감 보강.
+        const y = (g.baseY[i] || 0) - (lay ? (lay.depth - 1) * 24 * sp : 0);
+        c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       }
     };
 
@@ -430,7 +428,7 @@ function AboutScrollStage() {
             </h2>
           </div>
 
-          {/* 이미지 슬라이더 — center-focus (top/height JS 제어), 좌우 패딩 0 (full-bleed) */}
+          {/* 흩어진 박스 패럴랙스 갤러리 — 카드 절대배치 + transform JS 제어 (full-bleed) */}
           <div
             ref={sliderWrapRef}
             className="absolute inset-x-0 will-change-transform"
@@ -439,45 +437,33 @@ function AboutScrollStage() {
           >
             <div
               ref={sliderViewportRef}
-              className="w-full overflow-hidden flex items-center"
+              className="relative w-full overflow-hidden"
             >
-              <div
-                ref={sliderTrackRef}
-                className="flex items-center gap-[24px] will-change-transform"
-              >
-                {LOOP_CARDS.map((card, i) => (
-                  <article
-                    key={i}
-                    ref={(el) => (cardRefs.current[i] = el)}
-                    className="flex-none flex flex-col rounded-[16px] bg-white border border-[#ececec] overflow-hidden will-change-transform"
-                    style={{
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                      transformOrigin: "center center",
-                    }}
-                  >
-                    <div className="flex-1 min-h-0 overflow-hidden bg-[#e5e5e5]">
-                      <img
-                        src={card.img}
-                        alt=""
-                        loading="eager"
-                        decoding="async"
-                        draggable="false"
-                        className="w-full h-full object-cover select-none"
-                      />
-                    </div>
-                    <div className="px-[18px] py-[16px]">
-                      <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
+              {PARALLAX_CARDS.map((card, i) => (
+                <article
+                  key={i}
+                  ref={(el) => (cardRefs.current[i] = el)}
+                  className="absolute top-0 left-0 flex flex-col rounded-[16px] bg-white border border-[#ececec] overflow-hidden will-change-transform"
+                  style={{ boxShadow: "0 10px 30px -12px rgba(0,0,0,0.18)" }}
+                >
+                  <div className="relative flex-1 min-h-0 overflow-hidden bg-[#e5e5e5]">
+                    <img
+                      src={card.img}
+                      alt=""
+                      loading="eager"
+                      decoding="async"
+                      draggable="false"
+                      className="w-full h-full object-cover select-none"
+                    />
+                    {/* 하단 그라데이션 + 캡션 오버레이 (높이 제각각이라 본문은 생략) */}
+                    <div className="absolute inset-x-0 bottom-0 px-[16px] pb-[14px] pt-[40px] bg-gradient-to-t from-black/70 via-black/25 to-transparent">
+                      <p className="text-[15px] md:text-[17px] font-bold text-white tracking-[-0.01em] leading-[1.25]">
                         {card.title}
                       </p>
-                      <p className="mt-[7px] text-[12.5px] md:text-[14px] leading-[1.55] text-[#52525b] tracking-[-0.003em]">
-                        {card.desc}
-                      </p>
                     </div>
-                  </article>
-                ))}
-                {/* 끝 여백(lead-out) — 마지막 카드가 레일 중앙까지 도달 (width JS 계산) */}
-                <div ref={endSpacerRef} className="flex-none" aria-hidden />
-              </div>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </div>
