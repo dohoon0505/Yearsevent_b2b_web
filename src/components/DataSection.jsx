@@ -254,7 +254,7 @@ function CardColumn({ cards, colRef, stagger = false }) {
             className="absolute inset-x-0 bottom-0 h-[30%] flex flex-col justify-end px-[22px] pb-[22px]"
             style={{
               backgroundImage:
-                "linear-gradient(to top, color-mix(in srgb, var(--color-brand-red-dark) 30%, black 70%), color-mix(in srgb, var(--color-brand-red-dark) 45%, transparent) 52%, transparent)",
+                "linear-gradient(to top, color-mix(in srgb, color-mix(in srgb, var(--color-brand-red-dark) 60%, black 40%) 85%, transparent), color-mix(in srgb, var(--color-brand-red-dark) 26%, transparent) 52%, transparent)",
             }}
           >
             <p
