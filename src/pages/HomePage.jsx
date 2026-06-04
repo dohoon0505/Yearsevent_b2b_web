@@ -5,8 +5,6 @@ import DataSection from "../components/DataSection.jsx";
 import ScrollCardSection from "../components/ScrollCardSection.jsx";
 import ScrollSlides from "../components/ScrollSlides.jsx";
 import Footer from "../components/Footer.jsx";
-import HeaderScrollActive from "../components/HeaderScrollActive.jsx";
-import { useScrollDirection } from "../hooks/useScrollDirection.js";
 
 /**
  * HomePage — Hero_Section부터 시작 (Hero_Intro 제거).
@@ -25,11 +23,6 @@ import { useScrollDirection } from "../hooks/useScrollDirection.js";
  */
 
 export default function HomePage() {
-  const { direction, atTop, pastHero } = useScrollDirection({
-    threshold: 6,
-    topZoneVh: 1, // HeroSection 통과 후 본문 진입 판정
-  });
-
   // 진입 시 scrollY=0 강제 (브라우저 복원 위치 무시)
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -159,8 +152,6 @@ export default function HomePage() {
     };
   }, []);
 
-  const showScrollActive = pastHero && direction === "up" && !atTop;
-
   return (
     <div className="relative overflow-x-clip">
       <HeroSection />
@@ -168,13 +159,6 @@ export default function HomePage() {
       <ScrollCardSection />
       <ScrollSlides />
       <Footer />
-
-      <HeaderScrollActive
-        visible={showScrollActive}
-        onMenuClick={() => {
-          /* TODO: 모바일 시트 메뉴 */
-        }}
-      />
     </div>
   );
 }
