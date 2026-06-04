@@ -434,9 +434,9 @@ function AboutScrollStage() {
           style={{
             // 카드 사이즈 토큰 — 반응형(좌우상하 패딩 150px @1920 기준)
             "--a-pad": "clamp(28px, 7.8vw, 150px)",
-            "--a-card-w": "clamp(144px, 16.64vw, 320px)",
-            "--a-card-gap": "clamp(14px, 1.4vw, 26px)",
-            "--a-card-r": "clamp(18px, 1.8vw, 36px)",
+            "--a-card-w": "clamp(166px, 19.14vw, 368px)",
+            "--a-card-gap": "clamp(16px, 1.61vw, 30px)",
+            "--a-card-r": "clamp(21px, 2.07vw, 41px)",
           }}
         >
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립) */}
