@@ -254,11 +254,11 @@ function CardColumn({ cards, colRef, stagger = false }) {
             className="absolute inset-x-0 bottom-0 h-[30%] flex flex-col justify-end px-[22px] pb-[22px]"
             style={{
               backgroundImage:
-                "linear-gradient(to top, color-mix(in srgb, var(--color-brand-red-dark) 88%, black 30%), color-mix(in srgb, var(--color-brand-red-dark) 48%, transparent) 52%, transparent)",
+                "linear-gradient(to top, color-mix(in srgb, var(--color-brand-red-dark) 30%, black 70%), color-mix(in srgb, var(--color-brand-red-dark) 45%, transparent) 52%, transparent)",
             }}
           >
             <p
-              className="text-white font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] leading-[1.25]"
+              className="text-white font-semibold text-[22px] xl:text-[24px] tracking-[-0.01em] leading-[1.25]"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.55)" }}
             >
               {card.title}
