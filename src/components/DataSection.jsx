@@ -194,6 +194,10 @@ const A_BOTTOM_PAD = 48; // 카드 +15% 확대에 따라 하단 여백 축소 (7
 const A_CARD_MAXH = 530; // 460 → 530 (+15% 확대)
 // Active(focal) 지점을 화면 중앙이 아닌 텍스트 우측에 둔다 → 우측 카드가 크게/불투명 active.
 const A_FOCAL_RATIO = 0.68; // 뷰포트 폭 대비 focal x 위치 (우측)
+const A_FOCUS_FALL = 3.0; // focal 거리 감쇠(클수록 active 1장만 크게)
+const A_PEAK_SCALE = 1.06; // Active 카드 확대
+const A_MIN_SCALE = 0.5; // 비활성 카드 축소
+const A_DESCEND_PX = 220; // focal 좌측 카드가 텍스트 하단으로 내려가는 양
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -357,9 +361,15 @@ function AboutScrollStage() {
         const c = cards[i];
         if (!c) continue;
         const cx = g.cardCx[i] + dx;
-        const d = Math.abs(cx - g.focalX) / g.refW;
-        c.style.transform = `scale(${Math.max(0.82, 1 - d * 0.5).toFixed(3)})`;
-        c.style.opacity = Math.max(0.4, 1 - d * 1.1).toFixed(3);
+        // focal 근처일수록 1 (Active), 멀수록 0 — Active 1장만 크게/불투명.
+        const focusAmt = smoothstep(clamp01(1 - (Math.abs(cx - g.focalX) / g.refW) * A_FOCUS_FALL));
+        const scale = lerp(A_MIN_SCALE, A_PEAK_SCALE, focusAmt);
+        // focal 좌측(이미 지난 카드)일수록 텍스트 하단으로 하강 — 우측은 baseline 유지.
+        const leftAmt = clamp01((g.focalX - cx) / (g.refW * 0.45));
+        const oy = leftAmt * A_DESCEND_PX;
+        c.style.transform = `translateY(${oy.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+        c.style.opacity = lerp(0.32, 1, focusAmt).toFixed(3);
+        c.style.zIndex = String(Math.round(focusAmt * 10)); // Active 카드가 위로
       }
     };
 
@@ -396,15 +406,10 @@ function AboutScrollStage() {
     <section ref={sectionRef} aria-label="회사 소개" className="relative bg-white">
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
         <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {/* 좌측 흰색 스크림 — 텍스트 가독성 확보 (슬라이더 z-0 위, 텍스트 z-20 아래) */}
-          <div
-            aria-hidden
-            className="absolute inset-y-0 left-0 z-10 w-[55%] pointer-events-none bg-gradient-to-r from-white via-white/85 to-transparent"
-          />
           {/* 텍스트 블록 — 중앙↔상단 이동 (transform JS 제어). 슬라이더 위 오버레이(z-20) */}
           <div
             ref={textWrapRef}
-            className="absolute inset-x-0 z-20 px-6 md:px-12 lg:px-[120px] xl:px-[260px] lg:max-w-[52vw] pointer-events-none will-change-transform"
+            className="absolute inset-x-0 z-20 px-6 md:px-12 lg:px-[120px] xl:px-[260px] pointer-events-none will-change-transform"
             style={{
               top: `${A_TOP_PAD}px`,
               opacity: ready ? 1 : 0,
@@ -447,7 +452,7 @@ function AboutScrollStage() {
           >
             <div
               ref={sliderViewportRef}
-              className="w-full overflow-hidden flex items-center"
+              className="w-full overflow-hidden flex items-start"
             >
               <div
                 ref={sliderTrackRef}
