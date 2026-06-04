@@ -11,6 +11,7 @@ import promotion from "../assets/promotion.jpg";
 import childbirth from "../assets/childbirth.jpg";
 import childbirth2 from "../assets/childbirth_2.jpg";
 import employees from "../assets/Employees.jpg";
+import fbCityNight from "../assets/forbusiness-city-night.webp";
 
 /**
  * DataSection — About Us(다단계 sticky 무대) + For Business(scrub 슬로건)
@@ -99,14 +100,12 @@ const BUSINESS_FLAT = BUSINESS_LINES.map((line) =>
 );
 const TOTAL_BUSINESS = _gb;
 
-// For Business — DATA 통계 (Figma)
-// target: count-up 목표값, suffix: 값 뒤에 붙는 문자 (예: 2016~ / 200+ / 700,000+)
-// 카운트업: floor(p * target).toLocaleString("ko-KR") + suffix — linear-count.md 패턴
+// For Business — DATA 통계 (Figma 165:107) — 하단 글래스 칩 3종 count-up
+//   target: count-up 목표값, suffix: 값 뒤 문자 (200+ / 700,000+), noComma: 천단위 콤마 제외(연도)
 const FB_STATS = [
-  { title: "설립일", sub: "2016년 설립, 2018년 인수합병", target: 2016, suffix: "~", noComma: true },
-  { title: "누적 주문처리 수", sub: "일 평균 178건의 주문접수", target: 700000, suffix: "+" },
-  { title: "오직 생화 매출", sub: "신뢰할 수 있는 정량적 데이터", target: 15, suffix: "억+" },
-  { title: "경조사 제휴기업", sub: "소규모의 기업부터, 관공서까지", target: 200, suffix: "+" },
+  { label: "설립일", target: 2016, suffix: "", noComma: true },
+  { label: "경조사 제휴기업", target: 200, suffix: "+" },
+  { label: "누적 주문처리", target: 700000, suffix: "+" },
 ];
 
 // 카운트업 포맷 — 목표값×진행률을 ko-KR 콤마 포맷 + suffix
@@ -124,20 +123,21 @@ const FB_PARTNERS = [
   ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
 ];
 
-// For Business 다단계 무대 — Figma 7개 노드 시퀀스 매핑
-// 100:22 → 103:664 → 103:773 → 103:879 → 103:909 → 103:1022 → 103:588
-const FB_TRACK_VH = 600;
-const FB_TOP_PAD = 120;
+// For Business 다단계 무대 — Figma 165:121 (sequence 1~6)
+//   1) 배경  2) 슬로건 scrub  3) 상단 이동+라벨+칩1  4) 칩2  5) 칩3  6) 글래스 패널
+const FB_TRACK_VH = 560;
 // 인터랙션 임계값 (스크롤 진행률 p ∈ [0, 1])
-const FB_TEXT_END = 0.14; // 슬로건 단어 scrub 완료 (100:22)
-const FB_SHIFT_END = 0.22; // 텍스트 가로 중앙 → 좌측 이동 완료 (→ 103:664)
-const FB_RISE_END = 0.3; // 컨텐츠 세로 중앙 → 상단 정렬 완료 (DATA 등장 전)
-const FB_DATA_1_END = 0.4; // 설립일/2016~ count-up
-const FB_DATA_2_END = 0.5; // 누적 주문처리 수/700,000+ count-up
-const FB_DATA_3_END = 0.6; // 오직 생화 매출/15억+ count-up
-const FB_DATA_4_END = 0.7; // 경조사 제휴기업/200+ count-up
-const FB_PARTNER_END = 0.82; // Partner Frame 하단→상단 슬라이드 (→ 103:1022)
-const FB_WARN_END = 0.92; // 경고 버튼 페이드인 + pulse 트리거 (→ 103:588)
+const FB_TEXT_END = 0.15; // 슬로건 단어 scrub 완료 (seq2)
+const FB_MOVE_END = 0.27; // 텍스트 세로중앙→상단 이동 + For Business 라벨 등장 (seq3)
+const FB_STAT_AT = [0.34, 0.47, 0.6]; // 통계 칩 등장/카운트업 시작 (seq3,4,5)
+const FB_STAT_DUR = 0.12; // 칩 등장+카운트업 구간
+const FB_PANEL_AT = 0.74; // 글래스 패널 등장 (seq6)
+const FB_PANEL_DUR = 0.16;
+
+// 다크 배경 위 scrub 색 — DIM(반투명 회색) → WHITE(본문) / → LIME(강조 #e2ef5d)
+const FB_DIM_RGB = [108, 114, 130];
+const FB_WHITE_RGB = [255, 255, 255];
+const FB_LIME_RGB = [226, 239, 93]; // #e2ef5d
 
 const DIM = "#d4d8e2";
 // 연속 스크럽 색 보간용 RGB (DIM↔DARK / DIM↔ACCENT)
@@ -611,35 +611,23 @@ function AboutScrollStage() {
 }
 
 /**
- * ForBusinessStage — Figma 7-노드 시퀀스 (100:22 → 103:588)
- *   1) [0~0.14] 슬로건 단어 scrub (가로+세로 중앙)
- *   2) [0.14~0.22] 텍스트 가로 중앙 → 좌측 컬럼으로 이동
- *   3) [0.22~0.32] 우측 DATA frame + 설립일 count-up (0~ → 2016~)
- *   4) [0.32~0.42] 경조사 제휴기업 count-up (0+ → 200+)
- *   5) [0.42~0.55] 누적 주문처리 수 count-up (0+ → 700,000+) + 컨텐츠 세로 중앙→상단
- *   6) [0.55~0.72] Partner Frame 하단에서 슬라이드 업 (좌측 하단)
- *   7) [0.72~0.86] 경고 버튼 페이드인 + pulse 2회 (attention-grab)
- * 레이아웃: 좌 (For Business 라벨 + 슬로건 + 경고 버튼 + Partner Frame) | 우 (DATA 3 entries)
- * 2 Attention-grabs:
- *   ① Count-up 시퀀스 (3개 숫자 0 → target)
- *   ② Warning 버튼 등장 pulse 2회 (.fb-warn-pulse CSS)
+ * ForBusinessStage — Figma 165:121 (sequence 1~6) · 다크 야경 + 글래스모피즘
+ *   1) 배경(야경) 고정 + 오버레이
+ *   2) [0~0.15] 슬로건 단어 scrub (화면 정중앙, dim→white / →lime)
+ *   3) [0.15~0.27] 슬로건 좌상단 이동 + For Business 라벨 등장
+ *   4~6) 하단 글래스 통계 칩 3종 순차 등장 + count-up (설립일/경조사/누적 주문처리)
+ *   7) [0.74~] 우상단 글래스 패널(파트너) 등장
  */
 function ForBusinessStage() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const wordRefs = useRef([]);
-  const textWrapRef = useRef(null);
-  const headRef = useRef(null); // For Business 라벨+슬로건 (경고 버튼 제외) — 세로 중앙 정렬 기준
-  const lineRefs = useRef([]); // [라벨, 슬로건1, 슬로건2] — center↔left 정렬 보간용
-  const dataRef = useRef(null);
-  const dataItemRefs = useRef([]);
-  const dataValueRefs = useRef([]); // count-up <p> 엘리먼트
-  const partnerRef = useRef(null);
-  const warnRef = useRef(null);
-  const accentRGBRef = useRef([203, 13, 53]);
-  // centerX: 가로 중앙 정렬 오프셋, centerY: 세로 중앙 정렬 오프셋
-  const geo = useRef({ vh: 0, centerX: 0, centerY: 0 });
-  const warnTriggeredRef = useRef(false);
+  const headWrapRef = useRef(null); // 슬로건 + 라벨 (center → 좌상단 이동)
+  const labelRef = useRef(null); // For Business 라벨 (이동 후 페이드인)
+  const wordRefs = useRef([]); // 슬로건 단어 (scrub)
+  const chipRefs = useRef([]); // 하단 통계 칩 (등장)
+  const chipValRefs = useRef([]); // 통계 값 (count-up)
+  const panelRef = useRef(null); // 우상단 글래스 패널
+  const geo = useRef({ vw: 0, vh: 0, centerX: 0, centerY: 0 });
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -661,82 +649,47 @@ function ForBusinessStage() {
   useLayoutEffect(() => {
     let ticking = false;
 
-    try {
-      const probe = document.createElement("span");
-      probe.style.cssText = "color:var(--color-brand-red);position:absolute;visibility:hidden";
-      document.body.appendChild(probe);
-      const m = getComputedStyle(probe).color.match(/\d+/g);
-      if (m && m.length >= 3) accentRGBRef.current = m.slice(0, 3).map(Number);
-      document.body.removeChild(probe);
-    } catch {
-      /* keep fallback */
-    }
-
-    // 측정 — 텍스트 가로/세로 중앙(centerX/Y) + Partner Frame 좌측 하단 절대 위치
+    // 슬로건 헤드를 화면 정중앙에 두기 위한 이동량(centerX/Y) 측정.
     const measure = () => {
+      const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const tw = textWrapRef.current;
-      const dataEl = dataRef.current;
-      const partnerEl = partnerRef.current;
-      if (!tw || !dataEl) return;
-      const headEl = headRef.current;
-      // 세로 중앙(시퀀스 01): 헤드(For Business 라벨+슬로건)만 viewport 정중앙 기준.
-      //   경고 버튼은 시퀀스 07에서만 보이므로 중앙 정렬 계산에서 제외 → 슬로건이 정확히 중앙.
-      const headH = headEl ? headEl.offsetHeight : tw.offsetHeight;
-      const headW = headEl ? headEl.offsetWidth : tw.offsetWidth;
-      const centerY = Math.max(0, (vh - headH) / 2 - FB_TOP_PAD);
-      // 가로 중앙(시퀀스 01): 헤드 실제 폭 기준으로 inner 영역 정중앙에 배치.
-      //   inner div는 좌우 대칭 마진(mx) → inner 중앙 = 화면 중앙. centerX = 헤드를 그 중앙으로 미는 양.
-      const innerW = tw.parentElement ? tw.parentElement.clientWidth : 0;
-      const centerX = Math.max(0, (innerW - headW) / 2);
-      // 줄별 center 오프셋: 시퀀스 01에서 각 줄(라벨·슬로건1·슬로건2)을 헤드 폭 안에서 가운데로.
-      //   text-align:center 효과를 transform으로 — (headW - 줄폭)/2 만큼 우측 이동, 시퀀스 02(left)에선 0.
-      const lineOffsets = lineRefs.current.map((el) =>
-        el ? (headW - el.offsetWidth) / 2 : 0,
-      );
-      // Partner Frame은 viewport 하단 (sticky pin 동안 보이는 100vh 안)
-      // partnerTop = vh - FB_TOP_PAD - partnerH (좌측 컬럼의 viewport bottom 정렬)
-      const partnerH = partnerEl ? partnerEl.offsetHeight : 0;
-      const partnerTop = Math.max(FB_TOP_PAD, vh - FB_TOP_PAD - partnerH);
-      if (partnerEl) partnerEl.style.top = `${partnerTop}px`;
-      // 좌우 정렬(시퀀스 07): DATA를 [슬로건 상단 ~ 로고슬라이더 하단] 범위에 stretch + justify-between.
-      //   → 첫 항목(설립일) 상단 = 슬로건 상단, 마지막 항목(경조사) 하단 = 로고슬라이더 하단.
-      //   sloganOffset = headRef 안 h2(슬로건)의 offsetTop(라벨+간격) → "For Business" 라벨은 그 위로 남음.
-      const h2El = headEl ? headEl.querySelector("h2") : null;
-      const sloganOffset = h2El ? h2El.offsetTop : 0;
-      const dataTop = FB_TOP_PAD + sloganOffset;
-      const dataHeight = Math.max(0, partnerTop + partnerH - dataTop);
-      if (dataEl) {
-        dataEl.style.top = `${dataTop}px`;
-        dataEl.style.height = `${dataHeight}px`;
-      }
-      geo.current = { vh, centerX, centerY, lineOffsets };
+      const head = headWrapRef.current;
+      if (!head) return;
+      const pad = Math.max(28, Math.min(150, vw * 0.078));
+      const headW = head.offsetWidth;
+      const headH = head.offsetHeight;
+      geo.current = {
+        vw,
+        vh,
+        centerX: Math.max(0, (vw - 2 * pad - headW) / 2),
+        centerY: Math.max(0, (vh - 2 * pad - headH) / 2),
+      };
     };
 
     const update = () => {
       ticking = false;
       const node = trackRef.current;
       if (!node) return;
-      if (window.innerHeight !== geo.current.vh) measure();
+      if (window.innerWidth !== geo.current.vw || window.innerHeight !== geo.current.vh)
+        measure();
       const g = geo.current;
       const rect = node.getBoundingClientRect();
       const max = Math.max(1, rect.height - g.vh);
       const p = clamp01(-rect.top / max);
 
-      // ───── Phase 1 [0~0.14] 슬로건 단어 scrub (Figma 100:22) ─────
+      // 1) 슬로건 단어 scrub — DIM → WHITE(본문) / → LIME(강조)
       const reveal = clamp01(p / FB_TEXT_END);
       const litAmt = clamp01((reveal - 0.05) / 0.9);
       const pos = litAmt * (TOTAL_BUSINESS + 1);
-      const acc = accentRGBRef.current;
       const words = wordRefs.current;
       for (let i = 0; i < words.length; i++) {
         const el = words[i];
         if (!el) continue;
         const wf = smoothstep(clamp01((pos - i) / 1.6));
-        const t = el.dataset.accent === "1" ? acc : DARK_RGB;
-        const r = Math.round(DIM_RGB[0] + (t[0] - DIM_RGB[0]) * wf);
-        const gg = Math.round(DIM_RGB[1] + (t[1] - DIM_RGB[1]) * wf);
-        const b = Math.round(DIM_RGB[2] + (t[2] - DIM_RGB[2]) * wf);
+        const t = el.dataset.accent === "1" ? FB_LIME_RGB : FB_WHITE_RGB;
+        const r = Math.round(FB_DIM_RGB[0] + (t[0] - FB_DIM_RGB[0]) * wf);
+        const gg = Math.round(FB_DIM_RGB[1] + (t[1] - FB_DIM_RGB[1]) * wf);
+        const b = Math.round(FB_DIM_RGB[2] + (t[2] - FB_DIM_RGB[2]) * wf);
         const c = `rgb(${r}, ${gg}, ${b})`;
         if (el.dataset.c !== c) {
           el.style.color = c;
@@ -744,68 +697,30 @@ function ForBusinessStage() {
         }
       }
 
-      // ───── Phase 2 [0.14~0.22] 텍스트 가로 중앙 → 좌측 (→ Figma 103:664) ─────
-      //   tx: centerX → 0  (좌측 컬럼 위치로 이동)
-      const sE = easeInOutCubic(
-        clamp01((p - FB_TEXT_END) / (FB_SHIFT_END - FB_TEXT_END)),
-      );
-      // ───── Phase 2.5 [0.22~0.30] 세로 중앙 → 상단 (DATA 등장 전 상단 정렬) ─────
-      //   ty: centerY → 0  (이후 DATA가 슬로건 상단에 맞춰 등장하므로 미리 상단 정렬)
+      // 2) 슬로건 center → 좌상단 이동 + For Business 라벨 페이드인
       const mE = easeInOutCubic(
-        clamp01((p - FB_SHIFT_END) / (FB_RISE_END - FB_SHIFT_END)),
+        clamp01((p - FB_TEXT_END) / (FB_MOVE_END - FB_TEXT_END)),
       );
-      const tx = lerp(g.centerX, 0, sE).toFixed(1);
-      const ty = lerp(g.centerY, 0, mE).toFixed(1);
-      if (textWrapRef.current) {
-        textWrapRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
-      }
-      // 줄별 정렬 보간: 시퀀스 01 center(alignT=1) → 시퀀스 02 left(alignT=0)
-      const alignT = 1 - sE;
-      const lineOffsets = g.lineOffsets || [];
-      const lines = lineRefs.current;
-      for (let i = 0; i < lines.length; i++) {
-        const el = lines[i];
-        if (!el) continue;
-        const ox = ((lineOffsets[i] || 0) * alignT).toFixed(1);
-        if (el.dataset.ox !== ox) {
-          el.style.transform = `translate3d(${ox}px, 0, 0)`;
-          el.dataset.ox = ox;
+      if (headWrapRef.current)
+        headWrapRef.current.style.transform = `translate3d(${lerp(g.centerX, 0, mE).toFixed(1)}px, ${lerp(g.centerY, 0, mE).toFixed(1)}px, 0)`;
+      if (labelRef.current)
+        labelRef.current.style.opacity = clamp01((mE - 0.45) / 0.55).toFixed(3);
+
+      // 3~5) 하단 통계 칩 순차 등장(아래→위) + count-up (스크롤 직결 linear)
+      const chips = chipRefs.current;
+      const vals = chipValRefs.current;
+      for (let i = 0; i < chips.length; i++) {
+        const at = FB_STAT_AT[i];
+        const lin = clamp01((p - at) / FB_STAT_DUR);
+        const ee = easeInOutCubic(lin);
+        if (chips[i]) {
+          chips[i].style.opacity = ee.toFixed(3);
+          chips[i].style.transform = `translate3d(0, ${((1 - ee) * 40).toFixed(1)}px, 0)`;
         }
-      }
-
-      // ───── Phase 3 DATA frame 등장 + 설립일 count-up ─────
-      //   dataRef 컨테이너는 상단 정렬 완료(FB_RISE_END) 직후 페이드인
-      const fE = easeInOutCubic(
-        clamp01((p - FB_RISE_END) / (FB_DATA_1_END - FB_RISE_END)),
-      );
-      if (dataRef.current) {
-        dataRef.current.style.opacity = fE.toFixed(3);
-        dataRef.current.style.transform = `translate3d(0, ${ty}px, 0)`;
-      }
-
-      // ───── DATA 항목별 count-up + 등장 (Phase 3,4,5) ─────
-      // Attention-grab #1: linear-count.md 패턴 — 스크롤 진행률에 정비례
-      const itemThresh = [
-        [FB_RISE_END, FB_DATA_1_END], // 설립일
-        [FB_DATA_1_END, FB_DATA_2_END], // 누적 주문처리 수
-        [FB_DATA_2_END, FB_DATA_3_END], // 오직 생화 매출
-        [FB_DATA_3_END, FB_DATA_4_END], // 경조사 제휴기업
-      ];
-      const items = dataItemRefs.current;
-      const valEls = dataValueRefs.current;
-      for (let i = 0; i < items.length; i++) {
-        const el = items[i];
-        if (!el) continue;
-        const [s, e] = itemThresh[i];
-        const ee = easeInOutCubic(clamp01((p - s) / (e - s)));
-        el.style.opacity = ee.toFixed(3);
-        el.style.transform = `translate3d(0, ${((1 - ee) * 20).toFixed(1)}px, 0)`;
-        // count-up: linear 진행률(이징 X) — md 패턴 그대로
-        const lin = clamp01((p - s) / (e - s));
-        const v = valEls[i];
+        const v = vals[i];
         if (v) {
-          const stat = FB_STATS[i];
-          const next = formatCount(lin, stat.target, stat.suffix, stat.noComma);
+          const s = FB_STATS[i];
+          const next = formatCount(lin, s.target, s.suffix, s.noComma);
           if (v.dataset.v !== next) {
             v.textContent = next;
             v.dataset.v = next;
@@ -813,28 +728,11 @@ function ForBusinessStage() {
         }
       }
 
-      // ───── Phase 6 Partner Frame 하단→상단 슬라이드 (→ 103:1022) ─────
-      const pE = easeInOutCubic(
-        clamp01((p - FB_DATA_4_END) / (FB_PARTNER_END - FB_DATA_4_END)),
-      );
-      if (partnerRef.current) {
-        partnerRef.current.style.opacity = pE.toFixed(3);
-        // 하단에서 위로 슬라이드: translateY 80 → 0
-        partnerRef.current.style.transform = `translate3d(0, ${((1 - pE) * 80).toFixed(1)}px, 0)`;
-      }
-
-      // ───── Phase 7 [0.72~0.86] 경고 버튼 페이드인 + pulse 2회 (→ 103:588) ─────
-      // Attention-grab #2: .fb-warn-pulse 클래스 추가 시점 = 페이드 절반 도달
-      const wE = easeInOutCubic(
-        clamp01((p - FB_PARTNER_END) / (FB_WARN_END - FB_PARTNER_END)),
-      );
-      if (warnRef.current) {
-        warnRef.current.style.opacity = wE.toFixed(3);
-        warnRef.current.style.transform = `translate3d(0, ${((1 - wE) * 16).toFixed(1)}px, 0)`;
-      }
-      if (wE > 0.5 && !warnTriggeredRef.current) {
-        warnTriggeredRef.current = true;
-        if (warnRef.current) warnRef.current.classList.add("fb-warn-pulse");
+      // 6) 우상단 글래스 패널 등장 (아래→위 + 페이드)
+      const pE = easeInOutCubic(clamp01((p - FB_PANEL_AT) / FB_PANEL_DUR));
+      if (panelRef.current) {
+        panelRef.current.style.opacity = pE.toFixed(3);
+        panelRef.current.style.transform = `translate3d(0, ${((1 - pE) * 48).toFixed(1)}px, 0)`;
       }
     };
 
@@ -865,140 +763,142 @@ function ForBusinessStage() {
   }, []);
 
   return (
-    <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-white">
-      {/* 데스크톱(lg+) — Figma 7단계 sticky 시퀀스 */}
+    <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-[#0b0d12]">
+      {/* 데스크톱(lg+) — Figma 165:121 다크 sticky 시퀀스 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
-          <div className="sticky top-0 h-[150vh] w-full overflow-hidden">
-            <div className="relative h-full mx-[120px] xl:mx-[260px]">
-              {/* 좌측 텍스트(For Business 라벨 + 슬로건 + 경고 버튼) */}
+          <div
+            className="sticky top-0 h-screen w-full overflow-hidden"
+            style={{ "--fb-pad": "clamp(28px, 7.8vw, 150px)" }}
+          >
+            {/* 배경 야경 + 오버레이 */}
+            <div aria-hidden className="absolute inset-0">
+              <img
+                src={fbCityNight}
+                alt=""
+                draggable="false"
+                className="absolute inset-0 w-full h-full object-cover select-none"
+              />
+              <div className="absolute inset-0 bg-black/45" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
+            </div>
+
+            {/* 콘텐츠 */}
+            <div
+              className="relative h-full"
+              style={{ opacity: ready ? 1 : 0, transition: "opacity .6s ease-out" }}
+            >
+              {/* 슬로건 + For Business 라벨 (center → 좌상단) */}
               <div
-                ref={textWrapRef}
-                className="absolute left-0 w-[calc(50%-50px)] will-change-transform"
-                style={{
-                  top: `${FB_TOP_PAD}px`,
-                  opacity: ready ? 1 : 0,
-                  transition: "opacity .5s ease-out",
-                }}
+                ref={headWrapRef}
+                className="absolute will-change-transform"
+                style={{ top: "var(--fb-pad)", left: "var(--fb-pad)" }}
               >
-                <div ref={headRef} className="inline-block">
-                  <p
-                    ref={(el) => (lineRefs.current[0] = el)}
-                    className="text-[var(--color-brand-red)] font-bold text-[20px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px] will-change-transform"
-                  >
-                    <span>For Business</span>
-                    <span
-                      aria-hidden
-                      className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
-                    />
-                  </p>
-                  <h2 className="mt-[26px] xl:mt-[34px] font-bold text-[44px] xl:text-[58px] leading-[1.32] tracking-[-0.018em]">
-                    {BUSINESS_FLAT.map((line, li) => (
-                      <span
-                        key={li}
-                        ref={(el) => (lineRefs.current[li + 1] = el)}
-                        className="block whitespace-nowrap will-change-transform"
-                        style={{ width: "fit-content" }}
-                      >
-                        {line.map((w, wi) => (
-                          <span
-                            key={wi}
-                            ref={(el) => (wordRefs.current[w.gi] = el)}
-                            data-accent={w.tone === "accent" ? "1" : "0"}
-                            className="inline-block whitespace-pre"
-                            style={{ color: DIM }}
-                          >
-                            {w.text}
-                            {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                          </span>
-                        ))}
-                      </span>
-                    ))}
-                  </h2>
-                </div>
-                {/* 경고 버튼 — Phase 7 등장 + pulse 2회 attention-grab */}
-                <button
-                  ref={warnRef}
-                  type="button"
-                  className="mt-[30px] inline-flex items-center gap-[8px] rounded-[10px] bg-[#ffeff3] px-[18px] py-[16px] text-[#cb0d35] text-[15px] xl:text-[16px] font-medium tracking-[-0.005em] will-change-transform hover:-translate-y-[1px] transition-transform"
-                  style={{ opacity: 0, transformOrigin: "left center" }}
+                <h2
+                  className="relative font-bold leading-[1.4] tracking-[-0.018em] text-left"
+                  style={{ fontSize: "clamp(34px, 3.02vw, 58px)" }}
                 >
-                  <span>혹시, 지금 이용하는 곳이 대행사는 아니신가요?</span>
-                  <svg
-                    aria-hidden
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="shrink-0"
-                  >
-                    <circle cx="12" cy="12" r="10" stroke="#cb0d35" strokeWidth="1.5" />
-                    <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14" stroke="#cb0d35" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="12" cy="16.5" r="0.9" fill="#cb0d35" />
-                  </svg>
-                </button>
+                  {BUSINESS_FLAT.map((line, li) => (
+                    <span key={li} className="block whitespace-nowrap">
+                      {line.map((w, wi) => (
+                        <span
+                          key={wi}
+                          ref={(el) => (wordRefs.current[w.gi] = el)}
+                          data-accent={w.tone === "accent" ? "1" : "0"}
+                          className="inline-block whitespace-pre"
+                          style={{ color: "rgb(108, 114, 130)" }}
+                        >
+                          {w.text}
+                          {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </h2>
+                <p
+                  ref={labelRef}
+                  className="absolute left-0 top-full mt-[20px] xl:mt-[26px] text-white font-bold tracking-[-0.01em] inline-flex items-center gap-[8px]"
+                  style={{ fontSize: "clamp(18px, 1.25vw, 24px)", opacity: 0 }}
+                >
+                  <span>For Business</span>
+                  <span aria-hidden className="inline-block w-[10px] h-[10px] rounded-full bg-white" />
+                </p>
               </div>
 
-              {/* 우측 DATA frame — Phase 3~5: 페이드 + 항목 순차 등장 + count-up */}
+              {/* 우상단 글래스 패널 — 파트너 (마지막 등장) */}
               <div
-                ref={dataRef}
-                className="absolute right-0 w-[calc(50%-50px)] flex flex-col justify-between will-change-transform"
-                style={{ top: `${FB_TOP_PAD}px`, opacity: 0 }}
+                ref={panelRef}
+                className="absolute rounded-[20px] overflow-hidden border border-white/15 will-change-transform"
+                style={{
+                  top: "var(--fb-pad)",
+                  right: "var(--fb-pad)",
+                  width: "min(810px, 44vw)",
+                  aspectRatio: "810 / 380",
+                  opacity: 0,
+                  background: "rgba(255,255,255,0.07)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  boxShadow: "0 24px 60px -24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12)",
+                }}
+                aria-label="제휴 기업"
+              >
+                <div className="h-full flex flex-col justify-center gap-[18px] xl:gap-[24px] p-[28px] xl:p-[40px]">
+                  <p className="text-white/90 font-bold text-[18px] xl:text-[22px] tracking-[-0.01em]">
+                    함께하는 파트너사
+                  </p>
+                  {FB_PARTNERS.slice(0, 2).map((row, ri) => (
+                    <div key={ri} className="overflow-hidden">
+                      <div
+                        className={`flex w-max gap-[10px] ${ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"}`}
+                        style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
+                      >
+                        {[...row, ...row].map((name, ci) => (
+                          <span
+                            key={ci}
+                            aria-hidden={ci >= row.length}
+                            className="shrink-0 rounded-[10px] bg-white/10 border border-white/10 px-[16px] py-[12px] text-[15px] xl:text-[17px] font-medium text-white/90 whitespace-nowrap tracking-[-0.01em]"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 하단 글래스 통계 칩 3종 — 순차 등장 + count-up */}
+              <div
+                className="absolute flex gap-[clamp(16px,2vw,40px)]"
+                style={{ left: "var(--fb-pad)", right: "var(--fb-pad)", bottom: "var(--fb-pad)" }}
               >
                 {FB_STATS.map((s, i) => (
                   <div
                     key={i}
-                    ref={(el) => (dataItemRefs.current[i] = el)}
-                    className="will-change-transform"
-                    style={{ opacity: 0 }}
+                    ref={(el) => (chipRefs.current[i] = el)}
+                    className="group flex-1 flex items-center justify-between rounded-[12px] border border-white/15 px-[clamp(20px,2.3vw,44px)] py-[clamp(22px,1.9vw,36px)] will-change-transform transition-[background-color,border-color,box-shadow,transform] duration-300 hover:-translate-y-[3px] hover:border-white/35"
+                    style={{
+                      opacity: 0,
+                      background: "rgba(14,14,14,0.28)",
+                      backdropFilter: "blur(14px)",
+                      WebkitBackdropFilter: "blur(14px)",
+                      boxShadow: "0 16px 40px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
+                    }}
                   >
-                    <div className="flex items-end justify-between gap-4 px-[5px]">
-                      <div>
-                        <p className="font-semibold text-[#222] text-[21px] xl:text-[24px] leading-[1.3] tracking-[-0.02em]">
-                          {s.title}
-                        </p>
-                        <p className="mt-[10px] font-medium text-[#555] text-[15px] xl:text-[18px] leading-[1.3] tracking-[-0.02em]">
-                          {s.sub}
-                        </p>
-                      </div>
-                      <p
-                        ref={(el) => (dataValueRefs.current[i] = el)}
-                        data-v={`0${s.suffix}`}
-                        className="shrink-0 font-bold text-[#222] text-[48px] xl:text-[58px] leading-[1] tracking-[-0.02em] tabular-nums"
-                      >
-                        {`0${s.suffix}`}
-                      </p>
-                    </div>
-                    <div className="mt-[24px] xl:mt-[32px] h-[7px] xl:h-[8px] w-full bg-[#e2ef5d] rounded-[55px]" />
-                  </div>
-                ))}
-              </div>
-
-              {/* 좌측 하단 Partner Frame — Phase 6: 하단→상단 슬라이드 (Figma 103:1032) */}
-              <div
-                ref={partnerRef}
-                className="absolute left-0 w-[calc(50%-50px)] rounded-[20px] bg-[#f8f8f8] overflow-hidden p-[24px] xl:p-[30px] flex flex-col gap-[24px] xl:gap-[30px] will-change-transform"
-                style={{ top: 0, opacity: 0 }}
-                aria-label="제휴 기업"
-              >
-                {FB_PARTNERS.slice(0, 2).map((row, ri) => (
-                  <div key={ri} className="overflow-hidden">
-                    <div
-                      className={`flex w-max gap-[10px] ${
-                        ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
-                      }`}
-                      style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
+                    <p
+                      className="text-white/85 font-medium tracking-[-0.01em] whitespace-nowrap"
+                      style={{ fontSize: "clamp(15px, 1.35vw, 26px)" }}
                     >
-                      {[...row, ...row].map((name, ci) => (
-                        <span
-                          key={ci}
-                          aria-hidden={ci >= row.length}
-                          className="shrink-0 rounded-[10px] bg-white p-[14px] xl:p-[16px] text-[16px] xl:text-[18px] font-medium text-[#333] whitespace-nowrap tracking-[-0.02em]"
-                        >
-                          {name}
-                        </span>
-                      ))}
-                    </div>
+                      {s.label}
+                    </p>
+                    <p
+                      ref={(el) => (chipValRefs.current[i] = el)}
+                      data-v={`0${s.suffix}`}
+                      className="text-white font-bold tabular-nums tracking-[-0.01em]"
+                      style={{ fontSize: "clamp(24px, 2.2vw, 42px)" }}
+                    >
+                      {`0${s.suffix}`}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1007,85 +907,53 @@ function ForBusinessStage() {
         </div>
       </div>
 
-      {/* 모바일(<lg) — 정적 스택 (Figma 103:588 단순화) */}
-      <div className="lg:hidden px-6 md:px-12 py-[72px] flex flex-col gap-[36px]">
-        <div>
-          <p className="text-[var(--color-brand-red)] font-bold text-[18px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
-            <span>For Business</span>
-            <span
-              aria-hidden
-              className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--color-brand-red)]"
-            />
-          </p>
-          <h2 className="mt-[18px] font-bold text-[30px] md:text-[40px] leading-[1.34] tracking-[-0.018em]">
-            {BUSINESS_FLAT.map((line, li) => (
-              <span key={li} className="block">
-                {line.map((w, wi) => (
-                  <span
-                    key={wi}
-                    className="inline-block whitespace-pre"
-                    style={{
-                      color: w.tone === "accent" ? "var(--color-brand-red)" : "#222",
-                    }}
-                  >
-                    {w.text}
-                    {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                  </span>
-                ))}
-              </span>
-            ))}
-          </h2>
-          <button
-            type="button"
-            className="mt-[20px] inline-flex items-center gap-[8px] rounded-[10px] bg-[#ffeff3] px-[16px] py-[12px] text-[#cb0d35] text-[14px] font-medium"
-          >
-            <span>혹시, 지금 이용하는 곳이 대행사는 아니신가요?</span>
-          </button>
+      {/* 모바일(<lg) — 정적 다크 스택 */}
+      <div className="lg:hidden relative px-6 md:px-12 py-[64px] overflow-hidden">
+        <div aria-hidden className="absolute inset-0">
+          <img src={fbCityNight} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/60" />
         </div>
-        <div className="flex flex-col gap-[28px]">
-          {FB_STATS.map((s, i) => (
-            <div key={i}>
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-[#222] text-[20px] leading-[1.3]">
-                    {s.title}
-                  </p>
-                  <p className="mt-[6px] font-medium text-[#555] text-[13px] leading-[1.3]">
-                    {s.sub}
-                  </p>
-                </div>
-                <p className="shrink-0 font-bold text-[#222] text-[32px] leading-[1] tracking-[-0.02em] tabular-nums">
+        <div className="relative flex flex-col gap-[32px]">
+          <div>
+            <h2 className="font-bold text-[30px] md:text-[40px] leading-[1.4] tracking-[-0.018em] text-white">
+              {BUSINESS_FLAT.map((line, li) => (
+                <span key={li} className="block">
+                  {line.map((w, wi) => (
+                    <span
+                      key={wi}
+                      className="inline-block whitespace-pre"
+                      style={{ color: w.tone === "accent" ? "#e2ef5d" : "#fff" }}
+                    >
+                      {w.text}
+                      {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                    </span>
+                  ))}
+                </span>
+              ))}
+            </h2>
+            <p className="mt-[18px] text-white font-bold text-[18px] inline-flex items-center gap-[8px]">
+              <span>For Business</span>
+              <span aria-hidden className="inline-block w-[8px] h-[8px] rounded-full bg-white" />
+            </p>
+          </div>
+          <div className="flex flex-col gap-[14px]">
+            {FB_STATS.map((s, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-[12px] border border-white/15 px-[22px] py-[20px]"
+                style={{
+                  background: "rgba(14,14,14,0.3)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                }}
+              >
+                <p className="text-white/85 font-medium text-[16px]">{s.label}</p>
+                <p className="text-white font-bold text-[26px] tabular-nums">
                   {`${s.noComma ? s.target : s.target.toLocaleString("ko-KR")}${s.suffix}`}
                 </p>
               </div>
-              <div className="mt-[16px] h-[6px] w-full bg-[#e2ef5d] rounded-[55px]" />
-            </div>
-          ))}
-        </div>
-        <div
-          className="rounded-[18px] bg-[#f8f8f8] overflow-hidden p-[16px] flex flex-col gap-[10px]"
-          aria-label="제휴 기업"
-        >
-          {FB_PARTNERS.slice(0, 2).map((row, ri) => (
-            <div key={ri} className="overflow-hidden">
-              <div
-                className={`flex w-max gap-[10px] ${
-                  ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"
-                }`}
-                style={{ "--fb-marquee-dur": `${30 + ri * 5}s` }}
-              >
-                {[...row, ...row].map((name, ci) => (
-                  <span
-                    key={ci}
-                    aria-hidden={ci >= row.length}
-                    className="shrink-0 rounded-[9px] bg-white px-[14px] py-[10px] text-[14px] font-medium text-[#333] whitespace-nowrap"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
