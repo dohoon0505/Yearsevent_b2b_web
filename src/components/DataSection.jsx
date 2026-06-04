@@ -290,8 +290,6 @@ function AboutScrollStage() {
   }, []);
 
   useLayoutEffect(() => {
-    let ticking = false;
-
     // --color-brand-red 를 rgb 로 1회 해석 (연속 보간용)
     try {
       const probe = document.createElement("span");
@@ -335,8 +333,13 @@ function AboutScrollStage() {
       geo.current = { vh, centerY, unitL, unitR };
     };
 
-    const update = () => {
-      ticking = false;
+    // 카드 롤 스무딩용 — 스크롤 직결 sp(target)을 매 프레임 lerp로 추종 → 부드러운 롤링.
+    let dispSp = -1; // -1 = 미초기화(첫 프레임 snap)
+    let rafId = 0;
+    let visible = false;
+
+    const frame = () => {
+      rafId = 0;
       const node = trackRef.current;
       if (!node) return;
       if (window.innerHeight !== geo.current.vh) measure();
@@ -373,17 +376,19 @@ function AboutScrollStage() {
         headWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
       if (cardStageRef.current) cardStageRef.current.style.opacity = e.toFixed(3);
 
-      // 4) 좌↑ / 우↓ 반대 방향 무한 루프 롤링 (등장 후 전체 구간, 선형 속도)
+      // 4) 좌↑ / 우↓ 반대 방향 무한 루프 롤링 — 스크롤 직결 target을 lerp로 추종(부드럽게).
       //    move = sp * unit * CYCLES → unit으로 modulo 해 이음새 없이 반복.
       //    세트 2벌 렌더라 translateY ∈ [-unit, 0] 에서 항상 뷰포트가 채워짐.
-      const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
+      const targetSp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
+      // 첫 프레임/큰 점프는 snap, 그 외엔 부드럽게 보간(관성감).
+      dispSp = dispSp < 0 || Math.abs(targetSp - dispSp) > 0.25 ? targetSp : dispSp + (targetSp - dispSp) * 0.1;
       if (leftColRef.current) {
-        const tyL = -((sp * g.unitL * A_ROLL_CYCLES) % g.unitL); // 위로
-        leftColRef.current.style.transform = `translate3d(0, ${tyL.toFixed(1)}px, 0)`;
+        const tyL = -((dispSp * g.unitL * A_ROLL_CYCLES) % g.unitL); // 위로
+        leftColRef.current.style.transform = `translate3d(0, ${tyL.toFixed(2)}px, 0)`;
       }
       if (rightColRef.current) {
-        const tyR = ((sp * g.unitR * A_ROLL_CYCLES) % g.unitR) - g.unitR; // 아래로
-        rightColRef.current.style.transform = `translate3d(0, ${tyR.toFixed(1)}px, 0)`;
+        const tyR = ((dispSp * g.unitR * A_ROLL_CYCLES) % g.unitR) - g.unitR; // 아래로
+        rightColRef.current.style.transform = `translate3d(0, ${tyR.toFixed(2)}px, 0)`;
       }
 
       // 5) Message 01 @30% / Message 02 @60% — 아래에서 위로 등장
@@ -396,32 +401,45 @@ function AboutScrollStage() {
         el.style.opacity = m.toFixed(3);
         el.style.transform = `translate3d(0, ${((1 - m) * 36).toFixed(1)}px, 0)`;
       }
+
+      // 섹션이 화면에 있는 동안 매 프레임 자가 반복 → 스크롤이 멈춰도 dispSp가
+      // target까지 부드럽게 수렴(관성). 화면 밖이면 루프 중단(성능).
+      if (visible) rafId = requestAnimationFrame(frame);
     };
 
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
+    const ensure = () => {
+      if (!rafId) rafId = requestAnimationFrame(frame);
     };
     const onResize = () => {
       measure();
-      update();
+      ensure();
     };
 
+    // 섹션 가시성에 따라 rAF 루프 on/off
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) ensure();
+      },
+      { threshold: 0 },
+    );
+    if (sectionRef.current) io.observe(sectionRef.current);
+
     measure();
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    ensure();
+    window.addEventListener("scroll", ensure, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
         measure();
-        update();
+        ensure();
       });
     }
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      io.disconnect();
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", ensure);
       window.removeEventListener("resize", onResize);
     };
   }, []);
