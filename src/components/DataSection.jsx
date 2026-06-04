@@ -192,7 +192,7 @@ const A_TRANS_END = 0.28; // 텍스트 상단 이동 + 카드 패럴랙스 등�
 const A_MSG1_AT = 0.3; // 전체 스크롤 30% — Message 01 아래→위 등장
 const A_MSG2_AT = 0.6; // 전체 스크롤 60% — Message 02 아래→위 등장
 const A_MSG_DUR = 0.08; // 메시지 등장 구간 길이
-const A_ROLL_CYCLES = 2.4; // 등장 후 전체 구간 동안 카드가 도는 바퀴 수(롤링량)
+const A_ROLL_CYCLES = 0.6; // 등장 후 전체 구간 동안 카드가 도는 바퀴 수(롤링량↓ — 느리게)
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -239,10 +239,10 @@ function QuoteMessage({ msg, msgRef }) {
   return (
     <div
       ref={msgRef}
-      className="bg-[#f8f8f8] rounded-[20px] px-[28px] py-[22px] xl:px-[42px] xl:py-[30px] flex flex-col gap-[10px] xl:gap-[20px] will-change-transform"
+      className="w-fit max-w-[88vw] bg-[#f8f8f8] rounded-[20px] px-[28px] py-[22px] xl:px-[42px] xl:py-[30px] flex flex-col gap-[10px] xl:gap-[20px] will-change-transform"
       style={{ opacity: 0 }}
     >
-      <p className="text-[#222] font-medium text-[16px] md:text-[19px] xl:text-[24px] leading-[1.4] tracking-[-0.01em]">
+      <p className="text-[#222] font-medium text-[16px] md:text-[19px] xl:text-[24px] leading-[1.4] tracking-[-0.01em] whitespace-nowrap">
         {msg.quote}
       </p>
       <p className="text-[#888] font-medium text-[14px] md:text-[16px] xl:text-[20px] leading-[1.4] tracking-[-0.01em]">
@@ -503,7 +503,7 @@ function AboutScrollStage() {
             </div>
 
             {/* 하단: 인용 메시지 01 / 02 */}
-            <div className="flex flex-col gap-[16px] xl:gap-[20px] max-w-[600px]">
+            <div className="flex flex-col gap-[16px] xl:gap-[20px]">
               {ABOUT_MESSAGES.map((msg, i) => (
                 <QuoteMessage
                   key={i}
