@@ -224,7 +224,7 @@ function CardColumn({ cards, colRef }) {
             className="absolute inset-0 w-full h-full object-cover select-none"
           />
           <div className="absolute inset-x-0 bottom-0 px-[22px] pb-[20px] pt-[56px] bg-gradient-to-t from-black/65 via-black/20 to-transparent">
-            <p className="text-white font-bold text-[15px] xl:text-[17px] tracking-[-0.01em] leading-[1.25]">
+            <p className="text-white font-bold text-[18px] xl:text-[20px] tracking-[-0.01em] leading-[1.25]">
               {card.title}
             </p>
           </div>
@@ -428,9 +428,9 @@ function AboutScrollStage() {
           style={{
             // 카드 사이즈 토큰 — 반응형(좌우상하 패딩 150px @1920 기준)
             "--a-pad": "clamp(28px, 7.8vw, 150px)",
-            "--a-card-w": "clamp(122px, 14.14vw, 272px)",
-            "--a-card-gap": "clamp(12px, 1.19vw, 22px)",
-            "--a-card-r": "clamp(15px, 1.53vw, 31px)",
+            "--a-card-w": "clamp(144px, 16.64vw, 320px)",
+            "--a-card-gap": "clamp(14px, 1.4vw, 26px)",
+            "--a-card-r": "clamp(18px, 1.8vw, 36px)",
           }}
         >
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립) */}
