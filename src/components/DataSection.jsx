@@ -168,30 +168,29 @@ const SLIDER_CARDS = [
   },
 ];
 
-// 반복(loop) 렌더 — 카드를 3벌 이어 붙여 이음새 없는 center-focus 루프 구성.
-// focal은 가운데 벌의 첫 카드(A_START_I)부터 한 바퀴(UNIQUE_N step) 이동 →
-// 양옆에 항상 이웃 카드가 채워져(빈 공간 없음) 중앙 카드가 Active 되는 캐러셀.
-// 마지막 카드 다음에 첫 카드가 다시 중앙으로 들어온다.
-const UNIQUE_N = SLIDER_CARDS.length;
-const A_START_I = UNIQUE_N; // 시작 시 중앙(Active)에 둘 카드 = 가운데 벌의 첫 카드
-// 카드별로 후보 이미지 중 1개를 랜덤 선택(페이지 로드 1회 고정) → 3벌 이어 붙임.
-// 3벌 모두 같은 선택을 공유하므로 한 카드는 캐러셀 내내 동일 이미지로 일관됨.
-const LOOP_CARDS = (() => {
-  const picked = SLIDER_CARDS.map((c) => ({
-    ...c,
-    img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
-  }));
-  return [...picked, ...picked, ...picked];
-})();
+// 카드별 후보 이미지 중 1개를 랜덤 선택(페이지 로드 1회 고정).
+const PICKED_CARDS = SLIDER_CARDS.map((c) => ({
+  ...c,
+  img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
+}));
+// 좌/우 2개 컬럼 — 반대 방향(좌↑ / 우↓) 수직 패럴랙스. 컬럼이 항상 뷰포트를
+// 덮도록 카드를 넉넉히(이어붙여) 채운다. 좌우 컬럼은 서로 다른 시작 순서로 분배.
+const LEFT_COL_CARDS = [...PICKED_CARDS.slice(3), ...PICKED_CARDS.slice(0, 3)];
+const RIGHT_COL_CARDS = [...PICKED_CARDS, PICKED_CARDS[0], PICKED_CARDS[1]];
 
-// ───────── About Us 다단계 무대 ─────────
+// About Us 인용 메시지 (Figma 155:35 / 155:58) — 故 이병철 회장 어록
+const ABOUT_MESSAGES = [
+  { quote: "세상에 우연은 없다. 한번 맺은 인연을 소중히 하라.", source: "故이병철 회장 어록 中" },
+  { quote: "남이 잘됨을 축복하라. 그 축복이 메아리처럼 나를 향해 돌아온다.", source: "故이병철 회장 어록 中" },
+];
+
+// ───────── About Us 다단계 무대 (Figma 155:89 sequence 01~03) ─────────
 const A_TRACK_VH = 460;
-const A_TEXT_END = 0.32; // 텍스트 scrub 완료 (~1화면)
-const A_TRANS_END = 0.52; // 텍스트 상단 이동 + 슬라이더 등장 완료 (전환 구간 ↑ 매끄럽게)
-const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
-const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
-const A_BOTTOM_PAD = 48; // 카드 +15% 확대에 따라 하단 여백 축소 (72 → 48)
-const A_CARD_MAXH = 530; // 460 → 530 (+15% 확대)
+const A_TEXT_END = 0.2; // 텍스트 색칠(scrub) 완료
+const A_TRANS_END = 0.28; // 텍스트 상단 이동 + 카드 패럴랙스 등장 완료
+const A_MSG1_AT = 0.3; // 전체 스크롤 30% — Message 01 아래→위 등장
+const A_MSG2_AT = 0.6; // 전체 스크롤 60% — Message 02 아래→위 등장
+const A_MSG_DUR = 0.08; // 메시지 등장 구간 길이
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -199,17 +198,68 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
+// 카드 컬럼 1개 — 동일 이미지 카드들을 세로로 쌓음 (패럴랙스로 위/아래 이동)
+function CardColumn({ cards, colRef }) {
+  return (
+    <div
+      ref={colRef}
+      className="absolute top-1/2 flex flex-col gap-[var(--a-card-gap)] will-change-transform"
+      style={{ width: "var(--a-card-w)" }}
+    >
+      {cards.map((card, i) => (
+        <div
+          key={i}
+          className="relative w-full overflow-hidden rounded-[var(--a-card-r)] bg-[#e9e9ec]"
+          style={{ aspectRatio: "400 / 520" }}
+        >
+          <img
+            src={card.img}
+            alt=""
+            loading="eager"
+            decoding="async"
+            draggable="false"
+            className="absolute inset-0 w-full h-full object-cover select-none"
+          />
+          <div className="absolute inset-x-0 bottom-0 px-[22px] pb-[20px] pt-[56px] bg-gradient-to-t from-black/65 via-black/20 to-transparent">
+            <p className="text-white font-bold text-[18px] xl:text-[20px] tracking-[-0.01em] leading-[1.25]">
+              {card.title}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 인용 메시지 박스 (Figma Message 01/02) — 아래에서 위로 등장
+function QuoteMessage({ msg, msgRef }) {
+  return (
+    <div
+      ref={msgRef}
+      className="bg-[#f8f8f8] rounded-[20px] px-[28px] py-[22px] xl:px-[42px] xl:py-[30px] flex flex-col gap-[10px] xl:gap-[20px] will-change-transform"
+      style={{ opacity: 0 }}
+    >
+      <p className="text-[#222] font-medium text-[16px] md:text-[19px] xl:text-[24px] leading-[1.4] tracking-[-0.01em]">
+        {msg.quote}
+      </p>
+      <p className="text-[#888] font-medium text-[14px] md:text-[16px] xl:text-[20px] leading-[1.4] tracking-[-0.01em]">
+        {msg.source}
+      </p>
+    </div>
+  );
+}
+
 function AboutScrollStage() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const textWrapRef = useRef(null);
+  const contentRef = useRef(null); // 패딩 적용된 flex 컨테이너 (콘텐츠 높이 측정)
+  const headWrapRef = useRef(null); // About Us 라벨 + 헤딩 (색칠 단계 세로 중앙 이동)
   const wordRefs = useRef([]);
-  const sliderWrapRef = useRef(null);
-  const sliderViewportRef = useRef(null);
-  const sliderTrackRef = useRef(null);
-  const cardRefs = useRef([]);
-  const endSpacerRef = useRef(null);
-  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, refW: 1, cardCx: [] });
+  const cardStageRef = useRef(null); // 카드 무대 (fade-in)
+  const leftColRef = useRef(null);
+  const rightColRef = useRef(null);
+  const msgRefs = useRef([]);
+  const geo = useRef({ vh: 0, centerY: 0, rangeL: 0, rangeR: 0 });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
 
@@ -248,55 +298,28 @@ function AboutScrollStage() {
     // 레이아웃 측정 → geo 캐시 (mount / resize / font load 시)
     const measure = () => {
       const vh = window.innerHeight;
-      const tw = textWrapRef.current;
-      const vp = sliderViewportRef.current;
-      const track = sliderTrackRef.current;
-      const sw = sliderWrapRef.current;
-      if (!tw || !vp || !track || !sw) return;
+      const content = contentRef.current;
+      const head = headWrapRef.current;
+      const lc = leftColRef.current;
+      const rc = rightColRef.current;
+      if (!content || !head) return;
 
-      const textH = tw.offsetHeight;
-      const sliderTop = A_TOP_PAD + textH + A_GAP;
-      const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
-      const cardH = Math.min(sliderH, A_CARD_MAXH);
-      const cardW = Math.round(cardH * 0.74);
+      // 색칠 단계: 헤딩을 콘텐츠(패딩 제외) 영역 세로 중앙에 두기 위한 이동량.
+      const cs = getComputedStyle(content);
+      const padT = parseFloat(cs.paddingTop) || 0;
+      const padB = parseFloat(cs.paddingBottom) || 0;
+      const innerH = content.clientHeight - padT - padB;
+      const headH = head.offsetHeight;
+      const centerY = Math.max(0, (innerH - headH) / 2);
 
-      sw.style.top = `${sliderTop}px`;
-      vp.style.height = `${sliderH}px`;
-      cardRefs.current.forEach((c) => {
-        if (!c) return;
-        c.style.height = `${cardH}px`;
-        c.style.width = `${cardW}px`;
-      });
+      // 패럴랙스 이동 범위 — 컬럼이 항상 뷰포트를 덮도록 여유분의 절반만 사용.
+      const colLH = lc ? lc.offsetHeight : 0;
+      const colRH = rc ? rc.offsetHeight : 0;
+      const cap = vh * 0.22;
+      const rangeL = Math.max(60, Math.min(cap, (colLH - vh) / 2 - 8));
+      const rangeR = Math.max(60, Math.min(cap, (colRH - vh) / 2 - 8));
 
-      // center-focus 루프: 트랙 좌측 패딩 0, 대신 dx0 오프셋으로 가운데 벌의
-      // 임직원(A_START_I)을 레일 중앙(focalX)에 놓는다. 3벌 렌더라 양옆이 항상
-      // 채워지고(빈 공간 없음), focal은 한 바퀴(UNIQUE_N step)만 이동.
-      const vpW = vp.clientWidth;
-      track.style.paddingLeft = "0px";
-      if (endSpacerRef.current) endSpacerRef.current.style.width = "0px";
-
-      // dx=0 기준으로 카드 중심을 "뷰포트 좌측 상대 좌표"로 측정.
-      // 트랙/래퍼 transform 때문에 offsetParent가 달라져 offsetLeft 좌표계가
-      // 어긋나므로 getBoundingClientRect 사용 (scale은 center-origin → 중심 불변).
-      track.style.transform = "translate3d(0,0,0)";
-      const vpLeft = vp.getBoundingClientRect().left;
-      const cardCx = cardRefs.current.map((c) => {
-        if (!c) return 0;
-        const r = c.getBoundingClientRect();
-        return r.left + r.width / 2 - vpLeft;
-      });
-      const step = (cardCx[1] || 0) - (cardCx[0] || 0);
-      const focalX = vpW / 2; // 레일(인셋 뷰포트) 중앙 = Active 카드 위치
-      const dx0 = focalX - (cardCx[A_START_I] || 0); // 시작 시 가운데 임직원을 중앙에
-      geo.current = {
-        vh,
-        centerY: (vh - textH) / 2 - A_TOP_PAD,
-        maxX: Math.max(0, step * UNIQUE_N),
-        dx0,
-        focalX,
-        refW: window.innerWidth, // falloff 정규화(전체 폭) — 부드러운 포커스 유지
-        cardCx,
-      };
+      geo.current = { vh, centerY, rangeL, rangeR };
     };
 
     const update = () => {
@@ -310,18 +333,15 @@ function AboutScrollStage() {
       const max = Math.max(1, rect.height - vh);
       const p = clamp01(-rect.top / max);
 
-      // 1) 텍스트 단어 scrub reveal — 연속 보간(스크롤 위치에 직결)으로 색을 채운다.
-      //    이산 단계(litIdx)가 아니라 각 단어의 채움 정도를 부드럽게 lerp →
-      //    스크롤 속도·방향과 무관하게 매끄럽게 칠해짐(딱딱한 단계감 제거).
+      // 1) 텍스트 단어 색칠(scrub) — 스크롤 위치에 직결된 연속 보간.
       const reveal = clamp01(p / A_TEXT_END);
       const litAmt = clamp01((reveal - 0.05) / 0.9);
-      const pos = litAmt * (TOTAL_ABOUT + 1); // 0..N+1 연속 채움 위치
+      const pos = litAmt * (TOTAL_ABOUT + 1);
       const acc = accentRGBRef.current;
       const words = wordRefs.current;
       for (let i = 0; i < words.length; i++) {
         const el = words[i];
         if (!el) continue;
-        // 단어 i 는 1.6칸 폭 창에서 채워짐(이웃과 겹쳐 부드러운 채움 front)
         const wf = smoothstep(clamp01((pos - i) / 1.6));
         const t = el.dataset.accent === "1" ? acc : DARK_RGB;
         const r = Math.round(DIM_RGB[0] + (t[0] - DIM_RGB[0]) * wf);
@@ -334,29 +354,30 @@ function AboutScrollStage() {
         }
       }
 
-      // 2)+3) 텍스트 상단 이동 + 슬라이더 등장 — 동일 eased 진행으로 매끄럽게 동기화.
-      //   easeInOutCubic: 전환 시작·끝 속도 0 → "툭" 튀지 않고 부드럽게 가감속.
-      const tt = clamp01((p - A_TEXT_END) / (A_TRANS_END - A_TEXT_END));
-      const e = easeInOutCubic(tt);
-      textWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
+      // 2) 헤딩 세로 중앙 → 상단 이동 + 3) 카드 무대 패럴랙스 등장 (동일 eased 동기화)
+      const e = easeInOutCubic(clamp01((p - A_TEXT_END) / (A_TRANS_END - A_TEXT_END)));
+      if (headWrapRef.current)
+        headWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
+      if (cardStageRef.current) cardStageRef.current.style.opacity = e.toFixed(3);
 
-      const sw = sliderWrapRef.current;
-      sw.style.opacity = e.toFixed(3);
-      sw.style.transform = `translate3d(0, ${((1 - e) * 48).toFixed(1)}px, 0)`;
-      sw.style.pointerEvents = e > 0.99 ? "auto" : "none";
-
-      // 4) center-focus 가로 스크롤 (dx0 = 시작 중앙 정렬 오프셋)
+      // 4) 좌↑ / 우↓ 반대 방향 수직 패럴랙스 (등장 후 전체 구간)
       const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
-      const dx = g.dx0 - g.maxX * sp;
-      sliderTrackRef.current.style.transform = `translate3d(${dx.toFixed(1)}px, 0, 0)`;
-      const cards = cardRefs.current;
-      for (let i = 0; i < cards.length; i++) {
-        const c = cards[i];
-        if (!c) continue;
-        const cx = g.cardCx[i] + dx;
-        const d = Math.abs(cx - g.focalX) / g.refW;
-        c.style.transform = `scale(${Math.max(0.82, 1 - d * 0.5).toFixed(3)})`;
-        c.style.opacity = Math.max(0.4, 1 - d * 1.1).toFixed(3);
+      const ev = easeInOutCubic(sp);
+      if (leftColRef.current)
+        leftColRef.current.style.transform = `translate3d(0, calc(-50% - ${(g.rangeL * ev).toFixed(1)}px), 0)`;
+      if (rightColRef.current)
+        // 우측 컬럼은 반 카드만큼 위로 stagger(마소너리) 후 아래로 이동
+        rightColRef.current.style.transform = `translate3d(0, calc(-50% - (var(--a-card-w) * 0.65) + ${(g.rangeR * ev).toFixed(1)}px), 0)`;
+
+      // 5) Message 01 @30% / Message 02 @60% — 아래에서 위로 등장
+      const ms = msgRefs.current;
+      for (let i = 0; i < ms.length; i++) {
+        const el = ms[i];
+        if (!el) continue;
+        const at = i === 0 ? A_MSG1_AT : A_MSG2_AT;
+        const m = smoothstep(clamp01((p - at) / A_MSG_DUR));
+        el.style.opacity = m.toFixed(3);
+        el.style.transform = `translate3d(0, ${((1 - m) * 36).toFixed(1)}px, 0)`;
       }
     };
 
@@ -375,7 +396,6 @@ function AboutScrollStage() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
-    // 웹폰트 로드 후 텍스트 높이 변동 대응
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
         measure();
@@ -392,92 +412,91 @@ function AboutScrollStage() {
   return (
     <section ref={sectionRef} aria-label="회사 소개" className="relative bg-white">
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {/* 텍스트 블록 — 중앙↔상단 이동 (transform JS 제어) */}
+        <div
+          className="sticky top-0 h-screen w-full overflow-hidden"
+          style={{
+            // 카드 사이즈 토큰 — 반응형(좌우상하 패딩 150px @1920 기준)
+            "--a-pad": "clamp(28px, 7.8vw, 150px)",
+            "--a-card-w": "clamp(180px, 20.8vw, 400px)",
+            "--a-card-gap": "clamp(16px, 1.6vw, 30px)",
+            "--a-card-r": "clamp(20px, 2vw, 40px)",
+          }}
+        >
+          {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립) */}
           <div
-            ref={textWrapRef}
-            className="absolute inset-x-0 px-6 md:px-12 lg:px-[120px] xl:px-[260px] will-change-transform"
+            ref={cardStageRef}
+            aria-hidden
+            className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
+            style={{ opacity: 0 }}
+          >
+            {/* 우측 컬럼 (아래로 스크롤) */}
+            <div
+              className="absolute top-0 bottom-0"
+              style={{ right: "clamp(20px, 2.6vw, 50px)", width: "var(--a-card-w)" }}
+            >
+              <CardColumn cards={RIGHT_COL_CARDS} colRef={rightColRef} />
+            </div>
+            {/* 좌측 컬럼 (위로 스크롤) — 우측 컬럼 왼쪽에 30px 간격 */}
+            <div
+              className="absolute top-0 bottom-0"
+              style={{
+                right: "calc(clamp(20px, 2.6vw, 50px) + var(--a-card-w) + clamp(16px, 1.6vw, 30px))",
+                width: "var(--a-card-w)",
+              }}
+            >
+              <CardColumn cards={LEFT_COL_CARDS} colRef={leftColRef} />
+            </div>
+          </div>
+
+          {/* 텍스트 컬럼 — 좌측, 헤딩 상단 / 메시지 하단 (justify-between) */}
+          <div
+            ref={contentRef}
+            className="relative z-10 h-full flex flex-col justify-between pointer-events-none"
             style={{
-              top: `${A_TOP_PAD}px`,
+              padding: "var(--a-pad)",
+              maxWidth: "min(720px, 60%)",
               opacity: ready ? 1 : 0,
               transition: "opacity 0.5s ease-out",
             }}
           >
-            <p className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
-              <span>About Us</span>
-              <span
-                aria-hidden
-                className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--color-brand-red)]"
-              />
-            </p>
-            <h2 className="mt-[24px] font-bold text-[32px] md:text-[42px] lg:text-[48px] xl:text-[54px] leading-[1.25] tracking-[-0.018em] text-left">
-              {ABOUT_FLAT.map((line, li) => (
-                <span key={li} className="block">
-                  {line.map((w, wi) => (
-                    <span
-                      key={wi}
-                      ref={(el) => (wordRefs.current[w.gi] = el)}
-                      data-accent={w.tone === "accent" ? "1" : "0"}
-                      className="inline-block whitespace-pre"
-                      style={{ color: DIM }}
-                    >
-                      {w.text}
-                      {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                    </span>
-                  ))}
-                </span>
-              ))}
-            </h2>
-          </div>
-
-          {/* 이미지 슬라이더 — center-focus (top/height JS 제어), 좌우 패딩 0 (full-bleed) */}
-          <div
-            ref={sliderWrapRef}
-            className="absolute inset-x-0 will-change-transform"
-            style={{ top: `${A_TOP_PAD}px`, opacity: 0 }}
-            aria-label="회사 소개 갤러리"
-          >
-            <div
-              ref={sliderViewportRef}
-              className="w-full overflow-hidden flex items-center"
-            >
-              <div
-                ref={sliderTrackRef}
-                className="flex items-center gap-[24px] will-change-transform"
-              >
-                {LOOP_CARDS.map((card, i) => (
-                  <article
-                    key={i}
-                    ref={(el) => (cardRefs.current[i] = el)}
-                    className="flex-none flex flex-col rounded-[16px] bg-white border border-[#ececec] overflow-hidden will-change-transform"
-                    style={{
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                      transformOrigin: "center center",
-                    }}
-                  >
-                    <div className="flex-1 min-h-0 overflow-hidden bg-[#e5e5e5]">
-                      <img
-                        src={card.img}
-                        alt=""
-                        loading="eager"
-                        decoding="async"
-                        draggable="false"
-                        className="w-full h-full object-cover select-none"
-                      />
-                    </div>
-                    <div className="px-[18px] py-[16px]">
-                      <p className="text-[16px] md:text-[18px] font-bold text-[#18181b] tracking-[-0.01em] leading-[1.25]">
-                        {card.title}
-                      </p>
-                      <p className="mt-[7px] text-[12.5px] md:text-[14px] leading-[1.55] text-[#52525b] tracking-[-0.003em]">
-                        {card.desc}
-                      </p>
-                    </div>
-                  </article>
+            {/* 상단: About Us 라벨 + 헤딩 (색칠 단계 세로 중앙 이동) */}
+            <div ref={headWrapRef} className="will-change-transform">
+              <p className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+                <span>About Us</span>
+                <span
+                  aria-hidden
+                  className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
+                />
+              </p>
+              <h2 className="mt-[24px] font-bold text-[32px] md:text-[44px] lg:text-[52px] xl:text-[58px] leading-[1.4] tracking-[-0.018em] text-left">
+                {ABOUT_FLAT.map((line, li) => (
+                  <span key={li} className="block">
+                    {line.map((w, wi) => (
+                      <span
+                        key={wi}
+                        ref={(el) => (wordRefs.current[w.gi] = el)}
+                        data-accent={w.tone === "accent" ? "1" : "0"}
+                        className="inline-block whitespace-pre"
+                        style={{ color: DIM }}
+                      >
+                        {w.text}
+                        {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                      </span>
+                    ))}
+                  </span>
                 ))}
-                {/* 끝 여백(lead-out) — 마지막 카드가 레일 중앙까지 도달 (width JS 계산) */}
-                <div ref={endSpacerRef} className="flex-none" aria-hidden />
-              </div>
+              </h2>
+            </div>
+
+            {/* 하단: 인용 메시지 01 / 02 */}
+            <div className="flex flex-col gap-[16px] xl:gap-[20px] max-w-[600px]">
+              {ABOUT_MESSAGES.map((msg, i) => (
+                <QuoteMessage
+                  key={i}
+                  msg={msg}
+                  msgRef={(el) => (msgRefs.current[i] = el)}
+                />
+              ))}
             </div>
           </div>
         </div>
