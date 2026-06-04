@@ -224,7 +224,7 @@ function CardColumn({ cards, colRef }) {
             className="absolute inset-0 w-full h-full object-cover select-none"
           />
           <div className="absolute inset-x-0 bottom-0 px-[22px] pb-[20px] pt-[56px] bg-gradient-to-t from-black/65 via-black/20 to-transparent">
-            <p className="text-white font-bold text-[18px] xl:text-[20px] tracking-[-0.01em] leading-[1.25]">
+            <p className="text-white font-bold text-[15px] xl:text-[17px] tracking-[-0.01em] leading-[1.25]">
               {card.title}
             </p>
           </div>
@@ -242,10 +242,10 @@ function QuoteMessage({ msg, msgRef }) {
       className="w-fit max-w-[88vw] bg-[#f8f8f8] rounded-[20px] px-[28px] py-[22px] xl:px-[42px] xl:py-[30px] flex flex-col gap-[10px] xl:gap-[20px] will-change-transform"
       style={{ opacity: 0 }}
     >
-      <p className="text-[#222] font-medium text-[16px] md:text-[19px] xl:text-[24px] leading-[1.4] tracking-[-0.01em] whitespace-nowrap">
+      <p className="text-[#222] font-medium text-[14px] md:text-[16px] xl:text-[20px] leading-[1.4] tracking-[-0.01em] whitespace-nowrap">
         {msg.quote}
       </p>
-      <p className="text-[#888] font-medium text-[14px] md:text-[16px] xl:text-[20px] leading-[1.4] tracking-[-0.01em]">
+      <p className="text-[#888] font-medium text-[12px] md:text-[14px] xl:text-[17px] leading-[1.4] tracking-[-0.01em]">
         {msg.source}
       </p>
     </div>
@@ -428,9 +428,9 @@ function AboutScrollStage() {
           style={{
             // 카드 사이즈 토큰 — 반응형(좌우상하 패딩 150px @1920 기준)
             "--a-pad": "clamp(28px, 7.8vw, 150px)",
-            "--a-card-w": "clamp(144px, 16.64vw, 320px)",
-            "--a-card-gap": "clamp(14px, 1.4vw, 26px)",
-            "--a-card-r": "clamp(18px, 1.8vw, 36px)",
+            "--a-card-w": "clamp(122px, 14.14vw, 272px)",
+            "--a-card-gap": "clamp(12px, 1.19vw, 22px)",
+            "--a-card-r": "clamp(15px, 1.53vw, 31px)",
           }}
         >
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립) */}
@@ -472,7 +472,7 @@ function AboutScrollStage() {
           >
             {/* 상단: About Us 라벨 + 헤딩 (색칠 단계 세로 중앙 이동) */}
             <div ref={headWrapRef} className="will-change-transform">
-              <p className="text-[var(--color-brand-red)] font-bold text-[18px] md:text-[22px] xl:text-[24px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
+              <p className="text-[var(--color-brand-red)] font-bold text-[15px] md:text-[19px] xl:text-[20px] tracking-[-0.01em] inline-flex items-center gap-[8px]">
                 <span>About Us</span>
                 <span
                   aria-hidden
@@ -481,7 +481,7 @@ function AboutScrollStage() {
               </p>
               <h2
                 className="mt-[20px] xl:mt-[24px] font-bold leading-[1.4] tracking-[-0.018em] text-left"
-                style={{ fontSize: "clamp(24px, 3.02vw, 58px)" }}
+                style={{ fontSize: "clamp(20px, 2.57vw, 49px)" }}
               >
                 {ABOUT_FLAT.map((line, li) => (
                   <span key={li} className="block whitespace-nowrap">
