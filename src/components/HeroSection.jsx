@@ -144,7 +144,7 @@ export default function HeroSection({ onMenuClick }) {
           {/* 11년차 슬로건 — 가장 아래 (헤딩 등장 후 cascade) */}
           <CascadeLine
             as="p"
-            text="기업, 대표, 담당자 모두를 고려한 기업 프로세스"
+            text="기업, 대표, 담당자 모두를 고려한 기업 프로세스를 경험해보세요!"
             ready={textReady}
             baseDelay={1600}
             stagger={28}
