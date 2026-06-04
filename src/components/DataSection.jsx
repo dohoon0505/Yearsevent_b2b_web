@@ -71,6 +71,27 @@ const ABOUT_FLAT = ABOUT_LINES.map((line) =>
 );
 const TOTAL_ABOUT = _gi;
 
+// 위로 이동 단계에서 전환되는 2줄 레이아웃 (색칠 완료 후 정적 표시):
+//   "모든 위대한 비즈니스는 작은 축하와" / "깊은 위로 에서 시작되는 것을 아시나요?"
+const ABOUT_2LINES = [
+  [
+    { text: "모든", tone: "dark" },
+    { text: "위대한", tone: "dark" },
+    { text: "비즈니스는", tone: "dark" },
+    { text: "작은", tone: "accent" },
+    { text: "축하", tone: "accent", noSpace: true },
+    { text: "와", tone: "dark" },
+  ],
+  [
+    { text: "깊은", tone: "accent" },
+    { text: "위로", tone: "accent" },
+    { text: "에서", tone: "dark" },
+    { text: "시작되는", tone: "dark" },
+    { text: "것을", tone: "dark" },
+    { text: "아시나요?", tone: "dark" },
+  ],
+];
+
 // For Business 슬로건 평탄화(연속 스크럽용)
 let _gb = 0;
 const BUSINESS_FLAT = BUSINESS_LINES.map((line) =>
@@ -263,6 +284,8 @@ function AboutScrollStage() {
   const trackRef = useRef(null);
   const contentRef = useRef(null); // 패딩 적용된 flex 컨테이너 (콘텐츠 높이 측정)
   const headWrapRef = useRef(null); // About Us 라벨 + 헤딩 (색칠 단계 세로 중앙 이동)
+  const headARef = useRef(null); // 3줄 헤딩(색칠) — 이동 시 축소+페이드아웃
+  const headBRef = useRef(null); // 2줄 헤딩(정적) — 이동 시 페이드인
   const wordRefs = useRef([]);
   const cardStageRef = useRef(null); // 카드 무대 (fade-in)
   const leftColRef = useRef(null);
@@ -375,6 +398,14 @@ function AboutScrollStage() {
       if (headWrapRef.current)
         headWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
       if (cardStageRef.current) cardStageRef.current.style.opacity = e.toFixed(3);
+
+      // 헤딩 3줄(A)→2줄(B) 전환 — A는 50/58 비율로 부드럽게 축소+페이드아웃, B는 페이드인.
+      const cf = smoothstep(clamp01((e - 0.15) / 0.7)); // 크로스페이드 진행
+      if (headARef.current) {
+        headARef.current.style.transform = `scale(${lerp(1, 50 / 58, e).toFixed(4)})`;
+        headARef.current.style.opacity = (1 - cf).toFixed(3);
+      }
+      if (headBRef.current) headBRef.current.style.opacity = cf.toFixed(3);
 
       // 4) 좌↑ / 우↓ 반대 방향 무한 루프 롤링 — 스크롤 직결 target을 lerp로 추종(부드럽게).
       //    move = sp * unit * CYCLES → unit으로 modulo 해 이음새 없이 반복.
@@ -503,27 +534,54 @@ function AboutScrollStage() {
                   className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
                 />
               </p>
-              <h2
-                className="mt-[20px] xl:mt-[24px] font-bold leading-[1.4] tracking-[-0.018em] text-left"
-                style={{ fontSize: "clamp(20px, 2.57vw, 49px)" }}
-              >
-                {ABOUT_FLAT.map((line, li) => (
-                  <span key={li} className="block whitespace-nowrap">
-                    {line.map((w, wi) => (
-                      <span
-                        key={wi}
-                        ref={(el) => (wordRefs.current[w.gi] = el)}
-                        data-accent={w.tone === "accent" ? "1" : "0"}
-                        className="inline-block whitespace-pre"
-                        style={{ color: DIM }}
-                      >
-                        {w.text}
-                        {wi < line.length - 1 && !w.noSpace ? " " : ""}
-                      </span>
-                    ))}
-                  </span>
-                ))}
-              </h2>
+              {/* 헤딩 스택 — A(3줄,색칠) 위에 B(2줄,정적) 오버레이. 이동 시 크로스페이드 */}
+              <div className="relative mt-[20px] xl:mt-[24px]">
+                {/* A: 3줄 58px — 색칠 인터랙션. 이동 시 50/58 비율로 축소 + 페이드아웃 */}
+                <h2
+                  ref={headARef}
+                  className="font-bold leading-[1.4] tracking-[-0.018em] text-left origin-top-left will-change-transform"
+                  style={{ fontSize: "clamp(34px, 3.02vw, 58px)" }}
+                >
+                  {ABOUT_FLAT.map((line, li) => (
+                    <span key={li} className="block whitespace-nowrap">
+                      {line.map((w, wi) => (
+                        <span
+                          key={wi}
+                          ref={(el) => (wordRefs.current[w.gi] = el)}
+                          data-accent={w.tone === "accent" ? "1" : "0"}
+                          className="inline-block whitespace-pre"
+                          style={{ color: DIM }}
+                        >
+                          {w.text}
+                          {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </h2>
+                {/* B: 2줄 50px — 색칠 완료된 정적 헤딩. 초기 opacity 0 */}
+                <h2
+                  ref={headBRef}
+                  aria-hidden
+                  className="absolute top-0 left-0 font-bold leading-[1.4] tracking-[-0.018em] text-left will-change-[opacity]"
+                  style={{ fontSize: "clamp(29px, 2.6vw, 50px)", opacity: 0 }}
+                >
+                  {ABOUT_2LINES.map((line, li) => (
+                    <span key={li} className="block whitespace-nowrap">
+                      {line.map((w, wi) => (
+                        <span
+                          key={wi}
+                          className="inline-block whitespace-pre"
+                          style={{ color: w.tone === "accent" ? "var(--color-brand-red)" : "#222" }}
+                        >
+                          {w.text}
+                          {wi < line.length - 1 && !w.noSpace ? " " : ""}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </h2>
+              </div>
             </div>
 
             {/* 하단: 인용 메시지 01 / 02 */}
