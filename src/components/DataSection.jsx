@@ -173,10 +173,11 @@ const PICKED_CARDS = SLIDER_CARDS.map((c) => ({
   ...c,
   img: c.imgs[Math.floor(Math.random() * c.imgs.length)],
 }));
-// 좌/우 2개 컬럼 — 반대 방향(좌↑ / 우↓) 수직 패럴랙스. 컬럼이 항상 뷰포트를
-// 덮도록 카드를 넉넉히(이어붙여) 채운다. 좌우 컬럼은 서로 다른 시작 순서로 분배.
-const LEFT_COL_CARDS = [...PICKED_CARDS.slice(3), ...PICKED_CARDS.slice(0, 3)];
-const RIGHT_COL_CARDS = [...PICKED_CARDS, PICKED_CARDS[0], PICKED_CARDS[1]];
+// 좌/우 2개 컬럼 — 반대 방향(좌↑ / 우↓) 무한 루프 수직 롤링.
+// 각 세트(아래 배열)를 2벌 이어붙여 렌더하고 translateY를 세트 높이로 modulo →
+// 이음새 없이 같은 카드가 반복 등장. 좌우는 서로 다른 시작 순서.
+const LEFT_SET = PICKED_CARDS;
+const RIGHT_SET = [...PICKED_CARDS.slice(4), ...PICKED_CARDS.slice(0, 4)];
 
 // About Us 인용 메시지 (Figma 155:35 / 155:58) — 故 이병철 회장 어록
 const ABOUT_MESSAGES = [
@@ -191,6 +192,7 @@ const A_TRANS_END = 0.28; // 텍스트 상단 이동 + 카드 패럴랙스 등�
 const A_MSG1_AT = 0.3; // 전체 스크롤 30% — Message 01 아래→위 등장
 const A_MSG2_AT = 0.6; // 전체 스크롤 60% — Message 02 아래→위 등장
 const A_MSG_DUR = 0.08; // 메시지 등장 구간 길이
+const A_ROLL_CYCLES = 2.4; // 등장 후 전체 구간 동안 카드가 도는 바퀴 수(롤링량)
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -198,15 +200,16 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-// 카드 컬럼 1개 — 동일 이미지 카드들을 세로로 쌓음 (패럴랙스로 위/아래 이동)
+// 카드 컬럼 1개 — 세트를 2벌 이어붙여 무한 루프 롤링(translateY modulo)
 function CardColumn({ cards, colRef }) {
+  const loop = [...cards, ...cards]; // 2벌 → 이음새 없는 세로 루프
   return (
     <div
       ref={colRef}
-      className="absolute top-1/2 flex flex-col gap-[var(--a-card-gap)] will-change-transform"
+      className="absolute top-0 left-0 flex flex-col gap-[var(--a-card-gap)] will-change-transform"
       style={{ width: "var(--a-card-w)" }}
     >
-      {cards.map((card, i) => (
+      {loop.map((card, i) => (
         <div
           key={i}
           className="relative w-full overflow-hidden rounded-[var(--a-card-r)] bg-[#e9e9ec]"
@@ -259,7 +262,7 @@ function AboutScrollStage() {
   const leftColRef = useRef(null);
   const rightColRef = useRef(null);
   const msgRefs = useRef([]);
-  const geo = useRef({ vh: 0, centerY: 0, rangeL: 0, rangeR: 0 });
+  const geo = useRef({ vh: 0, centerY: 0, unitL: 1, unitR: 1 });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
 
@@ -312,14 +315,18 @@ function AboutScrollStage() {
       const headH = head.offsetHeight;
       const centerY = Math.max(0, (innerH - headH) / 2);
 
-      // 패럴랙스 이동 범위 — 컬럼이 항상 뷰포트를 덮도록 여유분의 절반만 사용.
-      const colLH = lc ? lc.offsetHeight : 0;
-      const colRH = rc ? rc.offsetHeight : 0;
-      const cap = vh * 0.22;
-      const rangeL = Math.max(60, Math.min(cap, (colLH - vh) / 2 - 8));
-      const rangeR = Math.max(60, Math.min(cap, (colRH - vh) / 2 - 8));
+      // 무한 루프 단위 높이 = 세트 1벌 높이 = n*(카드높이+gap).
+      //   컬럼은 세트 2벌 렌더 → translateY를 unit으로 modulo 하면 이음새 없이 반복.
+      const unitOf = (col, n) => {
+        if (!col || !col.firstElementChild) return vh;
+        const ch = col.firstElementChild.getBoundingClientRect().height;
+        const gap = parseFloat(getComputedStyle(col).rowGap) || 0;
+        return n * (ch + gap);
+      };
+      const unitL = unitOf(lc, LEFT_SET.length);
+      const unitR = unitOf(rc, RIGHT_SET.length);
 
-      geo.current = { vh, centerY, rangeL, rangeR };
+      geo.current = { vh, centerY, unitL, unitR };
     };
 
     const update = () => {
@@ -360,14 +367,18 @@ function AboutScrollStage() {
         headWrapRef.current.style.transform = `translate3d(0, ${lerp(g.centerY, 0, e).toFixed(1)}px, 0)`;
       if (cardStageRef.current) cardStageRef.current.style.opacity = e.toFixed(3);
 
-      // 4) 좌↑ / 우↓ 반대 방향 수직 패럴랙스 (등장 후 전체 구간)
+      // 4) 좌↑ / 우↓ 반대 방향 무한 루프 롤링 (등장 후 전체 구간, 선형 속도)
+      //    move = sp * unit * CYCLES → unit으로 modulo 해 이음새 없이 반복.
+      //    세트 2벌 렌더라 translateY ∈ [-unit, 0] 에서 항상 뷰포트가 채워짐.
       const sp = clamp01((p - A_TRANS_END) / (1 - A_TRANS_END));
-      const ev = easeInOutCubic(sp);
-      if (leftColRef.current)
-        leftColRef.current.style.transform = `translate3d(0, calc(-50% - ${(g.rangeL * ev).toFixed(1)}px), 0)`;
-      if (rightColRef.current)
-        // 우측 컬럼은 반 카드만큼 위로 stagger(마소너리) 후 아래로 이동
-        rightColRef.current.style.transform = `translate3d(0, calc(-50% - (var(--a-card-w) * 0.65) + ${(g.rangeR * ev).toFixed(1)}px), 0)`;
+      if (leftColRef.current) {
+        const tyL = -((sp * g.unitL * A_ROLL_CYCLES) % g.unitL); // 위로
+        leftColRef.current.style.transform = `translate3d(0, ${tyL.toFixed(1)}px, 0)`;
+      }
+      if (rightColRef.current) {
+        const tyR = ((sp * g.unitR * A_ROLL_CYCLES) % g.unitR) - g.unitR; // 아래로
+        rightColRef.current.style.transform = `translate3d(0, ${tyR.toFixed(1)}px, 0)`;
+      }
 
       // 5) Message 01 @30% / Message 02 @60% — 아래에서 위로 등장
       const ms = msgRefs.current;
@@ -417,9 +428,9 @@ function AboutScrollStage() {
           style={{
             // 카드 사이즈 토큰 — 반응형(좌우상하 패딩 150px @1920 기준)
             "--a-pad": "clamp(28px, 7.8vw, 150px)",
-            "--a-card-w": "clamp(180px, 20.8vw, 400px)",
-            "--a-card-gap": "clamp(16px, 1.6vw, 30px)",
-            "--a-card-r": "clamp(20px, 2vw, 40px)",
+            "--a-card-w": "clamp(144px, 16.64vw, 320px)",
+            "--a-card-gap": "clamp(14px, 1.4vw, 26px)",
+            "--a-card-r": "clamp(18px, 1.8vw, 36px)",
           }}
         >
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립) */}
@@ -434,7 +445,7 @@ function AboutScrollStage() {
               className="absolute top-0 bottom-0"
               style={{ right: "clamp(20px, 2.6vw, 50px)", width: "var(--a-card-w)" }}
             >
-              <CardColumn cards={RIGHT_COL_CARDS} colRef={rightColRef} />
+              <CardColumn cards={RIGHT_SET} colRef={rightColRef} />
             </div>
             {/* 좌측 컬럼 (위로 스크롤) — 우측 컬럼 왼쪽에 30px 간격 */}
             <div
@@ -444,7 +455,7 @@ function AboutScrollStage() {
                 width: "var(--a-card-w)",
               }}
             >
-              <CardColumn cards={LEFT_COL_CARDS} colRef={leftColRef} />
+              <CardColumn cards={LEFT_SET} colRef={leftColRef} />
             </div>
           </div>
 
