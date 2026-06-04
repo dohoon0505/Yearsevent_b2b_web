@@ -250,7 +250,7 @@ function CardColumn({ cards, colRef, stagger = false }) {
             draggable="false"
             className="absolute inset-0 w-full h-full object-cover select-none"
           />
-          <div className="absolute inset-x-0 bottom-0 px-[22px] pb-[22px] pt-[88px] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
+          <div className="absolute inset-x-0 bottom-0 h-[30%] flex flex-col justify-end px-[22px] pb-[22px] bg-gradient-to-t from-black/90 via-black/50 to-transparent">
             <p
               className="text-white font-bold text-[22px] xl:text-[24px] tracking-[-0.01em] leading-[1.25]"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.55)" }}
