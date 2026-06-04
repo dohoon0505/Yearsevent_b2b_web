@@ -192,11 +192,6 @@ const A_TOP_PAD = 120; // 상단 padding 120 (요구사항)
 const A_GAP = 36; // 텍스트 ↔ 슬라이더 간격
 const A_BOTTOM_PAD = 48; // 카드 +15% 확대에 따라 하단 여백 축소 (72 → 48)
 const A_CARD_MAXH = 530; // 460 → 530 (+15% 확대)
-// Active(focal) 지점을 화면 중앙이 아닌 텍스트 우측에 둔다 → 우측 카드가 크게/불투명 active.
-const A_FOCAL_RATIO = 0.68; // 뷰포트 폭 대비 focal x 위치 (우측)
-const A_FOCUS_FALL = 3.0; // focal 거리 감쇠(클수록 active 1장만 크게)
-const A_PEAK_SCALE = 1.06; // Active 카드 확대
-const A_MIN_SCALE = 0.5; // 비활성 카드 축소
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -214,7 +209,7 @@ function AboutScrollStage() {
   const sliderTrackRef = useRef(null);
   const cardRefs = useRef([]);
   const endSpacerRef = useRef(null);
-  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, descend: 0, refW: 1, cardCx: [] });
+  const geo = useRef({ vh: 0, centerY: 0, maxX: 0, dx0: 0, focalX: 0, refW: 1, cardCx: [] });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
 
@@ -260,13 +255,10 @@ function AboutScrollStage() {
       if (!tw || !vp || !track || !sw) return;
 
       const textH = tw.offsetHeight;
-      // 슬라이더를 텍스트 "아래" 밴드에 둔다 → 텍스트와 수직 분리(겹침 방지).
       const sliderTop = A_TOP_PAD + textH + A_GAP;
       const sliderH = Math.max(160, vh - sliderTop - A_BOTTOM_PAD);
-      // 카드 높이를 밴드보다 살짝 작게 → 남는 여유(slack)만큼 좌측 카드가 하강.
-      const cardH = Math.min(A_CARD_MAXH, Math.round(sliderH * 0.82));
+      const cardH = Math.min(sliderH, A_CARD_MAXH);
       const cardW = Math.round(cardH * 0.74);
-      const descend = Math.max(0, sliderH - cardH); // 좌측 비활성 카드 하강 여유분
 
       sw.style.top = `${sliderTop}px`;
       vp.style.height = `${sliderH}px`;
@@ -294,15 +286,14 @@ function AboutScrollStage() {
         return r.left + r.width / 2 - vpLeft;
       });
       const step = (cardCx[1] || 0) - (cardCx[0] || 0);
-      const focalX = vpW * A_FOCAL_RATIO; // 텍스트 우측 = Active 카드 위치
-      const dx0 = focalX - (cardCx[A_START_I] || 0); // 시작 시 첫 카드를 focal(우측)에
+      const focalX = vpW / 2; // 레일(인셋 뷰포트) 중앙 = Active 카드 위치
+      const dx0 = focalX - (cardCx[A_START_I] || 0); // 시작 시 가운데 임직원을 중앙에
       geo.current = {
         vh,
         centerY: (vh - textH) / 2 - A_TOP_PAD,
         maxX: Math.max(0, step * UNIQUE_N),
         dx0,
         focalX,
-        descend,
         refW: window.innerWidth, // falloff 정규화(전체 폭) — 부드러운 포커스 유지
         cardCx,
       };
@@ -363,15 +354,9 @@ function AboutScrollStage() {
         const c = cards[i];
         if (!c) continue;
         const cx = g.cardCx[i] + dx;
-        // focal 근처일수록 1 (Active), 멀수록 0 — Active 1장만 크게/불투명.
-        const focusAmt = smoothstep(clamp01(1 - (Math.abs(cx - g.focalX) / g.refW) * A_FOCUS_FALL));
-        const scale = lerp(A_MIN_SCALE, A_PEAK_SCALE, focusAmt);
-        // focal 좌측(이미 지난 카드)일수록 텍스트 하단으로 하강 — 우측은 baseline 유지.
-        const leftAmt = clamp01((g.focalX - cx) / (g.refW * 0.45));
-        const oy = leftAmt * g.descend;
-        c.style.transform = `translateY(${oy.toFixed(1)}px) scale(${scale.toFixed(3)})`;
-        c.style.opacity = lerp(0.32, 1, focusAmt).toFixed(3);
-        c.style.zIndex = String(Math.round(focusAmt * 10)); // Active 카드가 위로
+        const d = Math.abs(cx - g.focalX) / g.refW;
+        c.style.transform = `scale(${Math.max(0.82, 1 - d * 0.5).toFixed(3)})`;
+        c.style.opacity = Math.max(0.4, 1 - d * 1.1).toFixed(3);
       }
     };
 
@@ -408,10 +393,10 @@ function AboutScrollStage() {
     <section ref={sectionRef} aria-label="회사 소개" className="relative bg-white">
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
         <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {/* 텍스트 블록 — 중앙↔상단 이동 (transform JS 제어). 슬라이더 위 오버레이(z-20) */}
+          {/* 텍스트 블록 — 중앙↔상단 이동 (transform JS 제어) */}
           <div
             ref={textWrapRef}
-            className="absolute inset-x-0 z-20 px-6 md:px-12 lg:px-[120px] xl:px-[260px] pointer-events-none will-change-transform"
+            className="absolute inset-x-0 px-6 md:px-12 lg:px-[120px] xl:px-[260px] will-change-transform"
             style={{
               top: `${A_TOP_PAD}px`,
               opacity: ready ? 1 : 0,
@@ -445,16 +430,16 @@ function AboutScrollStage() {
             </h2>
           </div>
 
-          {/* 이미지 슬라이더 — center-focus (top/height JS 제어), 좌우 패딩 0 (full-bleed). 텍스트 뒤(z-0) */}
+          {/* 이미지 슬라이더 — center-focus (top/height JS 제어), 좌우 패딩 0 (full-bleed) */}
           <div
             ref={sliderWrapRef}
-            className="absolute inset-x-0 z-0 will-change-transform"
+            className="absolute inset-x-0 will-change-transform"
             style={{ top: `${A_TOP_PAD}px`, opacity: 0 }}
             aria-label="회사 소개 갤러리"
           >
             <div
               ref={sliderViewportRef}
-              className="w-full overflow-hidden flex items-start"
+              className="w-full overflow-hidden flex items-center"
             >
               <div
                 ref={sliderTrackRef}
