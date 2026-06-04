@@ -175,9 +175,11 @@ const PICKED_CARDS = SLIDER_CARDS.map((c) => ({
 }));
 // 좌/우 2개 컬럼 — 반대 방향(좌↑ / 우↓) 무한 루프 수직 롤링.
 // 각 세트(아래 배열)를 2벌 이어붙여 렌더하고 translateY를 세트 높이로 modulo →
-// 이음새 없이 같은 카드가 반복 등장. 좌우는 서로 다른 시작 순서.
-const LEFT_SET = PICKED_CARDS;
-const RIGHT_SET = [...PICKED_CARDS.slice(4), ...PICKED_CARDS.slice(0, 4)];
+// 이음새 없이 같은 카드가 반복 등장.
+// ⚠ 두 컬럼이 같은 이미지를 공유하면 반대 방향 드리프트로 어느 순간 같은 줄에
+//    동일 카드가 정렬된다 → 좌(짝수)/우(홀수)로 이미지를 분리해 교집합을 없앤다.
+const LEFT_SET = PICKED_CARDS.filter((_, i) => i % 2 === 0);
+const RIGHT_SET = PICKED_CARDS.filter((_, i) => i % 2 === 1);
 
 // About Us 인용 메시지 (Figma 155:35 / 155:58) — 故 이병철 회장 어록
 const ABOUT_MESSAGES = [
@@ -201,13 +203,17 @@ const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 // 카드 컬럼 1개 — 세트를 2벌 이어붙여 무한 루프 롤링(translateY modulo)
-function CardColumn({ cards, colRef }) {
+//   stagger=true → 반 카드만큼 위로 시작 오프셋(우측 컬럼 마소너리: 같은 줄 정렬 방지)
+function CardColumn({ cards, colRef, stagger = false }) {
   const loop = [...cards, ...cards]; // 2벌 → 이음새 없는 세로 루프
   return (
     <div
       ref={colRef}
-      className="absolute top-0 left-0 flex flex-col gap-[var(--a-card-gap)] will-change-transform"
-      style={{ width: "var(--a-card-w)" }}
+      className="absolute left-0 flex flex-col gap-[var(--a-card-gap)] will-change-transform"
+      style={{
+        width: "var(--a-card-w)",
+        top: stagger ? "calc(var(--a-card-w) * -0.65)" : "0px",
+      }}
     >
       {loop.map((card, i) => (
         <div
@@ -445,7 +451,7 @@ function AboutScrollStage() {
               className="absolute top-0 bottom-0"
               style={{ right: "clamp(20px, 2.6vw, 50px)", width: "var(--a-card-w)" }}
             >
-              <CardColumn cards={RIGHT_SET} colRef={rightColRef} />
+              <CardColumn cards={RIGHT_SET} colRef={rightColRef} stagger />
             </div>
             {/* 좌측 컬럼 (위로 스크롤) — 우측 컬럼 왼쪽에 30px 간격 */}
             <div
