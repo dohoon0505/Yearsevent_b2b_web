@@ -454,7 +454,7 @@ function AboutScrollStage() {
             className="relative z-10 h-full flex flex-col justify-between pointer-events-none"
             style={{
               padding: "var(--a-pad)",
-              maxWidth: "min(720px, 60%)",
+              maxWidth: "min(62%, 900px)",
               opacity: ready ? 1 : 0,
               transition: "opacity 0.5s ease-out",
             }}
@@ -468,9 +468,12 @@ function AboutScrollStage() {
                   className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]"
                 />
               </p>
-              <h2 className="mt-[24px] font-bold text-[32px] md:text-[44px] lg:text-[52px] xl:text-[58px] leading-[1.4] tracking-[-0.018em] text-left">
+              <h2
+                className="mt-[20px] xl:mt-[24px] font-bold leading-[1.4] tracking-[-0.018em] text-left"
+                style={{ fontSize: "clamp(24px, 3.02vw, 58px)" }}
+              >
                 {ABOUT_FLAT.map((line, li) => (
-                  <span key={li} className="block">
+                  <span key={li} className="block whitespace-nowrap">
                     {line.map((w, wi) => (
                       <span
                         key={wi}
