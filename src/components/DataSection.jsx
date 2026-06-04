@@ -278,7 +278,7 @@ function QuoteMessage({ msg, msgRef }) {
       className="w-fit max-w-[88vw] bg-[#f8f8f8] rounded-[20px] px-[28px] py-[22px] xl:px-[42px] xl:py-[30px] flex flex-col gap-[10px] xl:gap-[20px] will-change-transform"
       style={{ opacity: 0 }}
     >
-      <p className="text-[#222] font-bold text-[14px] md:text-[16px] xl:text-[20px] leading-[1.4] tracking-[-0.01em] whitespace-nowrap">
+      <p className="text-[#222] font-bold text-[16px] md:text-[18px] xl:text-[22px] leading-[1.4] tracking-[-0.01em] whitespace-nowrap">
         {msg.quote}
       </p>
       <p className="text-[#888] font-medium text-[12px] md:text-[14px] xl:text-[17px] leading-[1.4] tracking-[-0.01em]">
