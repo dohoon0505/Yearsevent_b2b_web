@@ -1052,13 +1052,14 @@ function ForBusinessStage() {
                   <div
                     key={i}
                     ref={(el) => (chipRefs.current[i] = el)}
-                    className="group flex-1 flex items-center justify-between rounded-[19px] px-[clamp(20px,2.3vw,44px)] py-[clamp(22px,1.9vw,36px)] will-change-transform transition-transform duration-300 hover:-translate-y-[3px]"
+                    className="group flex-1 flex items-center justify-between rounded-[20px] px-[clamp(20px,2.3vw,44px)] py-[clamp(22px,1.9vw,36px)] will-change-transform transition-transform duration-300 hover:-translate-y-[3px]"
                     style={{
                       opacity: 0,
                       // 글래스모피즘 (사용자 지정 스펙)
-                      background: "rgba(255, 255, 255, 0.06)",
+                      background: "rgba(68, 68, 68, 0.05)",
                       backdropFilter: "blur(3px)",
                       WebkitBackdropFilter: "blur(3px)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
                       boxShadow: "6px 4px 9px rgba(68, 68, 68, 0.3)",
                     }}
                   >
