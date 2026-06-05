@@ -1056,11 +1056,10 @@ function ForBusinessStage() {
                     style={{
                       opacity: 0,
                       // 글래스모피즘 (사용자 지정 스펙)
-                      background: "rgba(255, 255, 255, 0.08)",
+                      background: "rgba(255, 255, 255, 0.06)",
                       backdropFilter: "blur(3px)",
                       WebkitBackdropFilter: "blur(3px)",
-                      border: "1px solid rgba(255, 255, 255, 0.18)",
-                      boxShadow: "6px 4px 9px rgba(68, 68, 68, 0.41)",
+                      boxShadow: "6px 4px 9px rgba(68, 68, 68, 0.3)",
                     }}
                   >
                     <p
