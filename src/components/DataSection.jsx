@@ -624,6 +624,7 @@ function ForBusinessStage() {
   const headWrapRef = useRef(null); // 슬로건 + 라벨 (center → 좌상단 이동)
   const labelRef = useRef(null); // For Business 라벨 (이동 후 페이드인)
   const wordRefs = useRef([]); // 슬로건 단어 (scrub)
+  const lineRefs = useRef([]); // 슬로건 각 줄 (가운데정렬→좌측정렬 보간)
   const chipRefs = useRef([]); // 하단 통계 칩 (등장)
   const chipValRefs = useRef([]); // 통계 값 (count-up)
   const panelRef = useRef(null); // 우상단 글래스 패널
@@ -658,11 +659,21 @@ function ForBusinessStage() {
       const pad = Math.max(28, Math.min(150, vw * 0.078));
       const headW = head.offsetWidth;
       const headH = head.offsetHeight;
+      // 슬로건 각 줄의 실제 텍스트 폭 측정(Range) → (블록폭 - 줄폭)/2 = 가운데정렬 오프셋.
+      // 좌상단 이동(mE 0→1)에 맞춰 이 오프셋을 0으로 보간하면 center→left 정렬이 매끄럽게 전환된다.
+      const lineOffsets = lineRefs.current.map((el) => {
+        if (!el) return 0;
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const w = range.getBoundingClientRect().width;
+        return Math.max(0, (headW - w) / 2);
+      });
       geo.current = {
         vw,
         vh,
         centerX: Math.max(0, (vw - 2 * pad - headW) / 2),
         centerY: Math.max(0, (vh - 2 * pad - headH) / 2),
+        lineOffsets,
       };
     };
 
@@ -697,12 +708,21 @@ function ForBusinessStage() {
         }
       }
 
-      // 2) 슬로건 center → 좌상단 이동 + For Business 라벨 페이드인
+      // 2) 슬로건 center → 좌상단 이동 + 각 줄 가운데정렬→좌측정렬 보간 + For Business 라벨 페이드인
       const mE = easeInOutCubic(
         clamp01((p - FB_TEXT_END) / (FB_MOVE_END - FB_TEXT_END)),
       );
       if (headWrapRef.current)
         headWrapRef.current.style.transform = `translate3d(${lerp(g.centerX, 0, mE).toFixed(1)}px, ${lerp(g.centerY, 0, mE).toFixed(1)}px, 0)`;
+      // 각 줄: (블록폭-줄폭)/2 → 0 으로 이동에 맞춰 보간. mE=0 가운데정렬, mE=1 좌측정렬.
+      const lo = g.lineOffsets;
+      if (lo) {
+        const lines = lineRefs.current;
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i])
+            lines[i].style.transform = `translate3d(${(lo[i] * (1 - mE)).toFixed(1)}px, 0, 0)`;
+        }
+      }
       if (labelRef.current)
         labelRef.current.style.opacity = clamp01((mE - 0.45) / 0.55).toFixed(3);
 
@@ -799,7 +819,11 @@ function ForBusinessStage() {
                   style={{ fontSize: "clamp(34px, 3.02vw, 58px)" }}
                 >
                   {BUSINESS_FLAT.map((line, li) => (
-                    <span key={li} className="block whitespace-nowrap">
+                    <span
+                      key={li}
+                      ref={(el) => (lineRefs.current[li] = el)}
+                      className="block whitespace-nowrap will-change-transform"
+                    >
                       {line.map((w, wi) => (
                         <span
                           key={wi}
