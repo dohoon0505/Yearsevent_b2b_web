@@ -1060,7 +1060,7 @@ function ForBusinessStage() {
                       backdropFilter: "blur(3px)",
                       WebkitBackdropFilter: "blur(3px)",
                       border: "1px solid rgba(255, 255, 255, 0.18)",
-                      boxShadow: "6px 4px 9px rgba(31, 38, 135, 0.41)",
+                      boxShadow: "6px 4px 9px rgba(68, 68, 68, 0.41)",
                     }}
                   >
                     <p
