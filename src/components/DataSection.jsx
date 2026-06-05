@@ -900,13 +900,17 @@ function ForBusinessStage() {
                   <div
                     key={i}
                     ref={(el) => (chipRefs.current[i] = el)}
-                    className="group flex-1 flex items-center justify-between rounded-[12px] border border-white/15 px-[clamp(20px,2.3vw,44px)] py-[clamp(22px,1.9vw,36px)] will-change-transform transition-[background-color,border-color,box-shadow,transform] duration-300 hover:-translate-y-[3px] hover:border-white/35"
+                    className="group flex-1 flex items-center justify-between rounded-[16px] border border-white/25 px-[clamp(20px,2.3vw,44px)] py-[clamp(22px,1.9vw,36px)] will-change-transform transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-[3px] hover:border-white/45"
                     style={{
                       opacity: 0,
-                      background: "rgba(14,14,14,0.28)",
-                      backdropFilter: "blur(14px)",
-                      WebkitBackdropFilter: "blur(14px)",
-                      boxShadow: "0 16px 40px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
+                      // 글래스모피즘: 밝은 반투명 그라디언트(상단 림 sheen) + 강한 blur + saturate로
+                      // 뒤 야경/불빛이 프로스트되어 비치게 한다(어두운 채움이면 '색칠 블럭'처럼 보임).
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.055) 52%, rgba(255,255,255,0.025) 100%)",
+                      backdropFilter: "blur(26px) saturate(160%)",
+                      WebkitBackdropFilter: "blur(26px) saturate(160%)",
+                      boxShadow:
+                        "0 22px 50px -26px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.12)",
                     }}
                   >
                     <p
