@@ -123,6 +123,13 @@ const FB_PARTNERS = [
   ["삼성전자", "LG디스플레이", "DB손해보험", "교보생명", "법무법인 바른", "세종대학교"],
 ];
 
+// 우상단 카드 A — 2026 가톨릭대학교 경조사 화환 납품 낙찰 (※ 문구는 추후 교체 가능)
+const FB_BID = {
+  badge: "2026 공식 낙찰",
+  title: ["가톨릭대학교", "경조사 화환 납품", "낙찰업체"],
+  desc: "2026년 가톨릭대학교 경조사 화환 공식 납품 협력사로 선정되었습니다.",
+};
+
 // For Business 다단계 무대 — Figma 165:121 (sequence 1~6)
 //   1) 배경  2) 슬로건 scrub  3) 상단 이동+라벨+칩1  4) 칩2  5) 칩3  6) 글래스 패널
 const FB_TRACK_VH = 560;
@@ -131,8 +138,12 @@ const FB_TEXT_END = 0.15; // 슬로건 단어 scrub 완료 (seq2)
 const FB_MOVE_END = 0.27; // 텍스트 세로중앙→상단 이동 + For Business 라벨 등장 (seq3)
 const FB_STAT_AT = [0.34, 0.47, 0.6]; // 통계 칩 등장/카운트업 시작 (seq3,4,5)
 const FB_STAT_DUR = 0.12; // 칩 등장+카운트업 구간
-const FB_PANEL_AT = 0.74; // 글래스 패널 등장 (seq6)
-const FB_PANEL_DUR = 0.16;
+// 우상단 2-카드 (md 05 wave-blob): 글래스 프론트 → 스크롤 시 물결 블롭으로 내부 데이터 reveal
+const FB_CARD_AT = 0.4; // 글래스 카드 페이드인(등장) → 0.5 완료
+const FB_CARD_DUR = 0.1;
+const FB_WAVE_AT = 0.58; // 물결 블롭 reveal 시작(글래스 0.5~0.58 노출 후)
+const FB_WAVE_DUR = 0.26; // reveal 진행 구간 → 카드A 0.84, 카드B 0.89 완료
+const FB_WAVE_STAGGER = 0.05; // 2번째 카드 약간 늦게
 
 // 다크 배경 위 scrub 색 — DIM(반투명 회색) → WHITE(본문) / → LIME(강조 #e2ef5d)
 const FB_DIM_RGB = [108, 114, 130];
@@ -222,6 +233,53 @@ const lerp = (a, b, t) => a + (b - a) * t;
 // 시작·끝 속도 0 → 전환(텍스트 이동/슬라이더 등장)이 툭 튀지 않고 매끄럽게 가감속
 const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+// ───────── 물결 블롭 clip-path (card-wavy-swap / wave-blob, md 05 그대로 이식) ─────────
+// coverage c(0~1)에 따라 중앙에서 5-로브 물결 블롭이 바깥으로 확장 → 내부 데이터 reveal.
+const __r = (n) => Math.round(n * 10) / 10;
+const CLIP_ZERO = 'path("M0 0Z")';
+const clipFull = (w, h) => `path("M0 0H${__r(w)}V${__r(h)}H0Z")`;
+// 닫힌 매끄러운 2차 베지어(블롭) — 점들을 중점 보간해 둥글게 잇는다.
+function smoothClosed(pts) {
+  const n = pts.length;
+  const sx = (pts[n - 1][0] + pts[0][0]) / 2;
+  const sy = (pts[n - 1][1] + pts[0][1]) / 2;
+  let d = "M" + __r(sx) + " " + __r(sy);
+  for (let i = 0; i < n; i++) {
+    const q = pts[(i + 1) % n];
+    const xc = (pts[i][0] + q[0]) / 2;
+    const yc = (pts[i][1] + q[1]) / 2;
+    d += " Q" + __r(pts[i][0]) + " " + __r(pts[i][1]) + " " + __r(xc) + " " + __r(yc);
+  }
+  return d + "Z";
+}
+// 반지름 R=c·maxR, 각도별 r=R(1+af·sin(a·lobes)) 로 lobes개 로브의 물결 블롭.
+function waveBlobClip(c, w, h, lobes = 5, af = 0.12) {
+  if (c <= 0) return CLIP_ZERO;
+  if (c >= 1) return clipFull(w, h);
+  const cx = w / 2;
+  const cy = h / 2;
+  const maxR = (Math.hypot(w, h) / 2) * 1.18;
+  const R = c * maxR;
+  const s = Math.max(28, lobes * 6);
+  const p = [];
+  for (let i = 0; i < s; i++) {
+    const a = (i / s) * Math.PI * 2;
+    const r = R * (1 + af * Math.sin(a * lobes));
+    p.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return 'path("' + smoothClosed(p) + '")';
+}
+
+// 글래스 카드 공통 머티리얼 (밝은 반투명 + blur + saturate + 상단 림 하이라이트)
+const FB_GLASS_CARD = {
+  background:
+    "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.045) 55%, rgba(255,255,255,0.02) 100%)",
+  backdropFilter: "blur(26px) saturate(160%)",
+  WebkitBackdropFilter: "blur(26px) saturate(160%)",
+  boxShadow:
+    "0 24px 60px -26px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4)",
+};
 
 // 카드 컬럼 1개 — 세트를 2벌 이어붙여 무한 루프 롤링(translateY modulo)
 //   stagger=true → 반 카드만큼 위로 시작 오프셋(우측 컬럼 마소너리: 같은 줄 정렬 방지)
@@ -627,7 +685,9 @@ function ForBusinessStage() {
   const lineRefs = useRef([]); // 슬로건 각 줄 (가운데정렬→좌측정렬 보간)
   const chipRefs = useRef([]); // 하단 통계 칩 (등장)
   const chipValRefs = useRef([]); // 통계 값 (count-up)
-  const panelRef = useRef(null); // 우상단 글래스 패널
+  const cardsWrapRef = useRef(null); // 우상단 2-카드 컨테이너(등장)
+  const cardFrameRefs = useRef([]); // 카드 프레임(물결 블롭 dims 측정)
+  const cardDataRefs = useRef([]); // 카드 내부 데이터 레이어(clip-path reveal)
   const geo = useRef({ vw: 0, vh: 0, centerX: 0, centerY: 0 });
   const [ready, setReady] = useState(false);
 
@@ -668,12 +728,17 @@ function ForBusinessStage() {
         const w = range.getBoundingClientRect().width;
         return Math.max(0, (headW - w) / 2);
       });
+      // 카드 프레임 픽셀 치수(물결 블롭 path 좌표용) 캐시
+      const cards = cardFrameRefs.current.map((el) =>
+        el ? { w: el.clientWidth, h: el.clientHeight } : { w: 1, h: 1 },
+      );
       geo.current = {
         vw,
         vh,
         centerX: Math.max(0, (vw - 2 * pad - headW) / 2),
         centerY: Math.max(0, (vh - 2 * pad - headH) / 2),
         lineOffsets,
+        cards,
       };
     };
 
@@ -748,11 +813,24 @@ function ForBusinessStage() {
         }
       }
 
-      // 6) 우상단 글래스 패널 등장 (아래→위 + 페이드)
-      const pE = easeInOutCubic(clamp01((p - FB_PANEL_AT) / FB_PANEL_DUR));
-      if (panelRef.current) {
-        panelRef.current.style.opacity = pE.toFixed(3);
-        panelRef.current.style.transform = `translate3d(0, ${((1 - pE) * 48).toFixed(1)}px, 0)`;
+      // 6) 우상단 2-카드: 글래스로 등장(페이드업) → 물결 블롭으로 내부 데이터 reveal
+      const cAppear = easeInOutCubic(clamp01((p - FB_CARD_AT) / FB_CARD_DUR));
+      if (cardsWrapRef.current) {
+        cardsWrapRef.current.style.opacity = cAppear.toFixed(3);
+        cardsWrapRef.current.style.transform = `translate3d(0, ${((1 - cAppear) * 44).toFixed(1)}px, 0)`;
+      }
+      const cdims = g.cards || [];
+      const datas = cardDataRefs.current;
+      for (let i = 0; i < datas.length; i++) {
+        const el = datas[i];
+        if (!el) continue;
+        const dim = cdims[i] || { w: el.clientWidth, h: el.clientHeight };
+        const cov = clamp01((p - (FB_WAVE_AT + i * FB_WAVE_STAGGER)) / FB_WAVE_DUR);
+        const clip = waveBlobClip(cov, dim.w, dim.h, 5, 0.12);
+        if (el.dataset.clip !== clip) {
+          el.style.clipPath = clip;
+          el.dataset.clip = clip;
+        }
       }
     };
 
@@ -849,45 +927,119 @@ function ForBusinessStage() {
                 </p>
               </div>
 
-              {/* 우상단 글래스 패널 — 파트너 (마지막 등장) */}
+              {/* 우상단 2-카드 — 글래스 프론트 → 스크롤 시 물결 블롭으로 내부 데이터 reveal (md 05) */}
               <div
-                ref={panelRef}
-                className="absolute rounded-[20px] overflow-hidden border border-white/15 will-change-transform"
-                style={{
-                  top: "var(--fb-pad)",
-                  right: "var(--fb-pad)",
-                  width: "min(810px, 44vw)",
-                  aspectRatio: "810 / 380",
-                  opacity: 0,
-                  background: "rgba(255,255,255,0.07)",
-                  backdropFilter: "blur(18px)",
-                  WebkitBackdropFilter: "blur(18px)",
-                  boxShadow: "0 24px 60px -24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12)",
-                }}
-                aria-label="제휴 기업"
+                ref={cardsWrapRef}
+                className="absolute flex gap-[clamp(14px,1.4vw,26px)] will-change-transform"
+                style={{ top: "var(--fb-pad)", right: "var(--fb-pad)", opacity: 0 }}
               >
-                <div className="h-full flex flex-col justify-center gap-[18px] xl:gap-[24px] p-[28px] xl:p-[40px]">
-                  <p className="text-white/90 font-bold text-[18px] xl:text-[22px] tracking-[-0.01em]">
-                    함께하는 파트너사
-                  </p>
-                  {FB_PARTNERS.slice(0, 2).map((row, ri) => (
-                    <div key={ri} className="overflow-hidden">
-                      <div
-                        className={`flex w-max gap-[10px] ${ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"}`}
-                        style={{ "--fb-marquee-dur": `${34 + ri * 6}s` }}
-                      >
-                        {[...row, ...row].map((name, ci) => (
-                          <span
-                            key={ci}
-                            aria-hidden={ci >= row.length}
-                            className="shrink-0 rounded-[10px] bg-white/10 border border-white/10 px-[16px] py-[12px] text-[15px] xl:text-[17px] font-medium text-white/90 whitespace-nowrap tracking-[-0.01em]"
-                          >
-                            {name}
-                          </span>
-                        ))}
+                {/* 카드 A — 2026 가톨릭대학교 경조사 화환 납품 낙찰 */}
+                <div
+                  ref={(el) => (cardFrameRefs.current[0] = el)}
+                  className="relative rounded-[22px] overflow-hidden border border-white/20"
+                  style={{ width: "min(360px, 19vw)", aspectRatio: "360 / 460", ...FB_GLASS_CARD }}
+                  aria-label="2026 가톨릭대학교 경조사 화환 납품 낙찰업체"
+                >
+                  {/* 글래스 프론트 커버(티저) */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[24px] gap-[14px]">
+                    <span className="text-[12px] xl:text-[13px] font-bold tracking-[0.18em] text-white/65 uppercase">
+                      Official
+                    </span>
+                    <p className="text-white font-bold text-[23px] xl:text-[27px] leading-[1.28] tracking-[-0.01em]">
+                      2026
+                      <br />
+                      가톨릭대학교
+                    </p>
+                    <span className="mt-[8px] text-[11px] xl:text-[12px] tracking-[0.22em] text-white/40 uppercase">
+                      Scroll ↓
+                    </span>
+                  </div>
+                  {/* 내부 데이터 — 물결 블롭 reveal */}
+                  <div
+                    ref={(el) => (cardDataRefs.current[0] = el)}
+                    className="absolute inset-0 will-change-[clip-path]"
+                    style={{ clipPath: 'path("M0 0Z")' }}
+                  >
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(158deg, color-mix(in srgb, var(--color-brand-red-dark) 90%, black) 0%, #0c0c11 88%)",
+                      }}
+                    />
+                    <div className="relative h-full flex flex-col justify-between p-[26px] xl:p-[32px]">
+                      <span className="self-start rounded-full bg-white/15 border border-white/25 px-[14px] py-[7px] text-[12px] xl:text-[13px] font-bold text-white tracking-[-0.01em] whitespace-nowrap">
+                        {FB_BID.badge}
+                      </span>
+                      <div className="flex flex-col gap-[12px]">
+                        <p className="text-white font-bold text-[22px] xl:text-[26px] leading-[1.32] tracking-[-0.02em]">
+                          {FB_BID.title.map((t, ti) => (
+                            <span key={ti} className="block">
+                              {t}
+                            </span>
+                          ))}
+                        </p>
+                        <p className="text-white/65 text-[13px] xl:text-[15px] leading-[1.5] tracking-[-0.01em]">
+                          {FB_BID.desc}
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* 카드 B — 함께하는 파트너사 */}
+                <div
+                  ref={(el) => (cardFrameRefs.current[1] = el)}
+                  className="relative rounded-[22px] overflow-hidden border border-white/20"
+                  style={{ width: "min(360px, 19vw)", aspectRatio: "360 / 460", ...FB_GLASS_CARD }}
+                  aria-label="함께하는 파트너사"
+                >
+                  {/* 글래스 프론트 커버(티저) */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[24px] gap-[12px]">
+                    <span className="text-[12px] xl:text-[13px] font-bold tracking-[0.18em] text-white/65 uppercase">
+                      Partners
+                    </span>
+                    <p className="text-white font-bold text-[23px] xl:text-[27px] leading-[1.28] tracking-[-0.01em]">
+                      함께하는
+                      <br />
+                      파트너사
+                    </p>
+                    <span className="text-white/55 text-[14px] xl:text-[15px] font-medium">200+ 제휴 기업</span>
+                    <span className="mt-[6px] text-[11px] xl:text-[12px] tracking-[0.22em] text-white/40 uppercase">
+                      Scroll ↓
+                    </span>
+                  </div>
+                  {/* 내부 데이터 — 물결 블롭 reveal: 파트너 마퀴 */}
+                  <div
+                    ref={(el) => (cardDataRefs.current[1] = el)}
+                    className="absolute inset-0 will-change-[clip-path]"
+                    style={{ clipPath: 'path("M0 0Z")' }}
+                  >
+                    <div className="absolute inset-0" style={{ background: "rgba(11,12,17,0.92)" }} />
+                    <div className="relative h-full flex flex-col justify-center gap-[13px] p-[24px] xl:p-[28px]">
+                      <p className="text-white/90 font-bold text-[17px] xl:text-[20px] tracking-[-0.01em]">
+                        함께하는 파트너사
+                      </p>
+                      {FB_PARTNERS.slice(0, 3).map((row, ri) => (
+                        <div key={ri} className="overflow-hidden">
+                          <div
+                            className={`flex w-max gap-[8px] ${ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"}`}
+                            style={{ "--fb-marquee-dur": `${30 + ri * 6}s` }}
+                          >
+                            {[...row, ...row].map((name, ci) => (
+                              <span
+                                key={ci}
+                                aria-hidden={ci >= row.length}
+                                className="shrink-0 rounded-[9px] bg-white/10 border border-white/12 px-[12px] py-[9px] text-[13px] xl:text-[14px] font-medium text-white/90 whitespace-nowrap tracking-[-0.01em]"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
