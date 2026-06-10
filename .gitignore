@@ -49,4 +49,5 @@ out
 
 # Playwright MCP (로컬 검증용 — 스크린샷/스냅샷)
 .playwright-mcp/
+.fb-shots/
 fb-*.png

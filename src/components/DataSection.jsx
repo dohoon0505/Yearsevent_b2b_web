@@ -22,7 +22,9 @@ import fbCityNight from "../assets/forbusiness-city-night.webp";
  * │     [0.22~0.34] 텍스트가 상단(top padding 120)으로 이동 + 이미지 슬라이더 등장
  * │     [0.34~1.0 ] center-focus 가로 이미지 슬라이더 (첨부 md 패턴)
  * │   → 텍스트 + 슬라이더는 100vh 안에 공존, 100% 도달 시 sticky 해제
- * └─ For Business (TRACK 600vh / sticky 150vh) — Figma 7단계 시퀀스 + count-up + 경고 pulse
+ * └─ For Business (TRACK 610vh / sticky 무대 150vh) — Figma 8단계 시퀀스 + count-up
+ *      무대·배경이 100vh가 아닌 150vh: 핀 중에는 상단 100vh만 보이고,
+ *      핀 해제 후 출구 스크롤에서 하단 50vh 야경 테일이 드러난다.
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM(transform/opacity)만 기록.
  *       레이아웃 측정값(텍스트 높이·카드 중심)은 measure()에서 캐시.
@@ -134,7 +136,10 @@ const FB_BID = {
 // For Business 무대 — Figma 168:114 (sequence 8) · 다크 야경 sticky 시퀀스
 //   진입 중앙 텍스트 → 좌상단 이동 → 우측 통계 4개 하나씩 → card1(가톨릭) 물결 →
 //   card1 50%에 card2(파트너) 물결 → 100%에 card1 축소/card2 확장(섹션 hold)
-const FB_TRACK_VH = 560;
+//   ⚠ 무대(sticky)는 100vh가 아닌 150vh — 배경 야경이 뷰포트보다 길게 이어지고,
+//     핀 해제 후 하단 50vh가 출구 스크롤에서 드러난다. (93f9334 의도 복원 — h-screen 금지)
+const FB_STAGE_VH = 150;
+const FB_TRACK_VH = 610; // 핀 구간 = 610 - 150 = 460vh (기존 560-100과 동일 페이스)
 // 인터랙션 임계값 (스크롤 진행률 p ∈ [0, 1])
 const FB_TEXT_END = 0.1; // 슬로건 단어 scrub 완료
 const FB_MOVE_END = 0.18; // center → 좌상단 이동 완료
@@ -771,7 +776,9 @@ function ForBusinessStage() {
         measure();
       const g = geo.current;
       const rect = node.getBoundingClientRect();
-      const max = Math.max(1, rect.height - g.vh);
+      // 핀 구간 = 트랙 높이 - 무대 높이(150vh). p=1.0이 핀 해제 시점과 일치 →
+      // 피날레 swap이 핀 상태에서 끝난 뒤 하단 배경 테일이 출구 스크롤로 드러난다.
+      const max = Math.max(1, rect.height - g.vh * (FB_STAGE_VH / 100));
       const p = clamp01(-rect.top / max);
 
       // 1) 슬로건 단어 scrub — DIM → WHITE(본문) / → LIME(강조)
@@ -905,9 +912,10 @@ function ForBusinessStage() {
       {/* 데스크톱(lg+) — Figma 165:121 다크 sticky 시퀀스 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
+          {/* 무대 150vh — h-screen(100vh) 회귀 금지: 배경·섹션이 뷰포트보다 길어야 함 */}
           <div
-            className="sticky top-0 h-screen w-full overflow-hidden"
-            style={{ "--fb-pad": "clamp(28px, 7.8vw, 150px)" }}
+            className="sticky top-0 w-full overflow-hidden"
+            style={{ height: `${FB_STAGE_VH}vh`, "--fb-pad": "clamp(28px, 7.8vw, 150px)" }}
           >
             {/* 배경 야경 + 오버레이 */}
             <div aria-hidden className="absolute inset-0">
@@ -921,9 +929,9 @@ function ForBusinessStage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
             </div>
 
-            {/* 콘텐츠 */}
+            {/* 콘텐츠 — 핀 중 보이는 상단 100vh에만 배치 (하단 50vh는 배경 테일) */}
             <div
-              className="relative h-full"
+              className="absolute inset-x-0 top-0 h-screen"
               style={{ opacity: ready ? 1 : 0, transition: "opacity .6s ease-out" }}
             >
               {/* 슬로건 + For Business 라벨 (center → 좌상단) */}
