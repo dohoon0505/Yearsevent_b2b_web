@@ -23,8 +23,9 @@ import fbCityNight from "../assets/forbusiness-city-night.webp";
  * │     [0.34~1.0 ] center-focus 가로 이미지 슬라이더 (첨부 md 패턴)
  * │   → 텍스트 + 슬라이더는 100vh 안에 공존, 100% 도달 시 sticky 해제
  * └─ For Business (TRACK 610vh / sticky 무대 150vh) — Figma 8단계 시퀀스 + count-up
- *      무대·배경이 100vh가 아닌 150vh: 핀 중에는 상단 100vh만 보이고,
- *      핀 해제 후 출구 스크롤에서 하단 50vh 야경 테일이 드러난다.
+ *      무대·배경이 100vh가 아닌 150vh. 핀은 무대 "최하단"에서 걸린다(top: -50vh):
+ *      진입 시 상단 50vh(하늘)는 일반 스크롤로 통과(내부 스크롤) → 무대 하단
+ *      100vh가 화면을 채우면 고정·연출 시작 → 연출 종료 후 바로 다음 섹션 출구.
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM(transform/opacity)만 기록.
  *       레이아웃 측정값(텍스트 높이·카드 중심)은 measure()에서 캐시.
@@ -136,8 +137,9 @@ const FB_BID = {
 // For Business 무대 — Figma 168:114 (sequence 8) · 다크 야경 sticky 시퀀스
 //   진입 중앙 텍스트 → 좌상단 이동 → 우측 통계 4개 하나씩 → card1(가톨릭) 물결 →
 //   card1 50%에 card2(파트너) 물결 → 100%에 card1 축소/card2 확장(섹션 hold)
-//   ⚠ 무대(sticky)는 100vh가 아닌 150vh — 배경 야경이 뷰포트보다 길게 이어지고,
-//     핀 해제 후 하단 50vh가 출구 스크롤에서 드러난다. (93f9334 의도 복원 — h-screen 금지)
+//   ⚠ 무대(sticky)는 100vh가 아닌 150vh — 배경 야경이 뷰포트보다 길다. (h-screen 회귀 금지)
+//     핀은 최하단 고정(top: 100vh-150vh = -50vh): 진입 시 상단 50vh(하늘)는 내부
+//     스크롤로 통과한 뒤 무대 하단 100vh가 고정되어 연출이 시작된다.
 const FB_STAGE_VH = 150;
 const FB_TRACK_VH = 610; // 핀 구간 = 610 - 150 = 460vh (기존 560-100과 동일 페이스)
 // 인터랙션 임계값 (스크롤 진행률 p ∈ [0, 1])
@@ -776,10 +778,11 @@ function ForBusinessStage() {
         measure();
       const g = geo.current;
       const rect = node.getBoundingClientRect();
-      // 핀 구간 = 트랙 높이 - 무대 높이(150vh). p=1.0이 핀 해제 시점과 일치 →
-      // 피날레 swap이 핀 상태에서 끝난 뒤 하단 배경 테일이 출구 스크롤로 드러난다.
-      const max = Math.max(1, rect.height - g.vh * (FB_STAGE_VH / 100));
-      const p = clamp01(-rect.top / max);
+      // 최하단 고정: 진입 구간(무대높이-뷰포트 = 50vh)은 내부 스크롤로 통과(p=0 유지),
+      // 핀 시작~해제를 p ∈ [0,1]에 매핑 → 모든 연출이 핀 상태에서 일어난다.
+      const stageH = g.vh * (FB_STAGE_VH / 100);
+      const max = Math.max(1, rect.height - stageH);
+      const p = clamp01((-rect.top - (stageH - g.vh)) / max);
 
       // 1) 슬로건 단어 scrub — DIM → WHITE(본문) / → LIME(강조)
       const reveal = clamp01(p / FB_TEXT_END);
@@ -912,10 +915,15 @@ function ForBusinessStage() {
       {/* 데스크톱(lg+) — Figma 165:121 다크 sticky 시퀀스 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
-          {/* 무대 150vh — h-screen(100vh) 회귀 금지: 배경·섹션이 뷰포트보다 길어야 함 */}
+          {/* 무대 150vh — h-screen(100vh) 회귀 금지: 배경·섹션이 뷰포트보다 길어야 함.
+              top 음수(-50vh) = 최하단 고정: 상단 50vh는 진입 스크롤로 통과 후 핀 */}
           <div
-            className="sticky top-0 w-full overflow-hidden"
-            style={{ height: `${FB_STAGE_VH}vh`, "--fb-pad": "clamp(28px, 7.8vw, 150px)" }}
+            className="sticky w-full overflow-hidden"
+            style={{
+              top: `calc(100vh - ${FB_STAGE_VH}vh)`,
+              height: `${FB_STAGE_VH}vh`,
+              "--fb-pad": "clamp(28px, 7.8vw, 150px)",
+            }}
           >
             {/* 배경 야경 + 오버레이 */}
             <div aria-hidden className="absolute inset-0">
@@ -929,9 +937,9 @@ function ForBusinessStage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
             </div>
 
-            {/* 콘텐츠 — 핀 중 보이는 상단 100vh에만 배치 (하단 50vh는 배경 테일) */}
+            {/* 콘텐츠 — 핀 시 보이는 무대 하단 100vh에 배치 (상단 50vh는 진입 스크롤용 하늘) */}
             <div
-              className="absolute inset-x-0 top-0 h-screen"
+              className="absolute inset-x-0 bottom-0 h-screen"
               style={{ opacity: ready ? 1 : 0, transition: "opacity .6s ease-out" }}
             >
               {/* 슬로건 + For Business 라벨 (center → 좌상단) */}
