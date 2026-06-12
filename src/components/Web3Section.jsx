@@ -283,8 +283,8 @@ export default function Web3Section() {
                 {/* 메뉴 리스트 (Figma 214:36 업데이트) — 활성: 블루 바(r5) + → /
                     비활성: 투명 + 흰 텍스트. 클릭 시 해당 메뉴 위치로 스크롤 */}
                 <div
-                  className="flex flex-col gap-[10px]"
-                  style={{ width: "clamp(360px, 26.5vw, 508px)" }}
+                  className="flex flex-col gap-[8px]"
+                  style={{ width: "clamp(288px, 21.2vw, 406px)" }}
                 >
                   {WEB3_MENUS.map((m, i) => (
                     <button
