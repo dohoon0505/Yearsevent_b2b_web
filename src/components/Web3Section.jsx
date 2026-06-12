@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import productGlass from "../assets/product-glass-blue.jpg";
-import web3Demo from "../assets/web3-demo.jpg";
 
 /**
  * Web3Section — Figma 196:509 / 200:34 + 코멘트:
@@ -19,11 +18,14 @@ import web3Demo from "../assets/web3-demo.jpg";
  */
 
 const WEB3_BLUE = "#4545ff";
+// Arcade 인터랙티브 데모 임베드 — 메뉴별 데모가 준비되면 embed만 교체
+const ARCADE_EMBED =
+  "https://demo.arcade.software/6AffC1DYBio7CwnzgXjB?embed&embed_mobile=inline&embed_desktop=inline&show_copy_link=true";
 const WEB3_MENUS = [
-  { title: "AI 간편접수", desc: "경조사 소식만 전달하면 AI가 알아서 접수를 끝내드려요", demo: web3Demo },
-  { title: "실시간 주문내역", desc: "접수부터 배송 완료까지 주문 현황을 실시간으로 확인해요", demo: web3Demo },
-  { title: "간편한 정산회계", desc: "월 정산과 증빙 서류를 클릭 한 번으로 처리해요", demo: web3Demo },
-  { title: "문구·상품 즐겨찾기", desc: "자주 쓰는 경조 문구와 상품을 저장해 두고 빠르게 주문해요", demo: web3Demo },
+  { title: "AI 간편접수", desc: "경조사 소식만 전달하면 AI가 알아서 접수를 끝내드려요", embed: ARCADE_EMBED },
+  { title: "실시간 주문내역", desc: "접수부터 배송 완료까지 주문 현황을 실시간으로 확인해요", embed: ARCADE_EMBED },
+  { title: "간편한 정산회계", desc: "월 정산과 증빙 서류를 클릭 한 번으로 처리해요", embed: ARCADE_EMBED },
+  { title: "문구·상품 즐겨찾기", desc: "자주 쓰는 경조 문구와 상품을 저장해 두고 빠르게 주문해요", embed: ARCADE_EMBED },
 ];
 const W3_TRACK_VH = 500; // 핀 400vh = 메뉴당 100vh (코멘트)
 
@@ -36,10 +38,12 @@ export default function Web3Section() {
   const stageRef = useRef(null);
   const bgImgRef = useRef(null); // 배경 글래스 래퍼 (아래로 스크롤-스루)
   const menuRefs = useRef([]); // 메뉴 4개 (활성 토글)
-  const demoRefs = useRef([]); // Arcade Demo 레이어 4개 (크로스페이드)
+  const demoFrameRef = useRef(null); // Arcade Demo iframe (메뉴별 src 교체)
+  const shieldRef = useRef(null); // iframe 휠 실드 (클릭 시 데모 조작 모드)
   const cursorRef = useRef(null); // 커스텀 커서 (scroll/label)
   const idxRef = useRef(-1);
   const snappingRef = useRef(false);
+  const zoneRef = useRef(false); // 스냅 구간 내부 여부 (Lenis stop/start 제어)
   const geo = useRef({ vw: 0, vh: 0 });
 
   // 활성 메뉴 적용 — idx 변경 시에만 클래스/스타일 토글 (전환은 CSS transition)
@@ -49,11 +53,12 @@ export default function Web3Section() {
     menuRefs.current.forEach((el, i) => {
       if (el) el.classList.toggle("w3-active", i === idx);
     });
-    demoRefs.current.forEach((el, i) => {
-      if (!el) return;
-      el.style.opacity = i === idx ? "1" : "0";
-      el.style.transform = i === idx ? "translateY(0px)" : "translateY(18px)";
-    });
+    // 메뉴별 Arcade 데모 교체 — URL이 다를 때만 src 스왑(불필요한 리로드 방지)
+    const f = demoFrameRef.current;
+    if (f) {
+      const next = WEB3_MENUS[idx].embed;
+      if (f.getAttribute("src") !== next) f.setAttribute("src", next);
+    }
   };
 
   // 메뉴 i의 스냅 위치 (핀 진행률 i/4 지점)
@@ -69,9 +74,10 @@ export default function Web3Section() {
   const snapTo = (y) => {
     snappingRef.current = true;
     window.scrollTo({ top: y, behavior: "smooth" });
+    // 트랙패드 관성 꼬리(잔여 휠 이벤트)가 다음 칸으로 연속 점프시키지 않도록 여유 쿨다운
     window.setTimeout(() => {
       snappingRef.current = false;
-    }, 750);
+    }, 950);
   };
 
   useLayoutEffect(() => {
@@ -100,6 +106,23 @@ export default function Web3Section() {
         const imgH = g.vw * (2537 / 1920); // 글래스 이미지 자연 높이
         const ty = -Math.max(0, imgH - g.vh) * p;
         bgImgRef.current.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
+      }
+
+      // 3) 스냅 구간 진입/이탈 시 Lenis 일시정지/재개 — Lenis 관성이 구간을
+      //    자유 통과하거나 스냅(native smooth)과 매 프레임 싸우는 버벅임 방지.
+      const scrolled = -rect.top; // 구간 내 진행(px)
+      const inZone = scrolled >= -g.vh * 0.5 && scrolled <= max - 2;
+      if (inZone !== zoneRef.current) {
+        zoneRef.current = inZone;
+        const L = window.__lenis;
+        if (L) {
+          if (inZone) {
+            L.stop(); // 관성 즉시 종료 — 이후 휠은 스냅 핸들러가 전담
+          } else {
+            L.scrollTo(window.scrollY, { immediate: true, force: true }); // 위치 재동기화
+            L.start();
+          }
+        }
       }
     };
 
@@ -146,15 +169,17 @@ export default function Web3Section() {
       }
       if (Math.abs(e.deltaY) < 1) return;
       const idxF = (sy - top) / step;
-      let target = null;
+      let target;
       if (e.deltaY > 0) {
-        const next = Math.floor(idxF + 0.001) + 1;
-        if (next <= N) target = top + next * step; // next=N → 핀 해제 지점
+        // 아래로: 다음 메뉴 경계 (next=N이면 핀 해제 지점 → 이후 휠은 구간 밖 자연 스크롤)
+        const next = Math.min(N, Math.floor(idxF + 0.001) + 1);
+        target = top + next * step;
       } else {
         const prev = Math.ceil(idxF - 0.001) - 1;
-        if (prev >= 0) target = top + prev * step;
+        // 위로 릴리즈: 스냅 구간(-0.5vh) "밖"까지 한 번에 이탈해야
+        // 존 관리자가 Lenis를 다시 stop시키는 루프가 생기지 않는다.
+        target = prev >= 0 ? top + prev * step : top - vh;
       }
-      if (target == null) return; // 구간 경계 밖 → 자유 스크롤
       e.preventDefault();
       e.stopImmediatePropagation();
       snapTo(target);
@@ -305,30 +330,39 @@ export default function Web3Section() {
                 </div>
               </div>
 
-              {/* 우측 — 메뉴별 Arcade Demo (높이 668×1.15=768) */}
+              {/* 우측 — Arcade 인터랙티브 데모 (높이 668×1.15=768).
+                  실드: iframe이 휠을 삼켜 100vh 스냅이 깨지는 것을 방지 —
+                  클릭하면 실드가 사라져 데모 조작 모드, 패널을 벗어나면 복귀 */}
               <div
-                className="cursor-native relative shrink overflow-hidden rounded-[20px]"
+                className="cursor-native relative shrink overflow-hidden rounded-[20px] bg-white"
                 style={{
                   width: "min(56.9vw, 1092px)",
                   height: "min(71.2vh, 768px)",
                   boxShadow: "0 40px 90px -40px rgba(34,40,90,0.45)",
                 }}
                 aria-label="WEB 3.0 시스템 데모"
+                onMouseLeave={() => {
+                  if (shieldRef.current) shieldRef.current.style.display = "block";
+                }}
               >
-                {WEB3_MENUS.map((m, i) => (
-                  <img
-                    key={i}
-                    ref={(el) => (demoRefs.current[i] = el)}
-                    src={m.demo}
-                    alt=""
-                    draggable="false"
-                    className="absolute inset-0 w-full h-full object-cover select-none transition-all duration-500"
-                    style={{
-                      opacity: i === 0 ? 1 : 0,
-                      transform: i === 0 ? "translateY(0px)" : "translateY(18px)",
-                    }}
-                  />
-                ))}
+                <iframe
+                  ref={demoFrameRef}
+                  src={ARCADE_EMBED}
+                  title="경조화환 상품 주문하기"
+                  frameBorder="0"
+                  loading="lazy"
+                  allow="clipboard-write"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                  style={{ colorScheme: "light" }}
+                />
+                <div
+                  ref={shieldRef}
+                  className="absolute inset-0 z-10"
+                  onClick={() => {
+                    if (shieldRef.current) shieldRef.current.style.display = "none";
+                  }}
+                />
               </div>
             </div>
 
@@ -379,7 +413,22 @@ export default function Web3Section() {
             </div>
           ))}
         </div>
-        <img src={web3Demo} alt="WEB 3.0 시스템 데모" className="w-full rounded-[14px]" draggable="false" />
+        {/* Arcade 임베드 (모바일 — 반응형 비율 컨테이너) */}
+        <div
+          className="relative w-full overflow-hidden rounded-[14px]"
+          style={{ paddingBottom: "calc(47.4479% + 41px)", height: 0 }}
+        >
+          <iframe
+            src={ARCADE_EMBED}
+            title="경조화환 상품 주문하기"
+            frameBorder="0"
+            loading="lazy"
+            allow="clipboard-write"
+            allowFullScreen
+            className="absolute top-0 left-0 w-full h-full"
+            style={{ colorScheme: "light" }}
+          />
+        </div>
       </div>
     </section>
   );

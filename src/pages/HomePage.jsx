@@ -43,6 +43,8 @@ export default function HomePage() {
       wheelMultiplier: 1,
       touchMultiplier: 1.5,
     });
+    // 구간 스냅(Web3 등)이 Lenis 관성과 싸우지 않도록 stop/start 제어를 공유
+    window.__lenis = lenis;
 
     // 초기: HeroSection 영역이면 비활성 (native + JS snap에 위임)
     const HERO_GUARD = 10;
@@ -72,6 +74,7 @@ export default function HomePage() {
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
+      delete window.__lenis;
       lenis.destroy();
     };
   }, []);
