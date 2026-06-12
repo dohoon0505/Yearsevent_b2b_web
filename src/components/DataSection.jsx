@@ -337,6 +337,9 @@ function AboutScrollStage() {
   const lensRingRef = useRef(null); // 컬러 렌즈 링 (커서 추종)
   const lensStageRef = useRef(null); // 렌즈 무대(sticky 컨테이너)
   const lensPos = useRef(null); // 마지막 커서 위치(viewport) — rAF에서 매 프레임 동기화
+  const lensDisp = useRef(null); // 렌즈 표시 위치 — lensPos를 lerp로 추종(부드러운 이동)
+  const colWrapLRef = useRef(null); // 좌측 카드 컬럼 래퍼 (렌즈 활성 영역 판정)
+  const colWrapRRef = useRef(null); // 우측 카드 컬럼 래퍼
   const geo = useRef({ vh: 0, centerY: 0, unitL: 1, unitR: 1 });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
@@ -503,20 +506,38 @@ function AboutScrollStage() {
         rightColRef.current.style.transform = `translate3d(0, ${tyR.toFixed(2)}px, 0)`;
       }
 
-      // 6) 컬러 렌즈 — 카드가 롤링 중에도 렌즈가 어긋나지 않도록
-      //    마지막 커서 위치 기준으로 링·카드별 상대좌표를 매 프레임 동기화.
+      // 6) 컬러 렌즈 — 커서가 "카드 컬럼 영역 안"일 때만 활성. 표시 위치는
+      //    lerp(0.16)로 부드럽게 추종, 카드 롤링 중에도 매 프레임 좌표 동기화.
       const lp = lensPos.current;
       const ls = lensStageRef.current;
-      if (lp && ls && ls.classList.contains("a-lens-on")) {
-        const sr = ls.getBoundingClientRect();
-        if (lensRingRef.current)
-          lensRingRef.current.style.transform = `translate3d(${(lp.x - sr.left).toFixed(0)}px, ${(lp.y - sr.top).toFixed(0)}px, 0) translate(-50%, -50%)`;
-        const cardEls = ls.querySelectorAll(".a-card");
-        const cardRects = Array.from(cardEls, (c) => c.getBoundingClientRect());
-        cardEls.forEach((c, i) => {
-          c.style.setProperty("--lsx", `${(lp.x - cardRects[i].left).toFixed(0)}px`);
-          c.style.setProperty("--lsy", `${(lp.y - cardRects[i].top).toFixed(0)}px`);
-        });
+      if (ls) {
+        let lensOn = false;
+        if (lp && colWrapLRef.current && colWrapRRef.current) {
+          const rl = colWrapLRef.current.getBoundingClientRect();
+          const rr = colWrapRRef.current.getBoundingClientRect();
+          const x0 = Math.min(rl.left, rr.left) - 24;
+          const x1 = Math.max(rl.right, rr.right) + 24;
+          lensOn = lp.x >= x0 && lp.x <= x1;
+        }
+        if (lensOn) {
+          ls.classList.add("a-lens-on");
+          // 첫 진입은 snap, 이후 lerp 추종
+          const d = lensDisp.current || (lensDisp.current = { x: lp.x, y: lp.y });
+          d.x = lerp(d.x, lp.x, 0.16);
+          d.y = lerp(d.y, lp.y, 0.16);
+          const sr = ls.getBoundingClientRect();
+          if (lensRingRef.current)
+            lensRingRef.current.style.transform = `translate3d(${(d.x - sr.left).toFixed(1)}px, ${(d.y - sr.top).toFixed(1)}px, 0) translate(-50%, -50%)`;
+          const cardEls = ls.querySelectorAll(".a-card");
+          const cardRects = Array.from(cardEls, (c) => c.getBoundingClientRect());
+          cardEls.forEach((c, i) => {
+            c.style.setProperty("--lsx", `${(d.x - cardRects[i].left).toFixed(1)}px`);
+            c.style.setProperty("--lsy", `${(d.y - cardRects[i].top).toFixed(1)}px`);
+          });
+        } else {
+          ls.classList.remove("a-lens-on");
+          lensDisp.current = null;
+        }
       }
 
       if (visible) rafId = requestAnimationFrame(frame);
@@ -558,11 +579,10 @@ function AboutScrollStage() {
     };
   }, []);
 
-  // 컬러 렌즈(miracell) — mousemove는 커서 위치만 기록, 실제 좌표 동기화는
-  // 메인 rAF 루프(frame)에서 매 프레임 수행(롤링 중 어긋남 방지 + 단일 기록자).
+  // 컬러 렌즈(miracell) — mousemove는 커서 위치만 기록. 활성 판정(카드 영역 한정)·
+  // lerp 추종·좌표 동기화는 모두 메인 rAF 루프(frame)에서 수행(단일 기록자).
   const onLensMove = (e) => {
     lensPos.current = { x: e.clientX, y: e.clientY };
-    e.currentTarget.classList.add("a-lens-on");
   };
   const onLensLeave = (e) => {
     lensPos.current = null;
@@ -582,7 +602,7 @@ function AboutScrollStage() {
             "--a-card-w": "clamp(166px, 19.14vw, 368px)",
             "--a-card-gap": "clamp(16px, 1.61vw, 30px)",
             "--a-card-r": "clamp(21px, 2.07vw, 41px)",
-            "--lens-r": "clamp(170px, 13.5vw, 260px)",
+            "--lens-r": "clamp(120px, 9vw, 175px)",
           }}
         >
           {/* 컬러 렌즈 링 — 커서 추종, 렌즈임을 명시 (카드 위 z, 텍스트 아래) */}
@@ -595,12 +615,14 @@ function AboutScrollStage() {
             style={{ opacity: 0 }}
           >
             <div
+              ref={colWrapRRef}
               className="absolute top-0 bottom-0"
               style={{ right: "clamp(20px, 2.6vw, 50px)", width: "var(--a-card-w)" }}
             >
               <CardColumn cards={RIGHT_SET} colRef={rightColRef} stagger />
             </div>
             <div
+              ref={colWrapLRef}
               className="absolute top-0 bottom-0"
               style={{
                 right: "calc(clamp(20px, 2.6vw, 50px) + var(--a-card-w) + clamp(16px, 1.6vw, 30px))",
@@ -623,10 +645,11 @@ function AboutScrollStage() {
             ))}
           </div>
 
-          {/* 텍스트 컬럼 — 좌측, 헤딩 상단 / 메시지 하단 (justify-between) */}
+          {/* 텍스트 컬럼 — 좌측. 메시지는 헤딩 "바로 아래" 고정 간격(Figma 193:196)
+              — justify-between 금지: 세로가 큰 화면에서 100vh 전체로 벌어져 깨짐 */}
           <div
             ref={contentRef}
-            className="relative z-20 h-full flex flex-col justify-between pointer-events-none"
+            className="relative z-20 h-full flex flex-col pointer-events-none"
             style={{
               padding: "var(--a-pad)",
               maxWidth: "min(62%, 900px)",
@@ -673,8 +696,8 @@ function AboutScrollStage() {
               </h2>
             </div>
 
-            {/* 하단: 인용 메시지 01 / 02 (좌상단 이동과 함께 재등장) */}
-            <div className="flex flex-col gap-[16px] xl:gap-[20px]">
+            {/* 인용 메시지 01 / 02 — 헤딩 아래 고정 간격으로 재등장 */}
+            <div className="flex flex-col gap-[16px] xl:gap-[20px] mt-[clamp(36px,5.5vh,64px)]">
               {ABOUT_MESSAGES.map((msg, i) => (
                 <QuoteMessage
                   key={i}
