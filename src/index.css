@@ -501,6 +501,14 @@
   width: auto; height: auto; padding: 12px 16px; border-radius: 16px;
 }
 .pd-cursor.mode-label .pd-cur-label { display: block; }
+/* WEB 3.0 메뉴 — 활성 항목 블루(#4545ff) 전환 */
+.w3-item { background: #fff; transition: background 0.35s ease; }
+.w3-item .w3-title { color: #bdbdbd; transition: color 0.35s ease; }
+.w3-item .w3-arrow { color: #999; transition: color 0.35s ease; }
+.w3-item.w3-active { background: #4545ff; }
+.w3-item.w3-active .w3-title,
+.w3-item.w3-active .w3-arrow { color: #fff; }
+
 /* 커서 무대 안에서 기본 커서로 되돌릴 영역 (예: FB 콘텐츠 카드) */
 .pd-cursor-stage .cursor-native,
 .pd-cursor-stage .cursor-native * { cursor: auto; }
