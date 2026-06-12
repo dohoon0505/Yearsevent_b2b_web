@@ -501,6 +501,9 @@
   width: auto; height: auto; padding: 12px 16px; border-radius: 16px;
 }
 .pd-cursor.mode-label .pd-cur-label { display: block; }
+/* 커서 무대 안에서 기본 커서로 되돌릴 영역 (예: FB 콘텐츠 카드) */
+.pd-cursor-stage .cursor-native,
+.pd-cursor-stage .cursor-native * { cursor: auto; }
 /* 터치 환경 — 커스텀 커서 비활성, 기본 커서 복원 */
 @media (hover: none), (pointer: coarse) {
   .pd-cursor-stage,

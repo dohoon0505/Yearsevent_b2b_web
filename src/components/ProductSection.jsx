@@ -448,10 +448,10 @@ export default function ProductSection() {
                   </button>
                 </div>
 
-                {/* 우측 카드 뷰포트 — 우→좌 슬라이드 */}
+                {/* 우측 카드 뷰포트 — 우→좌 슬라이드. 텍스트와의 간격은 카드 간 간격의 2배 */}
                 <div
                   className="absolute inset-y-0 right-0 overflow-hidden"
-                  style={{ left: "calc(var(--pd-pad) + clamp(300px, 22.5vw, 431px) + clamp(28px, 2.6vw, 50px))" }}
+                  style={{ left: "calc(var(--pd-pad) + clamp(300px, 22.5vw, 431px) + clamp(56px, 5.2vw, 100px))" }}
                 >
                   <div
                     ref={cardsTrackRef}
@@ -466,7 +466,7 @@ export default function ProductSection() {
                           data-cursor-label={prod.desc}
                           className="relative shrink-0 rounded-[24px] bg-[#f7f7f8] flex flex-col justify-end"
                           style={{
-                            width: "clamp(320px, 26vw, 500px)",
+                            width: "clamp(288px, 23.4vw, 450px)",
                             height: "clamp(420px, 60vh, 650px)",
                             padding: "clamp(22px, 1.8vw, 34px)",
                             marginTop: i % 2 === 1 ? "clamp(30px, 6vh, 65px)" : "0px",

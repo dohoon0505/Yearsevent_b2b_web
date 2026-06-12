@@ -340,6 +340,8 @@ function AboutScrollStage() {
   const lensDisp = useRef(null); // 렌즈 표시 위치 — lensPos를 lerp로 추종(부드러운 이동)
   const colWrapLRef = useRef(null); // 좌측 카드 컬럼 래퍼 (렌즈 활성 영역 판정)
   const colWrapRRef = useRef(null); // 우측 카드 컬럼 래퍼
+  const aCursorRef = useRef(null); // 여백 스크롤 커서 (카드 영역에서는 렌즈가 대체)
+  const aCurDisp = useRef(null); // 스크롤 커서 표시 위치 (lerp 추종)
   const geo = useRef({ vh: 0, centerY: 0, unitL: 1, unitR: 1 });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
@@ -538,6 +540,18 @@ function AboutScrollStage() {
           ls.classList.remove("a-lens-on");
           lensDisp.current = null;
         }
+        // 여백 스크롤 커서 — 카드 영역(lensOn)에서는 렌즈가 커서를 대체
+        const showCur = !!lp && !lensOn;
+        ls.classList.toggle("is-on", showCur);
+        if (showCur && aCursorRef.current) {
+          const d = aCurDisp.current || (aCurDisp.current = { x: lp.x, y: lp.y });
+          d.x = lerp(d.x, lp.x, 0.18);
+          d.y = lerp(d.y, lp.y, 0.18);
+          const sr = ls.getBoundingClientRect();
+          aCursorRef.current.style.transform = `translate3d(${(d.x - sr.left).toFixed(1)}px, ${(d.y - sr.top).toFixed(1)}px, 0)`;
+        } else if (!showCur) {
+          aCurDisp.current = null;
+        }
       }
 
       if (visible) rafId = requestAnimationFrame(frame);
@@ -587,6 +601,7 @@ function AboutScrollStage() {
   const onLensLeave = (e) => {
     lensPos.current = null;
     e.currentTarget.classList.remove("a-lens-on");
+    e.currentTarget.classList.remove("is-on");
   };
 
   return (
@@ -594,7 +609,7 @@ function AboutScrollStage() {
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
         <div
           ref={lensStageRef}
-          className="a-lens-stage sticky top-0 h-screen w-full overflow-hidden"
+          className="a-lens-stage pd-cursor-stage sticky top-0 h-screen w-full overflow-hidden"
           onMouseMove={onLensMove}
           onMouseLeave={onLensLeave}
           style={{
@@ -607,6 +622,25 @@ function AboutScrollStage() {
         >
           {/* 컬러 렌즈 링 — 커서 추종, 렌즈임을 명시 (카드 위 z, 텍스트 아래) */}
           <div ref={lensRingRef} aria-hidden className="a-lens-ring" />
+
+          {/* 여백 스크롤 커서 — 카드 영역 밖에서만 표시 (렌즈와 상호 배타) */}
+          <div ref={aCursorRef} aria-hidden className="pd-cursor has-mode mode-scroll">
+            <span className="pd-cur-core">
+              <svg
+                className="pd-cur-ic pd-ic-scroll"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="#1c1e0d"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 4 v14 M6 12 l6 6 6 -6" />
+              </svg>
+            </span>
+          </div>
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립). 호버 스포트라이트용 포인터 허용 */}
           <div
             ref={cardStageRef}
@@ -731,6 +765,8 @@ function ForBusinessStage() {
   const darkLabelRef = useRef(null);
   const darkLineRefs = useRef([]);
   const fbColRef = useRef(null); // 우측 카드 세로 스택 (아래→위 슬라이드)
+  const fbStageRef = useRef(null); // sticky 무대 (커스텀 스크롤 커서)
+  const fbCursorRef = useRef(null); // 여백 스크롤 커서
   const statValRefs = useRef([]); // DATA 카드 통계 값 (count-up)
   const geo = useRef({ vw: 0, vh: 0 });
   const accentRGBRef = useRef([203, 13, 53]);
@@ -959,6 +995,52 @@ function ForBusinessStage() {
     };
   }, []);
 
+  // 여백 스크롤 커서 — Product와 동일 패턴(icon-swap md). 카드(cursor-native) 위는 기본 커서.
+  useEffect(() => {
+    const stage = fbStageRef.current;
+    const cur = fbCursorRef.current;
+    if (!stage || !cur) return;
+    if (window.matchMedia("(hover: none), (pointer: coarse)").matches) return;
+    stage.classList.add("pd-cursor-stage");
+    let mx = 0;
+    let my = 0;
+    let cx = 0;
+    let cy = 0;
+    let raf = 0;
+    let on = false;
+    const frame = () => {
+      raf = 0;
+      cx = lerp(cx, mx, 0.18);
+      cy = lerp(cy, my, 0.18);
+      cur.style.transform = `translate3d(${cx.toFixed(1)}px, ${cy.toFixed(1)}px, 0)`;
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const onMove = (e) => {
+      const r = stage.getBoundingClientRect();
+      mx = e.clientX - r.left;
+      my = e.clientY - r.top;
+      if (!on) {
+        on = true;
+        cx = mx;
+        cy = my;
+        if (!raf) raf = requestAnimationFrame(frame);
+      }
+      // 콘텐츠 카드 위에서는 커스텀 커서를 숨기고 기본 커서로 복귀
+      stage.classList.toggle("is-on", !e.target.closest(".cursor-native"));
+    };
+    const onLeave = () => {
+      on = false;
+      stage.classList.remove("is-on");
+    };
+    stage.addEventListener("mousemove", onMove, { passive: true });
+    stage.addEventListener("mouseleave", onLeave);
+    return () => {
+      stage.removeEventListener("mousemove", onMove);
+      stage.removeEventListener("mouseleave", onLeave);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   // 가로형 카드 공통 (Figma 193:400 — 600×300, #f3f3f3, r20) — 세로 스택, 컬럼째로 슬라이드
   const cardBase =
     "relative w-full shrink-0 bg-[#f3f3f3] rounded-[20px] overflow-hidden flex flex-col";
@@ -976,6 +1058,7 @@ function ForBusinessStage() {
           {/* 무대 150vh — h-screen(100vh) 회귀 금지: 배경·섹션이 뷰포트보다 길어야 함.
               top 음수(-50vh) = 최하단 고정: 상단 50vh는 진입 스크롤로 통과 후 핀 */}
           <div
+            ref={fbStageRef}
             className="sticky w-full overflow-hidden bg-[#222]"
             style={{
               top: `calc(100vh - ${FB_STAGE_VH}vh)`,
@@ -985,6 +1068,25 @@ function ForBusinessStage() {
           >
             {/* 0) 흰 배경 레이어 — 확장 완료 후 페이드아웃 → 출구 radius에서 #222 노출 */}
             <div ref={whiteLayerRef} aria-hidden className="absolute inset-0 bg-white" />
+
+            {/* 여백 스크롤 커서 — 카드 위에서는 기본 커서로 복귀(cursor-native) */}
+            <div ref={fbCursorRef} aria-hidden className="pd-cursor has-mode mode-scroll">
+              <span className="pd-cur-core">
+                <svg
+                  className="pd-cur-ic pd-ic-scroll"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="#1c1e0d"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 4 v14 M6 12 l6 6 6 -6" />
+                </svg>
+              </span>
+            </div>
 
             {/* 1) 흰 배경 슬로건 — 핀 시 보이는 하단 100vh 중앙. 레드 라벨 + 인라인 칩 */}
             <div
@@ -1104,7 +1206,7 @@ function ForBusinessStage() {
               >
                 <div
                   ref={fbColRef}
-                  className="absolute left-0 top-0 w-full flex flex-col gap-[clamp(20px,1.6vw,30px)] will-change-transform"
+                  className="cursor-native absolute left-0 top-0 w-full flex flex-col gap-[clamp(20px,1.6vw,30px)] will-change-transform"
                   style={{ transform: "translate3d(0, 120vh, 0)" }}
                 >
                   {/* card 1 — 2026 가톨릭대 낙찰 */}
