@@ -232,7 +232,8 @@ const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 // 카드 컬럼 1개 — 세트를 2벌 이어붙여 무한 루프 롤링(translateY modulo)
-//   호버 시 스포트라이트 렌즈(#1): 커서 위치(--sx/--sy)만 밝게, 주변은 어둡게.
+//   스포트라이트 렌즈(#1, miracell.co.kr 히어로 참고): 기본은 흑백,
+//   호버 시 커서 위치(--sx/--sy) 원 안에만 컬러 사본이 clip-path로 드러난다.
 function CardColumn({ cards, colRef, stagger = false }) {
   const loop = [...cards, ...cards]; // 2벌 → 이음새 없는 세로 루프
   return (
@@ -255,6 +256,7 @@ function CardColumn({ cards, colRef, stagger = false }) {
             e.currentTarget.style.setProperty("--sy", `${(e.clientY - r.top).toFixed(0)}px`);
           }}
         >
+          {/* 베이스 — 흑백 */}
           <img
             src={card.img}
             alt=""
@@ -262,14 +264,19 @@ function CardColumn({ cards, colRef, stagger = false }) {
             decoding="async"
             draggable="false"
             className="absolute inset-0 w-full h-full object-cover select-none"
+            style={{ filter: "grayscale(1)" }}
           />
-          {/* 스포트라이트 렌즈 — 커서 주변 원만 원본 밝기, 바깥은 디밍 */}
-          <div
+          {/* 컬러 렌즈 — 호버 시 커서 원 안에만 컬러 노출 */}
+          <img
+            src={card.img}
+            alt=""
             aria-hidden
-            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            loading="eager"
+            decoding="async"
+            draggable="false"
+            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             style={{
-              background:
-                "radial-gradient(circle clamp(140px, 11vw, 210px) at var(--sx, 50%) var(--sy, 50%), rgba(0,0,0,0) 0%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%)",
+              clipPath: "circle(clamp(90px, 7.3vw, 140px) at var(--sx, 50%) var(--sy, 50%))",
             }}
           />
           <div
