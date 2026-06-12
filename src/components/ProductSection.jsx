@@ -380,7 +380,7 @@ export default function ProductSection() {
           >
             {/* 0) 최하단 — 글래스 이미지의 "위쪽 미러 확장"(scaleY -1, 하단 고정):
                 무대 하단 가장자리 = 이미지 첫 줄(row 0) → 굴곡(radius)으로 드러나는
-                배경이 아래 이미지 블록의 시작과 픽셀 단위로 이어진다 */}
+                배경이 다음 WEB 3.0 섹션 배경(이미지 첫 줄부터)과 픽셀 단위로 이어진다 */}
             <div aria-hidden className="absolute inset-0 overflow-hidden bg-[#eef2fa]">
               <img
                 src={productGlass}
@@ -609,16 +609,6 @@ export default function ProductSection() {
           </div>
         </div>
 
-        {/* 글로시 블루 글래스 이미지 블록 (Figma 196:508) — 출구 radius 아래로 연속.
-            -1px 겹침: 무대/블록 경계의 서브픽셀 헤어라인(#222 비침) 방지 */}
-        <div className="relative w-full" style={{ aspectRatio: "1920 / 2537", marginTop: "-1px" }}>
-          <img
-            src={productGlass}
-            alt=""
-            draggable="false"
-            className="absolute inset-0 w-full h-full object-cover select-none"
-          />
-        </div>
       </div>
 
       {/* 모바일(<lg) — 정적 스택 */}
@@ -666,8 +656,6 @@ export default function ProductSection() {
             <span aria-hidden>→</span>
           </button>
         </div>
-        {/* 글로시 블루 글래스 이미지 (모바일) */}
-        <img src={productGlass} alt="" className="w-full" draggable="false" />
       </div>
     </section>
   );

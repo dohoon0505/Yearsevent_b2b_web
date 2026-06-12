@@ -501,13 +501,35 @@
   width: auto; height: auto; padding: 12px 16px; border-radius: 16px;
 }
 .pd-cursor.mode-label .pd-cur-label { display: block; }
-/* WEB 3.0 메뉴 — 활성 항목 블루(#4545ff) 전환 */
-.w3-item { background: #fff; transition: background 0.35s ease; }
-.w3-item .w3-title { color: #bdbdbd; transition: color 0.35s ease; }
-.w3-item .w3-arrow { color: #999; transition: color 0.35s ease; }
-.w3-item.w3-active { background: #4545ff; }
-.w3-item.w3-active .w3-title,
-.w3-item.w3-active .w3-arrow { color: #fff; }
+/* WEB 3.0 메뉴 (Figma 214:36) — 활성: 블루 바(r5)+화살표 / 비활성: 투명+흰 텍스트 */
+.w3-item {
+  background: transparent;
+  border-radius: 5px;
+  padding: clamp(20px, 1.56vw, 30px) 20px;
+  transition: background 0.35s ease, padding 0.35s ease;
+}
+.w3-item .w3-title {
+  color: #fff;
+  font-weight: 500;
+  font-size: clamp(16px, 1.15vw, 22px);
+  letter-spacing: -0.005em;
+  /* 배경 밝은 구간(이미지 상단)에서도 흰 텍스트가 묻히지 않게 */
+  text-shadow: 0 1px 14px rgba(40, 60, 140, 0.45);
+  transition: font-size 0.35s ease;
+}
+.w3-item .w3-arrow {
+  color: #fff;
+  font-weight: 600;
+  font-size: clamp(15px, 1.05vw, 20px);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.w3-item.w3-active {
+  background: #4545ff;
+  padding: clamp(20px, 1.56vw, 30px) 30px;
+}
+.w3-item.w3-active .w3-title { font-weight: 600; font-size: clamp(18px, 1.35vw, 26px); }
+.w3-item.w3-active .w3-arrow { opacity: 1; }
 
 /* 커서 무대 안에서 기본 커서로 되돌릴 영역 (예: FB 콘텐츠 카드) */
 .pd-cursor-stage .cursor-native,
