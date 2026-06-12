@@ -514,7 +514,9 @@ function AboutScrollStage() {
       const ls = lensStageRef.current;
       if (ls) {
         let lensOn = false;
-        if (lp && colWrapLRef.current && colWrapRRef.current) {
+        // 카드가 등장(e>0.5)한 뒤에만 렌즈 활성 — 도입 단계(메시지·슬로건)에서는
+        // 카드가 보이지 않으므로 렌즈 대신 여백 스크롤 커서를 유지한다.
+        if (lp && e > 0.5 && colWrapLRef.current && colWrapRRef.current) {
           const rl = colWrapLRef.current.getBoundingClientRect();
           const rr = colWrapRRef.current.getBoundingClientRect();
           const x0 = Math.min(rl.left, rr.left) - 24;
