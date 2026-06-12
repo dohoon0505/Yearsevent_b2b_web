@@ -232,8 +232,9 @@ const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 // 카드 컬럼 1개 — 세트를 2벌 이어붙여 무한 루프 롤링(translateY modulo)
-//   스포트라이트 렌즈(#1, miracell.co.kr 히어로 참고): 기본은 흑백,
-//   호버 시 커서 위치(--sx/--sy) 원 안에만 컬러 사본이 clip-path로 드러난다.
+//   컬러 렌즈(#1, miracell.co.kr 히어로 스타일): 기본은 흑백+디밍.
+//   렌즈 좌표(--lsx/--lsy)는 "무대 단위" mousemove가 카드별 상대좌표로 기록 —
+//   대형 렌즈가 카드 경계를 가로질러 컬러를 드러낸다(opacity는 무대 클래스로 일괄).
 function CardColumn({ cards, colRef, stagger = false }) {
   const loop = [...cards, ...cards]; // 2벌 → 이음새 없는 세로 루프
   return (
@@ -248,25 +249,19 @@ function CardColumn({ cards, colRef, stagger = false }) {
       {loop.map((card, i) => (
         <div
           key={i}
-          className="group relative w-full overflow-hidden rounded-[var(--a-card-r)] bg-[#e9e9ec]"
+          className="a-card relative w-full overflow-hidden rounded-[var(--a-card-r)] bg-[#e9e9ec]"
           style={{ aspectRatio: "400 / 520" }}
-          onMouseMove={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            e.currentTarget.style.setProperty("--sx", `${(e.clientX - r.left).toFixed(0)}px`);
-            e.currentTarget.style.setProperty("--sy", `${(e.clientY - r.top).toFixed(0)}px`);
-          }}
         >
-          {/* 베이스 — 흑백 */}
+          {/* 베이스 — 흑백+디밍 (렌즈 대비 확보) */}
           <img
             src={card.img}
             alt=""
             loading="eager"
             decoding="async"
             draggable="false"
-            className="absolute inset-0 w-full h-full object-cover select-none"
-            style={{ filter: "grayscale(1)" }}
+            className="a-lens-gray absolute inset-0 w-full h-full object-cover select-none"
           />
-          {/* 컬러 렌즈 — 호버 시 커서 원 안에만 컬러 노출 */}
+          {/* 컬러 렌즈 — 무대 렌즈 원 안에만 컬러 노출 */}
           <img
             src={card.img}
             alt=""
@@ -274,10 +269,7 @@ function CardColumn({ cards, colRef, stagger = false }) {
             loading="eager"
             decoding="async"
             draggable="false"
-            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            style={{
-              clipPath: "circle(clamp(90px, 7.3vw, 140px) at var(--sx, 50%) var(--sy, 50%))",
-            }}
+            className="a-lens-color absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
           />
           <div
             className="absolute inset-x-0 bottom-0 h-[30%] flex flex-col justify-end px-[22px] pb-[22px] pointer-events-none"
@@ -342,6 +334,9 @@ function AboutScrollStage() {
   const leftColRef = useRef(null);
   const rightColRef = useRef(null);
   const msgRefs = useRef([]); // 좌하단 정적 메시지 2개
+  const lensRingRef = useRef(null); // 컬러 렌즈 링 (커서 추종)
+  const lensStageRef = useRef(null); // 렌즈 무대(sticky 컨테이너)
+  const lensPos = useRef(null); // 마지막 커서 위치(viewport) — rAF에서 매 프레임 동기화
   const geo = useRef({ vh: 0, centerY: 0, unitL: 1, unitR: 1 });
   const accentRGBRef = useRef([203, 13, 53]); // --color-brand-red (resolve 후 갱신)
   const [ready, setReady] = useState(false);
@@ -508,6 +503,22 @@ function AboutScrollStage() {
         rightColRef.current.style.transform = `translate3d(0, ${tyR.toFixed(2)}px, 0)`;
       }
 
+      // 6) 컬러 렌즈 — 카드가 롤링 중에도 렌즈가 어긋나지 않도록
+      //    마지막 커서 위치 기준으로 링·카드별 상대좌표를 매 프레임 동기화.
+      const lp = lensPos.current;
+      const ls = lensStageRef.current;
+      if (lp && ls && ls.classList.contains("a-lens-on")) {
+        const sr = ls.getBoundingClientRect();
+        if (lensRingRef.current)
+          lensRingRef.current.style.transform = `translate3d(${(lp.x - sr.left).toFixed(0)}px, ${(lp.y - sr.top).toFixed(0)}px, 0) translate(-50%, -50%)`;
+        const cardEls = ls.querySelectorAll(".a-card");
+        const cardRects = Array.from(cardEls, (c) => c.getBoundingClientRect());
+        cardEls.forEach((c, i) => {
+          c.style.setProperty("--lsx", `${(lp.x - cardRects[i].left).toFixed(0)}px`);
+          c.style.setProperty("--lsy", `${(lp.y - cardRects[i].top).toFixed(0)}px`);
+        });
+      }
+
       if (visible) rafId = requestAnimationFrame(frame);
     };
 
@@ -547,18 +558,35 @@ function AboutScrollStage() {
     };
   }, []);
 
+  // 컬러 렌즈(miracell) — mousemove는 커서 위치만 기록, 실제 좌표 동기화는
+  // 메인 rAF 루프(frame)에서 매 프레임 수행(롤링 중 어긋남 방지 + 단일 기록자).
+  const onLensMove = (e) => {
+    lensPos.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.classList.add("a-lens-on");
+  };
+  const onLensLeave = (e) => {
+    lensPos.current = null;
+    e.currentTarget.classList.remove("a-lens-on");
+  };
+
   return (
     <section ref={sectionRef} aria-label="회사 소개" className="relative bg-white">
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
         <div
-          className="sticky top-0 h-screen w-full overflow-hidden"
+          ref={lensStageRef}
+          className="a-lens-stage sticky top-0 h-screen w-full overflow-hidden"
+          onMouseMove={onLensMove}
+          onMouseLeave={onLensLeave}
           style={{
             "--a-pad": "clamp(28px, 7.8vw, 150px)",
             "--a-card-w": "clamp(166px, 19.14vw, 368px)",
             "--a-card-gap": "clamp(16px, 1.61vw, 30px)",
             "--a-card-r": "clamp(21px, 2.07vw, 41px)",
+            "--lens-r": "clamp(170px, 13.5vw, 260px)",
           }}
         >
+          {/* 컬러 렌즈 링 — 커서 추종, 렌즈임을 명시 (카드 위 z, 텍스트 아래) */}
+          <div ref={lensRingRef} aria-hidden className="a-lens-ring" />
           {/* 카드 무대 — 우측, 상하 full-bleed (sticky overflow로 클립). 호버 스포트라이트용 포인터 허용 */}
           <div
             ref={cardStageRef}

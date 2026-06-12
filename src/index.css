@@ -439,6 +439,33 @@
 .fb-marquee-r { animation: fb-marquee-r var(--fb-marquee-dur, 36s) linear infinite; }
 
 /* =============================================
+   About 카드 컬러 렌즈 — miracell.co.kr 히어로 스타일
+   기본: 흑백+디밍. 무대 위 커서를 따라다니는 대형 렌즈(링 포함) 안에서만
+   컬러 노출 — 렌즈가 카드 경계를 가로질러 이동(무대 단위).
+   ============================================= */
+.a-lens-gray { filter: grayscale(1) brightness(0.65); }
+.a-lens-color {
+  opacity: 0; transition: opacity 0.3s ease;
+  clip-path: circle(var(--lens-r, 200px) at var(--lsx, -9999px) var(--lsy, -9999px));
+}
+.a-lens-stage.a-lens-on .a-lens-color { opacity: 1; }
+.a-lens-ring {
+  position: absolute; top: 0; left: 0; z-index: 15; pointer-events: none;
+  width: calc(var(--lens-r, 200px) * 2 + 56px);
+  height: calc(var(--lens-r, 200px) * 2 + 56px);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.18), inset 0 0 0 1.5px rgba(0, 0, 0, 0.1);
+  opacity: 0; transition: opacity 0.3s ease; will-change: transform;
+}
+.a-lens-stage.a-lens-on .a-lens-ring { opacity: 1; }
+/* 터치 환경 — 렌즈 비활성, 카드 원본 컬러 복원 */
+@media (hover: none), (pointer: coarse) {
+  .a-lens-ring, .a-lens-color { display: none; }
+  .a-lens-gray { filter: none; }
+}
+
+/* =============================================
    Product 커스텀 커서 — 아이콘 스왑 (custom-cursor-icon-swap-07 md)
    data-cursor="scroll|arrow|label" 영역 선언만으로 커서 의미 교체.
    라임 코어가 영역에 따라 ↓스크롤 / →화살표 아이콘 또는 설명 라벨로 확장.
