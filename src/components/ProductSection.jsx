@@ -101,11 +101,12 @@ export default function ProductSection() {
     const section = sectionRef.current;
     if (!mask || !inner || !section) return;
 
-    // 마스크 폭 = 가장 긴 단어 폭으로 고정 (문장 들썩임 방지)
+    // 단어별 실제 폭 측정 — 마스크 폭을 "현재 단어" 폭으로 보간해
+    // 단어 길이가 달라도 문장 중앙 정렬이 유지된다(폭 전환은 슬라이드와 동기).
+    let widths = [];
     const fit = () => {
-      let maxW = 0;
-      for (const c of inner.children) maxW = Math.max(maxW, c.offsetWidth);
-      if (maxW > 0) mask.style.width = `${Math.ceil(maxW)}px`;
+      widths = Array.from(inner.children, (c) => c.offsetWidth);
+      if (widths[0] > 0) mask.style.width = `${widths[0]}px`;
     };
     fit();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
@@ -131,6 +132,12 @@ export default function ProductSection() {
         const segP = t - idx;
         const slide = segP < HOLD ? 0 : easeInOutCubic((segP - HOLD) / (1 - HOLD));
         inner.style.transform = `translateY(${(-(idx + slide) * 1.5).toFixed(4)}em)`;
+        // 마스크 폭: 현재 단어 → 다음 단어 폭으로 슬라이드와 동기 보간(문장 재중앙)
+        if (widths.length) {
+          const w0 = widths[idx] || 0;
+          const w1 = widths[idx + 1] != null ? widths[idx + 1] : w0;
+          mask.style.width = `${(w0 + (w1 - w0) * slide).toFixed(1)}px`;
+        }
       }
       raf = requestAnimationFrame(loop);
     };
@@ -454,10 +461,11 @@ export default function ProductSection() {
                   >
                     <span className="block whitespace-nowrap">
                       {/* 로테이터 마스크 — 1줄 높이로 클립, 단어 스택이 위로 순환.
-                          폭은 가장 긴 단어로 고정 + 우측 정렬 → 짧은 단어도 조사("에")와 붙음 */}
+                          폭은 현재 단어 폭으로 보간(슬라이드와 동기) → 단어 길이가
+                          달라도 조사("에")가 붙고 문장 중앙 정렬 유지 */}
                       <span
                         ref={rotMaskRef}
-                        className="inline-block overflow-hidden align-bottom text-right"
+                        className="inline-block overflow-hidden align-bottom"
                         style={{ height: "1.5em" }}
                       >
                         <span ref={rotInnerRef} className="block will-change-transform">
@@ -465,7 +473,7 @@ export default function ProductSection() {
                             <span
                               key={i}
                               className="block whitespace-pre"
-                              style={{ height: "1.5em", color: LIME }}
+                              style={{ height: "1.5em", color: LIME, width: "max-content" }}
                             >
                               {w}
                             </span>
