@@ -25,8 +25,10 @@ import fbCityNight from "../assets/forbusiness-city-night.webp";
  *      [흰 배경: 레드 악센트 슬로건 scrub, 줄 안에 야경 칩(#5)]
  *      → [칩이 캡슐(802×369)→풀블리드로 확장되며 배경을 채움(#13)]
  *      → [배경 90% 채워지면 화이트/라임 슬로건 페이드인(#12)] → [좌측 이동(#8)]
- *      → [우측 흰 카드 3장이 아래→위로 순차 상승 + 배경은 아래로 패럴랙스(#7·#8)]
- *      → [100%: 배경 좌하단 border-radius → #222(Product 섹션)로 연결(#6)]
+ *      → [우측 가로형 카드(600×300) 3장 "세로 스택"이 아래→위로 슬라이드(#7·#8,
+ *         Figma 193:247→194:420: 컬럼 top 150→-210, 끝에서 하단 패딩 정렬)
+ *         + 배경(높이 142%)은 top 0→-42%로 아래로 스크롤-스루]
+ *      → [100%: 배경 좌하단 rounded-bl-120 → #222(Product 섹션)로 연결(#6)]
  *      ⚠ 무대(sticky)는 100vh가 아닌 150vh (h-screen 회귀 금지) — 핀은 최하단 고정.
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM(transform/opacity/clip-path)만 기록.
@@ -139,10 +141,8 @@ const FB_DARKIN_AT = 0.28; // 배경 ~90% 채움 → 다크 슬로건 페이드�
 const FB_DARKIN_DUR = 0.08;
 const FB_MOVE_AT = 0.36; // 슬로건 center → 좌상단 (#8)
 const FB_MOVE_END = 0.46;
-const FB_CARDS_AT = 0.46; // 카드 아래→위 순차 상승 (#7·#8)
+const FB_CARDS_AT = 0.46; // 카드 스택 아래→위 슬라이드 (#7·#8)
 const FB_CARDS_END = 0.9;
-const FB_CARD_STAGGER = 0.08; // 카드별 시작 간격
-const FB_CARD_DUR = 0.2; // 카드 1장 상승 구간
 const FB_COUNT_AT = 0.6; // DATA 카드 count-up
 const FB_COUNT_DUR = 0.14;
 const FB_RADIUS_AT = 0.92; // 좌하단 border-radius → #222 (#6)
@@ -672,7 +672,7 @@ function ForBusinessStage() {
   const darkHeadRef = useRef(null); // 다크 슬로건 + 라벨 (center → 좌상단)
   const darkLabelRef = useRef(null);
   const darkLineRefs = useRef([]);
-  const fbCardRefs = useRef([]); // 우측 카드 3장 (아래→위 순차 상승)
+  const fbColRef = useRef(null); // 우측 카드 세로 스택 (아래→위 슬라이드)
   const statValRefs = useRef([]); // DATA 카드 통계 값 (count-up)
   const geo = useRef({ vw: 0, vh: 0 });
   const accentRGBRef = useRef([203, 13, 53]);
@@ -753,7 +753,10 @@ function ForBusinessStage() {
           labelOffset = Math.max(0, (headW - darkLabelRef.current.offsetWidth) / 2);
       }
 
-      geo.current = { vw, vh, stageH, chip, cap, centerX, centerY, lineOffsets, labelOffset };
+      // 카드 스택 슬라이드 종점 — 컬럼 하단이 하단 패딩에 정렬 (Figma 194:420: top -210)
+      const colH = fbColRef.current ? fbColRef.current.offsetHeight : vh;
+
+      geo.current = { vw, vh, stageH, chip, cap, centerX, centerY, lineOffsets, labelOffset, pad, colH };
     };
 
     const insetClip = (r, stageW, stageH, rad) =>
@@ -817,7 +820,7 @@ function ForBusinessStage() {
         // 풀블리드 구간은 clip 해제(none) — inset(0) 안티앨리어싱 경계로
         // 아래 레이어가 1px 비치는 헤어라인 방지. 출구 radius 때만 clip 적용.
         const exitT = smoothstep(clamp01((p - FB_RADIUS_AT) / (1 - FB_RADIUS_AT)));
-        const R = lerp(0, Math.max(120, Math.min(220, g.vw * 0.115)), exitT);
+        const R = lerp(0, Math.max(100, Math.min(140, g.vw * 0.0625)), exitT); // Figma rounded-bl-120
         clip = exitT > 0 ? `inset(0px round 0px 0px 0px ${R.toFixed(1)}px)` : "none";
       }
       if (bgLayerRef.current && bgLayerRef.current.dataset.clip !== clip) {
@@ -846,19 +849,16 @@ function ForBusinessStage() {
       if (darkLabelRef.current)
         darkLabelRef.current.style.transform = `translate3d(${((g.labelOffset || 0) * (1 - mE)).toFixed(1)}px, 0, 0)`;
 
-      // 4) 카드 — 아래에서 위로 순차 상승(#7·#8) + 배경은 아래로 패럴랙스(#7)
+      // 4) 카드 세로 스택 — 화면 아래에서 위로 슬라이드(#7·#8). 종점 = 하단 패딩 정렬.
+      //    배경(높이 142%)은 top 0 → -42%로 함께 스크롤-스루 (Figma 193:247→194:420)
       const cT = easeInOutCubic(clamp01((p - FB_CARDS_AT) / (FB_CARDS_END - FB_CARDS_AT)));
-      const fbCards = fbCardRefs.current;
-      for (let i = 0; i < fbCards.length; i++) {
-        const el = fbCards[i];
-        if (!el) continue;
-        const t = easeInOutCubic(
-          clamp01((p - FB_CARDS_AT - i * FB_CARD_STAGGER) / FB_CARD_DUR),
-        );
-        el.style.transform = `translate3d(0, ${((1 - t) * g.vh * 1.1).toFixed(1)}px, 0)`;
+      if (fbColRef.current) {
+        const endTy = g.vh - g.pad - g.colH; // 컬럼 하단 = 뷰포트 하단 - 패딩
+        const ty = lerp(g.vh + 60, endTy, cT);
+        fbColRef.current.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
       }
       if (bgImgRef.current)
-        bgImgRef.current.style.transform = `translate3d(0, ${(g.vh * 0.06 * cT).toFixed(1)}px, 0) scale(1.12)`;
+        bgImgRef.current.style.transform = `translate3d(0, ${(-0.42 * g.stageH * cT).toFixed(1)}px, 0)`;
 
       // 5) DATA 카드 count-up
       const vals = statValRefs.current;
@@ -901,15 +901,13 @@ function ForBusinessStage() {
     };
   }, []);
 
-  // 흰 카드 공통 — 초기 위치는 화면 아래(120vh), 스크롤에 맞춰 위로 상승
+  // 가로형 카드 공통 (Figma 193:400 — 600×300, #f3f3f3, r20) — 세로 스택, 컬럼째로 슬라이드
   const cardBase =
-    "relative shrink-0 bg-white rounded-[24px] overflow-hidden flex flex-col will-change-transform";
+    "relative w-full shrink-0 bg-[#f3f3f3] rounded-[20px] overflow-hidden flex flex-col";
   const cardStyle = {
-    width: "clamp(260px, 18.8vw, 360px)",
-    height: "clamp(380px, 56vh, 600px)",
-    padding: "clamp(22px, 1.8vw, 34px)",
-    boxShadow: "0 30px 70px -34px rgba(0,0,0,0.55)",
-    transform: "translate3d(0, 120vh, 0)",
+    height: "clamp(210px, 15.63vw, 300px)",
+    padding: "clamp(20px, 1.7vw, 32px)",
+    boxShadow: "0 24px 50px -30px rgba(0,0,0,0.5)",
   };
 
   return (
@@ -943,7 +941,7 @@ function ForBusinessStage() {
               </p>
               <h2
                 className="font-bold leading-[1.4] tracking-[-0.018em] text-center"
-                style={{ fontSize: "clamp(34px, 3.02vw, 58px)" }}
+                style={{ fontSize: "clamp(34px, 3.125vw, 60px)" }}
               >
                 {FB_WHITE_FLAT.map((line, li) => (
                   <span key={li} className="block whitespace-nowrap">
@@ -984,13 +982,14 @@ function ForBusinessStage() {
               className="absolute inset-0 z-20 will-change-[clip-path] overflow-hidden"
               style={{ clipPath: "inset(45% 48% 45% 48% round 999px)" }}
             >
+              {/* 높이 142% (Figma) — 카드 단계에서 top 0 → -42%로 스크롤-스루 */}
               <img
                 ref={bgImgRef}
                 src={fbCityNight}
                 alt=""
                 draggable="false"
-                className="absolute inset-0 w-full h-full object-cover select-none will-change-transform"
-                style={{ transform: "scale(1.12)" }}
+                className="absolute left-0 top-0 w-full object-cover select-none will-change-transform"
+                style={{ height: "142%" }}
               />
               <div className="absolute inset-0 bg-black/40" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
@@ -1007,14 +1006,14 @@ function ForBusinessStage() {
                 <p
                   ref={darkLabelRef}
                   className="text-white font-bold tracking-[-0.01em] inline-flex items-center gap-[8px] mb-[16px] xl:mb-[22px] will-change-transform"
-                  style={{ fontSize: "clamp(16px, 1.15vw, 22px)" }}
+                  style={{ fontSize: "clamp(17px, 1.46vw, 28px)" }}
                 >
                   <span>For Business</span>
                   <span aria-hidden className="inline-block w-[10px] h-[10px] rounded-full bg-white" />
                 </p>
                 <h2
                   className="font-bold leading-[1.4] tracking-[-0.018em] text-left"
-                  style={{ fontSize: "clamp(34px, 3.02vw, 58px)" }}
+                  style={{ fontSize: "clamp(34px, 3.125vw, 60px)" }}
                 >
                   {BUSINESS_LINES.map((line, li) => (
                     <span
@@ -1039,57 +1038,64 @@ function ForBusinessStage() {
 
               {/* 우측 카드 트랙 — 화면 밖(우측)에서 좌측으로 슬라이드.
                   외부 div = 가로 슬라이드(update가 transform 기록) / 내부 div = 세로 중앙 정렬 */}
-              {/* 좌측 경계를 슬로건 우측(46%)에 고정 — 우측 끝은 디자인처럼 화면 밖으로 블리드.
-                  카드 각각이 아래(120vh)에서 위로 순차 상승 */}
+              {/* 우측 카드 세로 스택 (Figma 193:400 — 가로형 600×300 ×3, gap 30)
+                  컬럼 전체가 화면 아래에서 위로 슬라이드 → 끝에서 하단 패딩 정렬 */}
               <div
-                className="absolute"
-                style={{ left: "max(46%, 720px)", top: "54%" }}
+                className="absolute inset-y-0"
+                style={{ right: "var(--fb-pad)", width: "clamp(420px, 31.3vw, 600px)" }}
               >
-                <div className="flex items-start gap-[clamp(16px,1.6vw,30px)] -translate-y-1/2">
+                <div
+                  ref={fbColRef}
+                  className="absolute left-0 top-0 w-full flex flex-col gap-[clamp(20px,1.6vw,30px)] will-change-transform"
+                  style={{ transform: "translate3d(0, 120vh, 0)" }}
+                >
                   {/* card 1 — 2026 가톨릭대 낙찰 */}
                   <article
-                    ref={(el) => (fbCardRefs.current[0] = el)}
                     className={cardBase}
                     style={cardStyle}
                     aria-label="2026 가톨릭대학교 경조사 화환 납품 낙찰업체"
                   >
-                    <span className="self-start rounded-full bg-[var(--color-brand-red)] px-[14px] py-[8px] text-[12px] xl:text-[13px] font-bold text-white whitespace-nowrap">
-                      {FB_BID.badge}
-                    </span>
-                    <div className="mt-auto flex flex-col gap-[12px]">
+                    <div className="flex items-start justify-between">
+                      <span className="rounded-full bg-[var(--color-brand-red)] px-[14px] py-[8px] text-[12px] xl:text-[13px] font-bold text-white whitespace-nowrap">
+                        {FB_BID.badge}
+                      </span>
+                      <span className="text-[11px] xl:text-[12px] font-bold tracking-[0.18em] text-[#999] uppercase">
+                        Official
+                      </span>
+                    </div>
+                    <div className="mt-auto flex flex-col gap-[8px]">
                       <p
                         className="text-[#222] font-bold leading-[1.3] tracking-[-0.02em]"
-                        style={{ fontSize: "clamp(21px, 1.6vw, 30px)" }}
+                        style={{ fontSize: "clamp(19px, 1.35vw, 26px)" }}
                       >
-                        {FB_BID.title.map((t, ti) => (
-                          <span key={ti} className="block">
-                            {t}
-                          </span>
-                        ))}
+                        가톨릭대학교
+                        <br />
+                        경조사 화환 납품 낙찰업체
                       </p>
-                      <p className="text-[#888] leading-[1.5]" style={{ fontSize: "clamp(13px, 0.85vw, 15px)" }}>
+                      <p className="text-[#888] leading-[1.5]" style={{ fontSize: "clamp(12px, 0.8vw, 15px)" }}>
                         {FB_BID.desc}
                       </p>
                     </div>
                   </article>
 
-                  {/* card 2 — 함께하는 파트너사 (마퀴) — 한 칸 아래 오프셋 */}
-                  <article
-                    ref={(el) => (fbCardRefs.current[1] = el)}
-                    className={cardBase}
-                    style={{ ...cardStyle, marginTop: "clamp(28px, 5vh, 56px)" }}
-                    aria-label="함께하는 파트너사"
-                  >
-                    <p
-                      className="text-[#222] font-bold leading-[1.3] tracking-[-0.01em]"
-                      style={{ fontSize: "clamp(19px, 1.45vw, 26px)" }}
-                    >
-                      함께하는
-                      <br />
-                      파트너사
-                    </p>
-                    <div className="my-auto flex flex-col gap-[10px]">
-                      {FB_PARTNERS.map((row, ri) => (
+                  {/* card 2 — 함께하는 파트너사 (마퀴 2행) */}
+                  <article className={cardBase} style={cardStyle} aria-label="함께하는 파트너사">
+                    <div className="flex items-center justify-between gap-[12px]">
+                      <p
+                        className="text-[#222] font-bold leading-[1.3] tracking-[-0.01em] whitespace-nowrap"
+                        style={{ fontSize: "clamp(19px, 1.35vw, 26px)" }}
+                      >
+                        함께하는 파트너사
+                      </p>
+                      <p
+                        className="text-[var(--color-brand-red)] font-bold whitespace-nowrap"
+                        style={{ fontSize: "clamp(14px, 1vw, 18px)" }}
+                      >
+                        200+ 제휴 기업
+                      </p>
+                    </div>
+                    <div className="mt-auto flex flex-col gap-[10px]">
+                      {FB_PARTNERS.slice(0, 2).map((row, ri) => (
                         <div key={ri} className="overflow-hidden">
                           <div
                             className={`flex w-max gap-[8px] ${ri % 2 === 0 ? "fb-marquee-l" : "fb-marquee-r"}`}
@@ -1108,37 +1114,24 @@ function ForBusinessStage() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-[var(--color-brand-red)] font-bold" style={{ fontSize: "clamp(15px, 1.1vw, 20px)" }}>
-                      200+ 제휴 기업
-                    </p>
                   </article>
 
-                  {/* card 3 — DATA 통계 (count-up) */}
-                  <article
-                    ref={(el) => (fbCardRefs.current[2] = el)}
-                    className={cardBase}
-                    style={cardStyle}
-                    aria-label="올해의경조사 주요 지표"
-                  >
+                  {/* card 3 — DATA 통계 2×2 그리드 (count-up) */}
+                  <article className={cardBase} style={cardStyle} aria-label="올해의경조사 주요 지표">
                     <p className="text-[12px] xl:text-[13px] font-bold tracking-[0.18em] text-[#888] uppercase">
                       Data
                     </p>
-                    <div className="mt-auto flex flex-col">
+                    <div className="mt-auto grid grid-cols-2 gap-x-[clamp(18px,1.6vw,30px)] gap-y-[clamp(10px,1.3vh,16px)]">
                       {FB_STATS.map((s, i) => (
-                        <div
-                          key={i}
-                          className={`flex items-end justify-between gap-[12px] py-[clamp(12px,1.9vh,20px)] ${
-                            i > 0 ? "border-t border-[#222]/10" : ""
-                          }`}
-                        >
-                          <p className="text-[#888] font-medium whitespace-nowrap" style={{ fontSize: "clamp(13px, 0.9vw, 16px)" }}>
+                        <div key={i} className="flex flex-col gap-[4px] border-t border-[#222]/10 pt-[10px]">
+                          <p className="text-[#888] font-medium whitespace-nowrap" style={{ fontSize: "clamp(12px, 0.8vw, 14px)" }}>
                             {s.label}
                           </p>
                           <p
                             ref={(el) => (statValRefs.current[i] = el)}
                             data-v={`0${s.suffix}`}
                             className="text-[#222] font-bold tabular-nums tracking-[-0.01em]"
-                            style={{ fontSize: "clamp(20px, 1.6vw, 30px)" }}
+                            style={{ fontSize: "clamp(19px, 1.45vw, 28px)" }}
                           >
                             {`0${s.suffix}`}
                           </p>
