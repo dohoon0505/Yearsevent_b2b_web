@@ -251,6 +251,8 @@ export default function ProductSection() {
       if (showcaseRef.current) {
         showcaseRef.current.style.opacity = sIn.toFixed(3);
         showcaseRef.current.style.transform = `translate3d(0, ${((1 - sIn) * 40).toFixed(1)}px, 0)`;
+        // 보일 때만 호버 대상 활성화 (커서 라벨/화살표 오작동 방지)
+        showcaseRef.current.style.pointerEvents = sIn > 0.5 ? "auto" : "none";
       }
       const cT = easeInOutCubic(clamp01((p - PD_CARDS_AT) / (PD_CARDS_END - PD_CARDS_AT)));
       if (cardsTrackRef.current)
@@ -293,20 +295,65 @@ export default function ProductSection() {
     };
   }, []);
 
-  // 커스텀 라벨 커서(#9) — 카드 영역에서 커서를 따라다니는 라벨
-  const onCardsMove = (e) => {
-    const cur = cursorRef.current;
+  // ── 커스텀 커서(#9 + custom-cursor-icon-swap-07 md) — 스테이지 전체 기본 커서 대체.
+  //    data-cursor 영역 선언: 빈 여백 = scroll(↓) / 이미지 카드 = label(설명) / CTA = arrow(→)
+  //    위치는 lerp(0.18)로 부드럽게 추종, 모드 변경 시에만 클래스 스왑.
+  useEffect(() => {
     const stage = stageRef.current;
-    if (!cur || !stage) return;
-    const r = stage.getBoundingClientRect();
-    cur.style.transform = `translate3d(${(e.clientX - r.left).toFixed(0)}px, ${(e.clientY - r.top).toFixed(0)}px, 0) translate(-50%, -50%)`;
-  };
-  const onCardsEnter = () => {
-    if (cursorRef.current) cursorRef.current.style.opacity = "1";
-  };
-  const onCardsLeave = () => {
-    if (cursorRef.current) cursorRef.current.style.opacity = "0";
-  };
+    const cur = cursorRef.current;
+    if (!stage || !cur) return;
+    // 터치 환경: 커스텀 커서 미적용 (CSS에서 기본 커서 복원)
+    if (window.matchMedia("(hover: none), (pointer: coarse)").matches) return;
+    stage.classList.add("pd-cursor-stage");
+    const labelEl = cur.querySelector(".pd-cur-label");
+    let mx = 0;
+    let my = 0;
+    let cx = 0;
+    let cy = 0;
+    let raf = 0;
+    let on = false;
+    let mode = "";
+    const frame = () => {
+      raf = 0;
+      cx = lerp(cx, mx, 0.18);
+      cy = lerp(cy, my, 0.18);
+      cur.style.transform = `translate3d(${cx.toFixed(1)}px, ${cy.toFixed(1)}px, 0)`;
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const onMove = (e) => {
+      const r = stage.getBoundingClientRect();
+      mx = e.clientX - r.left;
+      my = e.clientY - r.top;
+      if (!on) {
+        on = true;
+        cx = mx; // 첫 진입은 snap (멀리서 날아오지 않게)
+        cy = my;
+        stage.classList.add("is-on");
+        if (!raf) raf = requestAnimationFrame(frame);
+      }
+      const z = e.target.closest("[data-cursor]");
+      const m = z ? z.dataset.cursor : "";
+      if (m !== mode) {
+        mode = m;
+        cur.className = `pd-cursor${m ? ` has-mode mode-${m}` : ""}`;
+      }
+      if (m === "label" && z && labelEl) {
+        const txt = z.dataset.cursorLabel || "";
+        if (labelEl.textContent !== txt) labelEl.textContent = txt;
+      }
+    };
+    const onLeave = () => {
+      on = false;
+      stage.classList.remove("is-on");
+    };
+    stage.addEventListener("mousemove", onMove, { passive: true });
+    stage.addEventListener("mouseleave", onLeave);
+    return () => {
+      stage.removeEventListener("mousemove", onMove);
+      stage.removeEventListener("mouseleave", onLeave);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const labelLime = (
     <p
@@ -323,8 +370,10 @@ export default function ProductSection() {
       {/* 데스크톱(lg+) — Figma 151:332 시퀀스 */}
       <div className="hidden lg:block">
         <div ref={trackRef} style={{ height: `${PD_TRACK_VH}vh` }} className="relative">
+          {/* 스테이지 — 기본 커서 대체(빈 여백 = ↓스크롤 아이콘 스왑) */}
           <div
             ref={stageRef}
+            data-cursor="scroll"
             className="sticky top-0 h-screen w-full overflow-hidden"
             style={{ "--pd-pad": "clamp(28px, 7.8vw, 150px)" }}
           >
@@ -343,10 +392,12 @@ export default function ProductSection() {
               ref={whiteLayerRef}
               className="absolute inset-0 bg-white will-change-[clip-path]"
             >
+              {/* 쇼케이스 — 다크 단계에서는 pointer-events 차단(보이지 않는 카드에
+                  라벨 커서가 반응하지 않도록), 등장 후 update()에서 활성화 */}
               <div
                 ref={showcaseRef}
                 className="absolute inset-0 will-change-transform"
-                style={{ opacity: 0 }}
+                style={{ opacity: 0, pointerEvents: "none" }}
               >
                 {/* 좌측 고정 텍스트 + CTA (Figma 199:31) */}
                 <div
@@ -385,6 +436,7 @@ export default function ProductSection() {
                   </div>
                   <button
                     type="button"
+                    data-cursor="arrow"
                     className="self-start inline-flex items-center gap-[10px] rounded-full bg-[var(--color-brand-red)] text-white font-semibold transition-transform duration-300 hover:-translate-y-[2px]"
                     style={{
                       padding: "clamp(14px, 1.1vw, 18px) clamp(22px, 1.7vw, 30px)",
@@ -396,13 +448,10 @@ export default function ProductSection() {
                   </button>
                 </div>
 
-                {/* 우측 카드 뷰포트 — 우→좌 슬라이드 + 커스텀 라벨 커서 (#9) */}
+                {/* 우측 카드 뷰포트 — 우→좌 슬라이드 */}
                 <div
-                  className="absolute inset-y-0 right-0 overflow-hidden cursor-none"
+                  className="absolute inset-y-0 right-0 overflow-hidden"
                   style={{ left: "calc(var(--pd-pad) + clamp(300px, 22.5vw, 431px) + clamp(28px, 2.6vw, 50px))" }}
-                  onMouseMove={onCardsMove}
-                  onMouseEnter={onCardsEnter}
-                  onMouseLeave={onCardsLeave}
                 >
                   <div
                     ref={cardsTrackRef}
@@ -413,6 +462,8 @@ export default function ProductSection() {
                       {PRODUCTS.map((prod, i) => (
                         <article
                           key={i}
+                          data-cursor="label"
+                          data-cursor-label={prod.desc}
                           className="relative shrink-0 rounded-[24px] bg-[#f7f7f8] flex flex-col justify-end"
                           style={{
                             width: "clamp(320px, 26vw, 500px)",
@@ -442,9 +493,10 @@ export default function ProductSection() {
             </div>
 
             {/* 2) 다크 레이어 — 라벨 + 헤드라인. 캡슐로 축소(시퀀스 04) 후 페이드아웃 */}
+            {/* pointer-events-none: 페이드아웃 후 카드 호버(라벨 커서)를 가로채지 않도록 */}
             <div
               ref={darkLayerRef}
-              className="absolute inset-0 bg-[#222] will-change-[clip-path]"
+              className="absolute inset-0 bg-[#222] will-change-[clip-path] pointer-events-none"
               style={{ opacity: ready ? 1 : 0, transition: "opacity .6s ease-out" }}
             >
               <div
@@ -517,15 +569,38 @@ export default function ProductSection() {
               </div>
             </div>
 
-            {/* 3) 커스텀 라벨 커서 (#9) — 카드 영역 한정 표시 */}
-            <div
-              ref={cursorRef}
-              aria-hidden
-              className="absolute top-0 left-0 z-50 pointer-events-none inline-flex items-center gap-[8px] rounded-full bg-[#222] text-white font-bold px-[16px] py-[10px] text-[12px] tracking-[0.14em] uppercase transition-opacity duration-200"
-              style={{ opacity: 0, transform: "translate3d(-200px, -200px, 0)" }}
-            >
-              <span aria-hidden className="inline-block w-[7px] h-[7px] rounded-full" style={{ background: LIME }} />
-              <span>Scroll</span>
+            {/* 3) 커스텀 커서 — 라임 코어 + 아이콘 스왑(↓스크롤/→화살표) + 설명 라벨.
+                모드 클래스는 커서 effect가 통째로 교체(pd-cursor mode-*) */}
+            <div ref={cursorRef} aria-hidden className="pd-cursor">
+              <span className="pd-cur-core">
+                <svg
+                  className="pd-cur-ic pd-ic-scroll"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="#1c1e0d"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 4 v14 M6 12 l6 6 6 -6" />
+                </svg>
+                <svg
+                  className="pd-cur-ic pd-ic-arrow"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="#1c1e0d"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12 h14 M13 6 l6 6 -6 6" />
+                </svg>
+                <span className="pd-cur-label" />
+              </span>
             </div>
           </div>
         </div>

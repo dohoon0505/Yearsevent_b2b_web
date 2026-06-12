@@ -439,6 +439,49 @@
 .fb-marquee-r { animation: fb-marquee-r var(--fb-marquee-dur, 36s) linear infinite; }
 
 /* =============================================
+   Product 커스텀 커서 — 아이콘 스왑 (custom-cursor-icon-swap-07 md)
+   data-cursor="scroll|arrow|label" 영역 선언만으로 커서 의미 교체.
+   라임 코어가 영역에 따라 ↓스크롤 / →화살표 아이콘 또는 설명 라벨로 확장.
+   ============================================= */
+.pd-cursor-stage,
+.pd-cursor-stage * { cursor: none; }
+.pd-cursor {
+  position: absolute; top: 0; left: 0; z-index: 60;
+  pointer-events: none; will-change: transform;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.pd-cursor-stage.is-on .pd-cursor { opacity: 1; }
+.pd-cur-core {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px; border-radius: 999px;
+  background: #e2ef5d; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
+}
+.pd-cur-ic {
+  position: absolute; opacity: 0; transform: scale(0.4);
+  transition: opacity 0.16s ease, transform 0.2s ease;
+}
+.pd-cursor.has-mode .pd-cur-core { width: 44px; height: 44px; }
+.pd-cursor.mode-scroll .pd-ic-scroll,
+.pd-cursor.mode-arrow .pd-ic-arrow { opacity: 1; transform: scale(1); }
+/* 라벨 모드 — 코어가 텍스트 pill로 확장 (이미지 카드 설명) */
+.pd-cur-label {
+  display: none; font-weight: 600; font-size: 13px; line-height: 1.45;
+  color: #1c1e0d; width: max-content; max-width: 220px; text-align: left;
+}
+.pd-cursor.mode-label .pd-cur-core {
+  width: auto; height: auto; padding: 12px 16px; border-radius: 16px;
+}
+.pd-cursor.mode-label .pd-cur-label { display: block; }
+/* 터치 환경 — 커스텀 커서 비활성, 기본 커서 복원 */
+@media (hover: none), (pointer: coarse) {
+  .pd-cursor-stage,
+  .pd-cursor-stage * { cursor: auto; }
+  .pd-cursor { display: none; }
+}
+
+/* =============================================
    For Business 경고 버튼 — 등장 시 attention-grab pulse 2회
    ============================================= */
 @keyframes fb-warn-pulse {
