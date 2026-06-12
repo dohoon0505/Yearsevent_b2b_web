@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Lenis from "lenis";
 import HeroSection from "../components/HeroSection.jsx";
 import DataSection from "../components/DataSection.jsx";
+import ProductSection from "../components/ProductSection.jsx";
 import ScrollCardSection from "../components/ScrollCardSection.jsx";
 import ScrollSlides from "../components/ScrollSlides.jsx";
 import Footer from "../components/Footer.jsx";
@@ -156,6 +157,7 @@ export default function HomePage() {
     <div className="relative overflow-x-clip">
       <HeroSection />
       <DataSection />
+      <ProductSection />
       <ScrollCardSection />
       <ScrollSlides />
       <Footer />
