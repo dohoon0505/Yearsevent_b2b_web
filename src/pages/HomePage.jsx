@@ -3,18 +3,16 @@ import Lenis from "lenis";
 import HeroSection from "../components/HeroSection.jsx";
 import DataSection from "../components/DataSection.jsx";
 import ProductSection from "../components/ProductSection.jsx";
-import ScrollCardSection from "../components/ScrollCardSection.jsx";
-import ScrollSlides from "../components/ScrollSlides.jsx";
-import Footer from "../components/Footer.jsx";
 
 /**
  * HomePage — Hero_Section부터 시작 (Hero_Intro 제거).
  *
  * 구조:
  *   ┌─ HeroSection (100vh, JS snap)           ← Background+텍스트+헤더 시퀀스
- *   │  ScrollSlides (500vh, Lenis smooth)
- *   │  Footer
- *   └ HeaderScrollActive (fixed, 본문 진입 후 ↑ 시 등장)
+ *   │  DataSection (About Us + For Business)
+ *   │  ProductSection (다크 scrub → 캡슐 → 쇼케이스 → 글래스 이미지 연속)
+ *   └ ※ Partner Benefits 이하(ScrollCardSection·ScrollSlides·Footer)는
+ *       신규 Figma 섹션(Partner/WEB 3.0/Benefit) 구현 전까지 제거 상태
  *
  * 스크롤 정책:
  *   - HeroSection 영역(0 ~ vh): native + JS snap (방향 기반, 휠 멈춤 후 110ms)
@@ -158,9 +156,6 @@ export default function HomePage() {
       <HeroSection />
       <DataSection />
       <ProductSection />
-      <ScrollCardSection />
-      <ScrollSlides />
-      <Footer />
     </div>
   );
 }

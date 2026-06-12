@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import productGlass from "../assets/product-glass-blue.jpg";
 
 /**
  * ProductSection — Figma 151:332 (sequence 01~06) + 코멘트 #9·#10·#11
@@ -377,14 +378,14 @@ export default function ProductSection() {
             className="sticky top-0 h-screen w-full overflow-hidden"
             style={{ "--pd-pad": "clamp(28px, 7.8vw, 150px)" }}
           >
-            {/* 0) 최하단 — 다음 섹션 모티프(글로시 블루) : 출구 radius에서 드러남 */}
-            <div
+            {/* 0) 최하단 — 글로시 블루 글래스(Figma 196:508) : 출구 radius에서 드러나
+                아래 이미지 블록으로 그대로 이어진다(상단 정렬로 색 연속) */}
+            <img
               aria-hidden
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(160deg, #eef3fa 0%, #dde9f8 45%, #c6dcf6 75%, #b5d2f4 100%)",
-              }}
+              src={productGlass}
+              alt=""
+              draggable="false"
+              className="absolute inset-0 w-full h-full object-cover object-top select-none"
             />
 
             {/* 1) 흰 레이어 — 쇼케이스. 출구에서 좌하단 radius (#9) */}
@@ -604,6 +605,16 @@ export default function ProductSection() {
             </div>
           </div>
         </div>
+
+        {/* 글로시 블루 글래스 이미지 블록 (Figma 196:508) — 출구 radius 아래로 연속 */}
+        <div className="relative w-full" style={{ aspectRatio: "1920 / 2537" }}>
+          <img
+            src={productGlass}
+            alt=""
+            draggable="false"
+            className="absolute inset-0 w-full h-full object-cover select-none"
+          />
+        </div>
       </div>
 
       {/* 모바일(<lg) — 정적 스택 */}
@@ -651,6 +662,8 @@ export default function ProductSection() {
             <span aria-hidden>→</span>
           </button>
         </div>
+        {/* 글로시 블루 글래스 이미지 (모바일) */}
+        <img src={productGlass} alt="" className="w-full" draggable="false" />
       </div>
     </section>
   );
