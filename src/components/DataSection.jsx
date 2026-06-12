@@ -25,7 +25,7 @@ import fbCityNight from "../assets/forbusiness-city-night.webp";
  *      [흰 배경: 레드 악센트 슬로건 scrub, 줄 안에 야경 칩(#5)]
  *      → [칩이 캡슐(802×369)→풀블리드로 확장되며 배경을 채움(#13)]
  *      → [배경 90% 채워지면 화이트/라임 슬로건 페이드인(#12)] → [좌측 이동(#8)]
- *      → [우측에서 흰 카드 3장 슬라이드 + 배경 패럴랙스(#7·#8)]
+ *      → [우측 흰 카드 3장이 아래→위로 순차 상승 + 배경은 아래로 패럴랙스(#7·#8)]
  *      → [100%: 배경 좌하단 border-radius → #222(Product 섹션)로 연결(#6)]
  *      ⚠ 무대(sticky)는 100vh가 아닌 150vh (h-screen 회귀 금지) — 핀은 최하단 고정.
  *
@@ -139,8 +139,10 @@ const FB_DARKIN_AT = 0.28; // 배경 ~90% 채움 → 다크 슬로건 페이드�
 const FB_DARKIN_DUR = 0.08;
 const FB_MOVE_AT = 0.36; // 슬로건 center → 좌상단 (#8)
 const FB_MOVE_END = 0.46;
-const FB_CARDS_AT = 0.46; // 우측에서 카드 슬라이드 인 (#7·#8)
+const FB_CARDS_AT = 0.46; // 카드 아래→위 순차 상승 (#7·#8)
 const FB_CARDS_END = 0.9;
+const FB_CARD_STAGGER = 0.08; // 카드별 시작 간격
+const FB_CARD_DUR = 0.2; // 카드 1장 상승 구간
 const FB_COUNT_AT = 0.6; // DATA 카드 count-up
 const FB_COUNT_DUR = 0.14;
 const FB_RADIUS_AT = 0.92; // 좌하단 border-radius → #222 (#6)
@@ -670,7 +672,7 @@ function ForBusinessStage() {
   const darkHeadRef = useRef(null); // 다크 슬로건 + 라벨 (center → 좌상단)
   const darkLabelRef = useRef(null);
   const darkLineRefs = useRef([]);
-  const cardsTrackRef = useRef(null); // 우측 카드 트랙 (우→좌 슬라이드)
+  const fbCardRefs = useRef([]); // 우측 카드 3장 (아래→위 순차 상승)
   const statValRefs = useRef([]); // DATA 카드 통계 값 (count-up)
   const geo = useRef({ vw: 0, vh: 0 });
   const accentRGBRef = useRef([203, 13, 53]);
@@ -751,11 +753,7 @@ function ForBusinessStage() {
           labelOffset = Math.max(0, (headW - darkLabelRef.current.offsetWidth) / 2);
       }
 
-      // 카드 슬라이드 거리 — 트랙의 정착 위치(left 고정)에서 화면 밖(우측)까지.
-      const track = cardsTrackRef.current;
-      const slideDist = vw - (track ? track.offsetLeft : vw * 0.46) + 24;
-
-      geo.current = { vw, vh, stageH, chip, cap, centerX, centerY, lineOffsets, labelOffset, slideDist };
+      geo.current = { vw, vh, stageH, chip, cap, centerX, centerY, lineOffsets, labelOffset };
     };
 
     const insetClip = (r, stageW, stageH, rad) =>
@@ -816,9 +814,11 @@ function ForBusinessStage() {
         const r = lerpRect(g.cap, full, t);
         clip = insetClip(r, stageW, stageH, lerp(g.cap.h / 2, 0, t));
       } else {
+        // 풀블리드 구간은 clip 해제(none) — inset(0) 안티앨리어싱 경계로
+        // 아래 레이어가 1px 비치는 헤어라인 방지. 출구 radius 때만 clip 적용.
         const exitT = smoothstep(clamp01((p - FB_RADIUS_AT) / (1 - FB_RADIUS_AT)));
         const R = lerp(0, Math.max(120, Math.min(220, g.vw * 0.115)), exitT);
-        clip = `inset(0px round 0px 0px 0px ${R.toFixed(1)}px)`;
+        clip = exitT > 0 ? `inset(0px round 0px 0px 0px ${R.toFixed(1)}px)` : "none";
       }
       if (bgLayerRef.current && bgLayerRef.current.dataset.clip !== clip) {
         bgLayerRef.current.style.clipPath = clip;
@@ -846,12 +846,19 @@ function ForBusinessStage() {
       if (darkLabelRef.current)
         darkLabelRef.current.style.transform = `translate3d(${((g.labelOffset || 0) * (1 - mE)).toFixed(1)}px, 0, 0)`;
 
-      // 4) 카드 트랙 — 우측 밖에서 좌측으로 슬라이드(#7·#8) + 배경 패럴랙스(#7)
+      // 4) 카드 — 아래에서 위로 순차 상승(#7·#8) + 배경은 아래로 패럴랙스(#7)
       const cT = easeInOutCubic(clamp01((p - FB_CARDS_AT) / (FB_CARDS_END - FB_CARDS_AT)));
-      if (cardsTrackRef.current)
-        cardsTrackRef.current.style.transform = `translate3d(${(g.slideDist * (1 - cT)).toFixed(1)}px, 0, 0)`;
+      const fbCards = fbCardRefs.current;
+      for (let i = 0; i < fbCards.length; i++) {
+        const el = fbCards[i];
+        if (!el) continue;
+        const t = easeInOutCubic(
+          clamp01((p - FB_CARDS_AT - i * FB_CARD_STAGGER) / FB_CARD_DUR),
+        );
+        el.style.transform = `translate3d(0, ${((1 - t) * g.vh * 1.1).toFixed(1)}px, 0)`;
+      }
       if (bgImgRef.current)
-        bgImgRef.current.style.transform = `translate3d(${(-g.vw * 0.04 * cT).toFixed(1)}px, 0, 0) scale(1.1)`;
+        bgImgRef.current.style.transform = `translate3d(0, ${(g.vh * 0.06 * cT).toFixed(1)}px, 0) scale(1.12)`;
 
       // 5) DATA 카드 count-up
       const vals = statValRefs.current;
@@ -894,14 +901,15 @@ function ForBusinessStage() {
     };
   }, []);
 
-  // 흰 카드 공통
+  // 흰 카드 공통 — 초기 위치는 화면 아래(120vh), 스크롤에 맞춰 위로 상승
   const cardBase =
-    "relative shrink-0 bg-white rounded-[24px] overflow-hidden flex flex-col";
+    "relative shrink-0 bg-white rounded-[24px] overflow-hidden flex flex-col will-change-transform";
   const cardStyle = {
     width: "clamp(260px, 18.8vw, 360px)",
     height: "clamp(380px, 56vh, 600px)",
     padding: "clamp(22px, 1.8vw, 34px)",
     boxShadow: "0 30px 70px -34px rgba(0,0,0,0.55)",
+    transform: "translate3d(0, 120vh, 0)",
   };
 
   return (
@@ -982,7 +990,7 @@ function ForBusinessStage() {
                 alt=""
                 draggable="false"
                 className="absolute inset-0 w-full h-full object-cover select-none will-change-transform"
-                style={{ transform: "scale(1.1)" }}
+                style={{ transform: "scale(1.12)" }}
               />
               <div className="absolute inset-0 bg-black/40" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
@@ -1031,19 +1039,20 @@ function ForBusinessStage() {
 
               {/* 우측 카드 트랙 — 화면 밖(우측)에서 좌측으로 슬라이드.
                   외부 div = 가로 슬라이드(update가 transform 기록) / 내부 div = 세로 중앙 정렬 */}
-              {/* 좌측 경계를 슬로건 우측(46%)에 고정 — 우측 끝은 디자인처럼 화면 밖으로 블리드 */}
+              {/* 좌측 경계를 슬로건 우측(46%)에 고정 — 우측 끝은 디자인처럼 화면 밖으로 블리드.
+                  카드 각각이 아래(120vh)에서 위로 순차 상승 */}
               <div
-                ref={cardsTrackRef}
-                className="absolute will-change-transform"
-                style={{
-                  left: "max(46%, 720px)",
-                  top: "54%",
-                  transform: "translate3d(120vw, 0, 0)",
-                }}
+                className="absolute"
+                style={{ left: "max(46%, 720px)", top: "54%" }}
               >
                 <div className="flex items-start gap-[clamp(16px,1.6vw,30px)] -translate-y-1/2">
                   {/* card 1 — 2026 가톨릭대 낙찰 */}
-                  <article className={cardBase} style={cardStyle} aria-label="2026 가톨릭대학교 경조사 화환 납품 낙찰업체">
+                  <article
+                    ref={(el) => (fbCardRefs.current[0] = el)}
+                    className={cardBase}
+                    style={cardStyle}
+                    aria-label="2026 가톨릭대학교 경조사 화환 납품 낙찰업체"
+                  >
                     <span className="self-start rounded-full bg-[var(--color-brand-red)] px-[14px] py-[8px] text-[12px] xl:text-[13px] font-bold text-white whitespace-nowrap">
                       {FB_BID.badge}
                     </span>
@@ -1066,6 +1075,7 @@ function ForBusinessStage() {
 
                   {/* card 2 — 함께하는 파트너사 (마퀴) — 한 칸 아래 오프셋 */}
                   <article
+                    ref={(el) => (fbCardRefs.current[1] = el)}
                     className={cardBase}
                     style={{ ...cardStyle, marginTop: "clamp(28px, 5vh, 56px)" }}
                     aria-label="함께하는 파트너사"
@@ -1104,7 +1114,12 @@ function ForBusinessStage() {
                   </article>
 
                   {/* card 3 — DATA 통계 (count-up) */}
-                  <article className={cardBase} style={cardStyle} aria-label="올해의경조사 주요 지표">
+                  <article
+                    ref={(el) => (fbCardRefs.current[2] = el)}
+                    className={cardBase}
+                    style={cardStyle}
+                    aria-label="올해의경조사 주요 지표"
+                  >
                     <p className="text-[12px] xl:text-[13px] font-bold tracking-[0.18em] text-[#888] uppercase">
                       Data
                     </p>

@@ -5,7 +5,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
  *
  *   TRACK 640vh / sticky 100vh
  *   [다크(#222): "What kind of Product?" 라임 라벨 + 헤드라인1 scrub
- *      + "비즈니스" 단어 스크램블 로테이터(#10·#11)]
+ *      + "비즈니스" 단어 로테이터(#10·#11 — text-scramble-word-rotator-08 md,
+ *        마스크 세로 순환: 정지 70% + easeInOutCubic 슬라이드 30%)]
  *   → [헤드라인 교체: "모든 경조사 소식에 발 빠르게 대응합니다"]
  *   → [다크 영역이 캡슐(802×369)로 축소되며 흰 배경 전환(시퀀스 04)]
  *   → [흰 배경 쇼케이스: 좌측 텍스트+CTA 고정, 상품 카드 우→좌 슬라이드
@@ -15,10 +16,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM 기록.
  */
 
-// 단어 로테이터(#10·#11) — text-scramble-word-rotator: "비즈니스" 자리 순환
+// 단어 로테이터(#10·#11) — text-scramble-word-rotator-08 md 패턴:
+//   마스크(1줄 높이, overflow hidden) 안에 단어들 + 첫 단어 클론을 세로로 쌓고,
+//   세그먼트당 70% 정지 + 30% easeInOutCubic 슬라이드로 한 칸씩 순환.
+//   마스크 폭은 가장 긴 단어로 고정(문장 들썩임 방지), 클론 도착 시 리셋 → 이음새 없음.
 const ROT_WORDS = ["비즈니스", "부고소식", "청첩장 소식", "확장소식", "이전소식", "취임소식", "개업소식"];
-// 스크램블 중간 프레임용 글자 풀(로테이션 단어들의 음절 집합)
-const ROT_CHARS = [...new Set(ROT_WORDS.join("").replace(/ /g, "").split(""))];
 
 // 헤드라인1 scrub 토큰 (로테이터 단어 제외)
 const PD_H1_WORDS = ["에 필요한", "모든", "경조사", "상품,"];
@@ -65,7 +67,8 @@ export default function ProductSection() {
   const h1Ref = useRef(null); // 헤드라인1 (scrub + 로테이터)
   const h2Ref = useRef(null); // 헤드라인2
   const h1WordRefs = useRef([]);
-  const rotatorRef = useRef(null); // 로테이터 단어 span
+  const rotMaskRef = useRef(null); // 로테이터 마스크 (폭 고정)
+  const rotInnerRef = useRef(null); // 로테이터 단어 스택 (translateY 순환)
   const whiteLayerRef = useRef(null); // 흰 레이어 (출구 좌하단 radius)
   const showcaseRef = useRef(null); // 쇼케이스 콘텐츠 (등장)
   const cardsTrackRef = useRef(null); // 카드 트랙 (우→좌 슬라이드)
@@ -91,51 +94,58 @@ export default function ProductSection() {
     return () => obs.disconnect();
   }, []);
 
-  // ── 단어 스크램블 로테이터 (#10·#11) — 섹션 가시 + 헤드라인1 표시 중에만 동작
+  // ── 단어 로테이터 (#10·#11) — md 패턴: 정지 70% + easeInOutCubic 슬라이드 30%
   useEffect(() => {
-    const el = rotatorRef.current;
+    const mask = rotMaskRef.current;
+    const inner = rotInnerRef.current;
     const section = sectionRef.current;
-    if (!el || !section) return;
+    if (!mask || !inner || !section) return;
+
+    // 마스크 폭 = 가장 긴 단어 폭으로 고정 (문장 들썩임 방지)
+    const fit = () => {
+      let maxW = 0;
+      for (const c of inner.children) maxW = Math.max(maxW, c.offsetWidth);
+      if (maxW > 0) mask.style.width = `${Math.ceil(maxW)}px`;
+    };
+    fit();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    window.addEventListener("resize", fit);
+
+    // 모션 최소화 선호 시 첫 단어 고정 (md 권장)
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return () => window.removeEventListener("resize", fit);
+    }
+
+    const HOLD = 0.7; // 세그먼트의 70%는 정지(읽기 시간)
+    const STEP = 1800; // 단어당 1.8s
+    const N = ROT_WORDS.length;
     let visible = false;
-    let idx = 0;
-    let timer = 0;
     let raf = 0;
-
-    const scrambleTo = (word) => {
-      const startAt = performance.now();
-      const DUR = 620;
-      const step = (now) => {
-        const t = clamp01((now - startAt) / DUR);
-        const fixed = Math.floor(t * word.length);
-        let out = word.slice(0, fixed);
-        for (let i = fixed; i < word.length; i++) {
-          out += word[i] === " " ? " " : ROT_CHARS[(Math.random() * ROT_CHARS.length) | 0];
-        }
-        el.textContent = out;
-        if (t < 1) raf = requestAnimationFrame(step);
-      };
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(step);
-    };
-
-    const tick = () => {
-      // 헤드라인1이 화면에 있을 때만 회전 (교체 이후 정지)
-      if (visible && pRef.current < PD_SWAP_AT + PD_SWAP_DUR) {
-        idx = (idx + 1) % ROT_WORDS.length;
-        scrambleTo(ROT_WORDS[idx]);
+    const loop = (now) => {
+      raf = 0;
+      if (!visible) return;
+      // 헤드라인 교체 후에는 회전 정지 (마지막 위치 유지)
+      if (pRef.current < PD_SWAP_AT + PD_SWAP_DUR) {
+        const t = (now % (STEP * N)) / STEP; // 0..N — 마지막 칸 = 첫 단어 클론
+        const idx = Math.floor(t);
+        const segP = t - idx;
+        const slide = segP < HOLD ? 0 : easeInOutCubic((segP - HOLD) / (1 - HOLD));
+        inner.style.transform = `translateY(${(-(idx + slide) * 1.5).toFixed(4)}em)`;
       }
-      timer = window.setTimeout(tick, 2600);
+      raf = requestAnimationFrame(loop);
     };
-    timer = window.setTimeout(tick, 2600);
-
-    const io = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting), {
-      threshold: 0,
-    });
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible && !raf) raf = requestAnimationFrame(loop);
+      },
+      { threshold: 0 },
+    );
     io.observe(section);
     return () => {
       io.disconnect();
-      clearTimeout(timer);
-      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", fit);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 
@@ -212,7 +222,12 @@ export default function ProductSection() {
       const right = lerp(0, g.vw - cap.x - cap.w, capT);
       const bottom = lerp(0, g.vh - cap.y - cap.h, capT);
       const rad = lerp(0, cap.h / 2, capT);
-      const clip = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${rad.toFixed(1)}px)`;
+      // capT=0이면 clip 해제(none) — inset(0)의 안티앨리어싱 경계로 아래 밝은
+      // 레이어가 1px 비치는 헤어라인(섹션 경계 흰 선) 방지.
+      const clip =
+        capT <= 0
+          ? "none"
+          : `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${rad.toFixed(1)}px)`;
       const dark = darkLayerRef.current;
       if (dark) {
         if (dark.dataset.clip !== clip) {
@@ -237,7 +252,7 @@ export default function ProductSection() {
       // 5) 출구 — 흰 레이어 좌하단 radius (#9)
       const exitT = smoothstep(clamp01((p - PD_RADIUS_AT) / (1 - PD_RADIUS_AT)));
       const R = lerp(0, Math.max(120, Math.min(200, g.vw * 0.105)), exitT);
-      const wClip = `inset(0px round 0px 0px 0px ${R.toFixed(1)}px)`;
+      const wClip = exitT <= 0 ? "none" : `inset(0px round 0px 0px 0px ${R.toFixed(1)}px)`;
       const wl = whiteLayerRef.current;
       if (wl && wl.dataset.clip !== wClip) {
         wl.style.clipPath = wClip;
@@ -438,8 +453,24 @@ export default function ProductSection() {
                     style={{ fontSize: "clamp(34px, 3.1vw, 60px)" }}
                   >
                     <span className="block whitespace-nowrap">
-                      <span ref={rotatorRef} className="inline-block whitespace-pre" style={{ color: LIME }}>
-                        비즈니스
+                      {/* 로테이터 마스크 — 1줄 높이로 클립, 단어 스택이 위로 순환.
+                          폭은 가장 긴 단어로 고정 + 우측 정렬 → 짧은 단어도 조사("에")와 붙음 */}
+                      <span
+                        ref={rotMaskRef}
+                        className="inline-block overflow-hidden align-bottom text-right"
+                        style={{ height: "1.5em" }}
+                      >
+                        <span ref={rotInnerRef} className="block will-change-transform">
+                          {[...ROT_WORDS, ROT_WORDS[0]].map((w, i) => (
+                            <span
+                              key={i}
+                              className="block whitespace-pre"
+                              style={{ height: "1.5em", color: LIME }}
+                            >
+                              {w}
+                            </span>
+                          ))}
+                        </span>
                       </span>
                       <span
                         ref={(el) => (h1WordRefs.current[0] = el)}
