@@ -9,7 +9,7 @@ import productGlass from "../assets/product-glass-blue.jpg";
  *      + "비즈니스" 단어 로테이터(#10·#11 — text-scramble-word-rotator-08 md,
  *        마스크 세로 순환: 정지 70% + easeInOutCubic 슬라이드 30%)]
  *   → [헤드라인 교체: "모든 경조사 소식에 발 빠르게 대응합니다"]
- *   → [다크 영역이 캡슐(802×369)로 축소되며 흰 배경 전환(시퀀스 04)]
+ *   → [다크 영역이 캡슐(401×185)로 축소되며 흰 배경 전환(시퀀스 04)]
  *   → [흰 배경 쇼케이스: 좌측 텍스트+CTA 고정, 상품 카드 우→좌 슬라이드
  *      + 커스텀 라벨 커서(#9)]
  *   → [100%: 흰 섹션 좌하단 border-radius → 다음 섹션 배경으로 연결(#9)]
@@ -163,8 +163,8 @@ export default function ProductSection() {
     const measure = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      // 캡슐(802×369 @1920) — 화면 정중앙
-      const capW = Math.min(vw * 0.8, Math.max(520, vw * 0.418));
+      // 캡슐(401×185 @1920) — 화면 정중앙. 최소 축소 크기를 기존 대비 50%로 (× 0.5)
+      const capW = Math.min(vw * 0.8, Math.max(520, vw * 0.418)) * 0.5;
       const capH = capW * (369 / 802);
       const cap = { x: (vw - capW) / 2, y: (vh - capH) / 2, w: capW, h: capH };
       // 카드 슬라이드 종점 — 마지막 카드가 화면 우측에 닿도록
@@ -245,7 +245,7 @@ export default function ProductSection() {
         dark.style.opacity = (1 - clamp01((p - PD_CAP_END) / PD_CAPFADE_DUR)).toFixed(3);
       }
       if (darkInnerRef.current)
-        darkInnerRef.current.style.transform = `scale(${lerp(1, 0.66, capT).toFixed(4)})`;
+        darkInnerRef.current.style.transform = `scale(${lerp(1, 0.33, capT).toFixed(4)})`;
 
       // 4) 쇼케이스 등장 + 카드 우→좌 슬라이드 (#9)
       const sIn = smoothstep(clamp01((p - PD_SHOW_AT) / PD_SHOW_DUR));
