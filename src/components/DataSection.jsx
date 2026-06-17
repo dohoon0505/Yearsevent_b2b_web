@@ -127,10 +127,10 @@ const FB_BID = {
 };
 
 // ───────── For Business 무대 임계값 ─────────
-//   ⚠ 무대(sticky)는 100vh가 아닌 150vh — 배경 야경이 뷰포트보다 길다. (h-screen 회귀 금지)
-//     핀은 최하단 고정(top: 100vh-150vh = -50vh): 진입 시 상단 50vh는 내부
-//     스크롤로 통과한 뒤 무대 하단 100vh가 고정되어 연출이 시작된다.
-const FB_STAGE_VH = 150;
+//   무대(sticky) = 100vh (top 0 — 진입 즉시 핀, 슬로건 바로 중앙). 배경 야경은
+//   img height 142%로 무대보다 길어 패럴랙스 유지. (이전 150vh + 핀 최하단은
+//   도입부 50vh 통과 여백을 만들어 About→FB 전환 빈 공간 유발 → 사용자 요청으로 100vh)
+const FB_STAGE_VH = 100;
 const FB_TRACK_VH = 710; // 핀 구간 = 710 - 150 = 560vh
 // 인터랙션 임계값 (핀 진행률 p ∈ [0, 1])
 const FB_TEXT_END = 0.12; // 흰 배경 슬로건 scrub 완료
