@@ -569,7 +569,7 @@ export default function ProductSection() {
                     className="absolute top-1/2 left-0 will-change-transform"
                     style={{ transform: "translate3d(0, 0, 0)" }}
                   >
-                    <div className="flex items-start gap-[clamp(28px,2.6vw,50px)] -translate-y-1/2">
+                    <div className="flex items-start gap-[clamp(28px,3.65vw,70px)] -translate-y-1/2">
                       {PRODUCTS.map((prod, i) => (
                         <article
                           key={i}
@@ -578,7 +578,7 @@ export default function ProductSection() {
                           data-cursor-label={prod.desc}
                           className="relative shrink-0 overflow-hidden flex flex-col justify-end"
                           style={{
-                            width: "clamp(288px, 23.4vw, 450px)",
+                            width: "clamp(288px, 25vw, 480px)",
                             height: "clamp(420px, 60vh, 650px)",
                             padding: "clamp(28px, 2.6vw, 50px)",
                             borderRadius: "clamp(28px, 2.6vw, 50px)",
