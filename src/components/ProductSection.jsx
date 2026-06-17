@@ -307,7 +307,9 @@ export default function ProductSection() {
           const left = lerp(0, cap.x, capT);
           const right = lerp(0, lw - cap.x - cap.w, capT);
           const bottom = lerp(0, lh - cap.y - cap.h, capT);
-          const rad = lerp(0, 24, capT);
+          // 카드 radius clamp(28px, 2.6vw, 50px)와 동기 (cap=첫 상품카드)
+          const cardR = Math.min(50, Math.max(28, g.vw * 0.026));
+          const rad = lerp(0, cardR, capT);
           const clip =
             capT <= 0
               ? "none"
@@ -521,22 +523,22 @@ export default function ProductSection() {
                 >
                   <div>
                     <p className="text-[var(--color-brand-red)] font-bold tracking-[-0.01em] inline-flex items-center gap-[8px]"
-                      style={{ fontSize: "clamp(14px, 0.95vw, 18px)" }}
+                      style={{ fontSize: "clamp(17px, 1.25vw, 24px)" }}
                     >
-                      <span>All Products Nationwide</span>
-                      <span aria-hidden className="inline-block w-[9px] h-[9px] rounded-full bg-[var(--color-brand-red)]" />
+                      <span>All Products Offer</span>
+                      <span aria-hidden className="inline-block w-[10px] h-[10px] rounded-full bg-[var(--color-brand-red)]" />
                     </p>
                     <h2
-                      className="mt-[18px] xl:mt-[24px] text-[#222] font-bold leading-[1.45] tracking-[-0.02em]"
-                      style={{ fontSize: "clamp(34px, 3.2vw, 62px)" }}
+                      className="mt-[20px] text-[#222] font-bold leading-[1.4] tracking-[-0.02em]"
+                      style={{ fontSize: "clamp(38px, 3.65vw, 70px)" }}
                     >
                       경조사 소식을
                       <br />
                       공유 해주세요 :)
                     </h2>
                     <p
-                      className="mt-[16px] xl:mt-[22px] text-[#888] leading-[1.6]"
-                      style={{ fontSize: "clamp(14px, 0.95vw, 18px)" }}
+                      className="mt-[20px] text-[#797979] leading-[1.5]"
+                      style={{ fontSize: "clamp(15px, 1.04vw, 20px)" }}
                     >
                       기업에게, 대표님에게 발생하는 경조사 소식을
                       <br />
@@ -548,8 +550,8 @@ export default function ProductSection() {
                     data-cursor="arrow"
                     className="self-start inline-flex items-center gap-[10px] rounded-full bg-[var(--color-brand-red)] text-white font-semibold transition-transform duration-300 hover:-translate-y-[2px]"
                     style={{
-                      padding: "clamp(14px, 1.1vw, 18px) clamp(22px, 1.7vw, 30px)",
-                      fontSize: "clamp(14px, 1vw, 19px)",
+                      padding: "clamp(15px, 0.94vw, 18px) clamp(22px, 1.46vw, 28px)",
+                      fontSize: "clamp(16px, 1.04vw, 20px)",
                     }}
                   >
                     <span>상품가이드 더 살펴보기</span>
@@ -560,7 +562,7 @@ export default function ProductSection() {
                 {/* 우측 카드 뷰포트 — 우→좌 슬라이드. 텍스트와의 간격은 카드 간 간격의 2배 */}
                 <div
                   className="absolute inset-y-0 right-0 overflow-hidden"
-                  style={{ left: "calc(var(--pd-pad) + clamp(300px, 22.5vw, 431px) + clamp(56px, 5.2vw, 100px))" }}
+                  style={{ left: "calc(var(--pd-pad) + clamp(300px, 22.5vw, 431px) + clamp(100px, 10.4vw, 200px))" }}
                 >
                   <div
                     ref={cardsTrackRef}
@@ -574,14 +576,15 @@ export default function ProductSection() {
                           ref={i === 0 ? cardEl0Ref : undefined}
                           data-cursor="label"
                           data-cursor-label={prod.desc}
-                          className="relative shrink-0 overflow-hidden rounded-[24px] flex flex-col justify-end"
+                          className="relative shrink-0 overflow-hidden flex flex-col justify-end"
                           style={{
-                            width: "clamp(288px, 23.4vw, 450px)",
+                            width: "clamp(300px, 26vw, 500px)",
                             height: "clamp(420px, 60vh, 650px)",
-                            padding: "clamp(22px, 1.8vw, 34px)",
+                            padding: "clamp(28px, 2.6vw, 50px)",
+                            borderRadius: "clamp(28px, 2.6vw, 50px)",
                             marginTop: i % 2 === 1 ? "clamp(30px, 6vh, 65px)" : "0px",
                             // 이미지 카드는 다크 베이스, 이미지 없는 카드는 회색 플레이스홀더.
-                            background: prod.img ? "#1d1d1f" : "#f7f7f8",
+                            background: prod.img ? "#1d1d1f" : "#f8f8f8",
                           }}
                         >
                           {prod.img && (
@@ -608,17 +611,17 @@ export default function ProductSection() {
                           <p
                             className="relative font-bold tracking-[-0.01em]"
                             style={{
-                              fontSize: "clamp(19px, 1.45vw, 26px)",
+                              fontSize: "clamp(22px, 1.67vw, 32px)",
                               color: prod.img ? "#fff" : "#222",
                             }}
                           >
                             {prod.title}
                           </p>
                           <p
-                            className="relative mt-[10px] leading-[1.5]"
+                            className="relative mt-[14px] leading-[1.5]"
                             style={{
-                              fontSize: "clamp(13px, 0.85vw, 16px)",
-                              color: prod.img ? "rgba(255,255,255,.88)" : "#888",
+                              fontSize: "clamp(14px, 1.04vw, 20px)",
+                              color: prod.img ? "rgba(255,255,255,.88)" : "rgba(34,34,34,.7)",
                             }}
                           >
                             {prod.desc}
@@ -716,8 +719,8 @@ export default function ProductSection() {
               <div
                 ref={darkSwapRef}
                 aria-hidden
-                className="absolute overflow-hidden rounded-[24px] will-change-[opacity]"
-                style={{ left: 0, top: 0, width: 0, height: 0, opacity: 0 }}
+                className="absolute overflow-hidden will-change-[opacity]"
+                style={{ left: 0, top: 0, width: 0, height: 0, opacity: 0, borderRadius: "clamp(28px, 2.6vw, 50px)" }}
               >
                 <div
                   ref={darkSwapBgRef}
