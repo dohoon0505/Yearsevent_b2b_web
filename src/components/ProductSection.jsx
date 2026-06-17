@@ -578,7 +578,7 @@ export default function ProductSection() {
                           data-cursor-label={prod.desc}
                           className="relative shrink-0 overflow-hidden flex flex-col justify-end"
                           style={{
-                            width: "clamp(288px, 25vw, 480px)",
+                            width: "clamp(288px, 23.4vw, 450px)",
                             height: "clamp(420px, 60vh, 650px)",
                             padding: "clamp(22px, 1.875vw, 36px)",
                             borderRadius: "clamp(28px, 2.6vw, 50px)",
