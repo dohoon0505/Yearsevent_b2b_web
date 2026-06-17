@@ -240,7 +240,7 @@ export default function ProductSection() {
         const visibleW = vw - cardsLeft;
         slideEnd = Math.min(0, visibleW - track.scrollWidth - vw * 0.02);
       }
-      geo.current = { vw, vh, cap, slideEnd, slideStart: vw * 0.32 };
+      geo.current = { vw, vh, cap, slideEnd, slideStart: 0 };
     };
 
     const update = () => {
@@ -567,7 +567,7 @@ export default function ProductSection() {
                   <div
                     ref={cardsTrackRef}
                     className="absolute top-1/2 left-0 will-change-transform"
-                    style={{ transform: "translate3d(32vw, 0, 0)" }}
+                    style={{ transform: "translate3d(0, 0, 0)" }}
                   >
                     <div className="flex items-start gap-[clamp(28px,2.6vw,50px)] -translate-y-1/2">
                       {PRODUCTS.map((prod, i) => (
@@ -578,7 +578,7 @@ export default function ProductSection() {
                           data-cursor-label={prod.desc}
                           className="relative shrink-0 overflow-hidden flex flex-col justify-end"
                           style={{
-                            width: "clamp(300px, 26vw, 500px)",
+                            width: "clamp(288px, 23.4vw, 450px)",
                             height: "clamp(420px, 60vh, 650px)",
                             padding: "clamp(28px, 2.6vw, 50px)",
                             borderRadius: "clamp(28px, 2.6vw, 50px)",
