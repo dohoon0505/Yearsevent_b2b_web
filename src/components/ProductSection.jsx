@@ -119,9 +119,12 @@ const waveSideClip = (c, w, h, ox = 0, oy = 0) => {
 export default function ProductSection() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const darkLayerRef = useRef(null); // 다크 레이어 (clip-path 카드 축소 + 페이드)
-  const darkInnerRef = useRef(null); // 다크 중앙 콘텐츠 (스크럽·교체 단계 → 카드 형성 시 페이드아웃)
-  const darkCardRef = useRef(null); // 카드 정렬 콘텐츠 (라벨 top-left + 헤드라인 bottom-left, 카드 형성 시 페이드인)
+  const darkLayerRef = useRef(null); // 다크 레이어 컨테이너(투명) — ready 페이드인
+  const darkBackdropRef = useRef(null); // 풀스크린 → 첫 카드(cap)로 inset 축소되는 다크 배경(#222)
+  const darkInnerRef = useRef(null); // 다크 중앙 콘텐츠 (스크럽·교체 → 축소 시 페이드아웃)
+  const darkSwapRef = useRef(null); // cap 카드 마스크(rounded-24 + overflow-hidden) — 모서리 radius 유지
+  const darkSwapBgRef = useRef(null); // 카드 다크 배경(#222) — 측면 물결로 사라짐
+  const darkCardRef = useRef(null); // 카드 정렬 콘텐츠 (라벨 top-left + 헤드라인 bottom-left)
   const h1Ref = useRef(null); // 헤드라인1 (scrub + 로테이터)
   const h2Ref = useRef(null); // 헤드라인2
   const h1WordRefs = useRef([]);
@@ -292,47 +295,60 @@ export default function ProductSection() {
         const fr = fc.getBoundingClientRect();
         if (fr.width) cap = { x: fr.left, y: fr.top, w: fr.width, h: fr.height };
       }
-      const dark = darkLayerRef.current;
-      if (dark) {
-        let clip;
+      // 3a) 풀스크린 → cap(첫 카드)로 inset 축소되는 다크 배경. 물결 단계 진입 시
+      //     숨김(카드 마스크 C가 같은 자리 #222를 그대로 이어받음 → 점프 없음).
+      const backdrop = darkBackdropRef.current;
+      if (backdrop) {
         if (p < PD_WAVE_AT) {
-          // 풀스크린 → cap(첫 카드) 으로 inset 축소. 여백은 레이어 실제 크기 기준
-          // (g.vw=innerWidth는 스크롤바를 포함해 clip 좌표계와 어긋나므로 clientWidth 사용).
-          const lw = dark.clientWidth;
-          const lh = dark.clientHeight;
+          // 여백은 레이어 실제 크기 기준(innerWidth는 스크롤바 포함이라 어긋남).
+          const lw = backdrop.clientWidth;
+          const lh = backdrop.clientHeight;
           const top = lerp(0, cap.y, capT);
           const left = lerp(0, cap.x, capT);
           const right = lerp(0, lw - cap.x - cap.w, capT);
           const bottom = lerp(0, lh - cap.y - cap.h, capT);
           const rad = lerp(0, 24, capT);
-          clip =
+          const clip =
             capT <= 0
               ? "none"
               : `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${rad.toFixed(1)}px)`;
+          if (backdrop.dataset.clip !== clip) {
+            backdrop.style.clipPath = clip;
+            backdrop.dataset.clip = clip;
+          }
+          backdrop.style.opacity = "1";
         } else {
-          // cap 카드가 측면 물결로 사라짐 (coverage 1→0) → 뒤의 대형 관엽화분 노출
-          const waveT = clamp01((p - PD_WAVE_AT) / (PD_WAVE_END - PD_WAVE_AT));
-          const cov = reduceMotion ? 0 : 1 - waveT;
-          clip = waveSideClip(cov, cap.w, cap.h, cap.x, cap.y);
-        }
-        if (dark.dataset.clip !== clip) {
-          dark.style.clipPath = clip;
-          dark.dataset.clip = clip;
+          backdrop.style.opacity = "0";
         }
       }
-      // 중앙 정렬 콘텐츠(스크럽·교체)는 축소 초반에 빠르게 페이드아웃(우측 cap에 잘려
-      // 보이지 않도록), 카드 정렬 콘텐츠(라벨 top-left + 헤드라인 bottom-left)는 cap에 배치.
+      // 3b) cap 카드 마스크(C) — 위치·크기 = cap, rounded-24 + overflow-hidden.
+      //     안쪽 배경(D)이 어떤 물결 모양이어도 모서리 radius는 이 컨테이너가 유지.
+      const swap = darkSwapRef.current;
+      if (swap) {
+        swap.style.left = `${cap.x.toFixed(1)}px`;
+        swap.style.top = `${cap.y.toFixed(1)}px`;
+        swap.style.width = `${cap.w.toFixed(1)}px`;
+        swap.style.height = `${cap.h.toFixed(1)}px`;
+        swap.style.opacity = smoothstep(clamp01((capT - 0.45) / 0.45)).toFixed(3);
+      }
+      // 3c) 카드 다크 배경(D) — 측면 물결로 사라짐(coverage 1→0). C 로컬좌표(0~w,0~h).
+      const swapBg = darkSwapBgRef.current;
+      if (swapBg) {
+        let cov = 1;
+        if (p >= PD_WAVE_AT) {
+          const waveT = clamp01((p - PD_WAVE_AT) / (PD_WAVE_END - PD_WAVE_AT));
+          cov = reduceMotion ? 0 : 1 - waveT;
+        }
+        const clip = waveSideClip(cov, cap.w, cap.h);
+        if (swapBg.dataset.clip !== clip) {
+          swapBg.style.clipPath = clip;
+          swapBg.dataset.clip = clip;
+        }
+      }
+      // 중앙 정렬 콘텐츠(스크럽·교체)는 축소 초반에 빠르게 페이드아웃.
       if (darkInnerRef.current) {
         darkInnerRef.current.style.transform = `scale(${lerp(1, 0.92, capT).toFixed(4)})`;
         darkInnerRef.current.style.opacity = (1 - smoothstep(clamp01(capT / 0.25))).toFixed(3);
-      }
-      const cardEl = darkCardRef.current;
-      if (cardEl) {
-        cardEl.style.left = `${cap.x.toFixed(1)}px`;
-        cardEl.style.top = `${cap.y.toFixed(1)}px`;
-        cardEl.style.width = `${cap.w.toFixed(1)}px`;
-        cardEl.style.height = `${cap.h.toFixed(1)}px`;
-        cardEl.style.opacity = smoothstep(clamp01((capT - 0.45) / 0.45)).toFixed(3);
       }
 
       // 4) 쇼케이스(흰 배경+좌측+카드)를 다크 축소와 함께 미리 등장 → 다크 카드 뒤에
@@ -619,9 +635,11 @@ export default function ProductSection() {
             {/* pointer-events-none: 페이드아웃 후 카드 호버(라벨 커서)를 가로채지 않도록 */}
             <div
               ref={darkLayerRef}
-              className="absolute inset-0 bg-[#222] will-change-[clip-path] pointer-events-none"
+              className="absolute inset-0 pointer-events-none"
               style={{ opacity: ready ? 1 : 0, transition: "opacity .6s ease-out" }}
             >
+              {/* 풀스크린 → 첫 카드(cap)로 축소되는 다크 배경(#222). 물결 단계엔 숨김. */}
+              <div ref={darkBackdropRef} className="absolute inset-0 bg-[#222] will-change-[clip-path]">
               <div
                 ref={darkInnerRef}
                 className="absolute inset-0 flex flex-col items-center justify-center will-change-transform"
@@ -690,23 +708,26 @@ export default function ProductSection() {
                   </h2>
                 </div>
               </div>
+              </div>
 
-              {/* 카드 정렬 콘텐츠 — 다크 영역이 카드로 축소되며 페이드인(image 2):
-                  라임 라벨 top-left + 헤드라인 bottom-left. cap 사각형에 맞춰
-                  update()에서 left/top/width/height·opacity 직접 기록. */}
+              {/* cap 카드 마스크(C) — rounded-24 + overflow-hidden. 안쪽 배경(D)이
+                  측면 물결로 사라져도 모서리 radius는 이 컨테이너가 끝까지 유지.
+                  위치·크기·opacity는 update()에서 기록. */}
               <div
-                ref={darkCardRef}
+                ref={darkSwapRef}
                 aria-hidden
-                className="absolute flex flex-col justify-between will-change-[opacity]"
-                style={{
-                  left: 0,
-                  top: 0,
-                  width: 0,
-                  height: 0,
-                  opacity: 0,
-                  padding: "clamp(22px, 1.8vw, 34px)",
-                }}
+                className="absolute overflow-hidden rounded-[24px] will-change-[opacity]"
+                style={{ left: 0, top: 0, width: 0, height: 0, opacity: 0 }}
               >
+                <div
+                  ref={darkSwapBgRef}
+                  className="absolute inset-0 bg-[#222] will-change-[clip-path]"
+                >
+                  <div
+                    ref={darkCardRef}
+                    className="absolute inset-0 flex flex-col justify-between"
+                    style={{ padding: "clamp(22px, 1.8vw, 34px)" }}
+                  >
                 <p
                   className="self-start font-bold tracking-[-0.01em] inline-flex items-center gap-[8px]"
                   style={{ fontSize: "clamp(13px, 1vw, 18px)", color: LIME }}
@@ -724,6 +745,8 @@ export default function ProductSection() {
                     <span className="text-white">대응합니다</span>
                   </span>
                 </h2>
+                  </div>
+                </div>
               </div>
             </div>
 
