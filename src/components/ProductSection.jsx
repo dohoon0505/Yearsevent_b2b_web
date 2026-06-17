@@ -26,14 +26,29 @@ const ROT_WORDS = ["비즈니스", "부고소식", "청첩장 소식", "확장�
 // 헤드라인1 scrub 토큰 (로테이터 단어 제외)
 const PD_H1_WORDS = ["에 필요한", "모든", "경조사", "상품,"];
 
-// 상품 카드 (Figma 199:42~44 — 디자인은 플레이스홀더, 문구만 실카피로 대체)
+// 상품 이미지 — src/assets/products/<key>.{jpg,jpeg,png,webp} 를 빌드 시 자동 수집.
+// 파일이 아직 없으면 해당 카드는 회색 플레이스홀더로 폴백되므로 빌드가 깨지지 않는다.
+const PRODUCT_IMG_FILES = import.meta.glob(
+  "../assets/products/*.{jpg,jpeg,png,webp}",
+  { eager: true, import: "default" },
+);
+const imgFor = (key) => {
+  if (!key) return null;
+  const hit = Object.entries(PRODUCT_IMG_FILES).find(
+    ([path]) => path.split("/").pop().replace(/\.[^.]+$/, "") === key,
+  );
+  return hit ? hit[1] : null;
+};
+
+// 상품 카드 (Figma 199:42~44). img 키 = src/assets/products/<img>.* 파일명.
+// 화환(근조·축하)은 사진 추후 추가 예정 → 파일이 들어오기 전까지 회색 플레이스홀더.
 const PRODUCTS = [
-  { title: "대형 관엽화분", desc: "개업·이전 축하의 품격을 높이는 프리미엄 관엽" },
-  { title: "근조화환", desc: "깊은 애도의 마음을 정중하게 전하는 근조 3단 화환" },
-  { title: "축하화환", desc: "개업·취임·행사의 기쁨을 더하는 축하 3단 화환" },
-  { title: "동양란", desc: "변함없는 신뢰의 마음을 전하는 단아한 동양란" },
-  { title: "호접란", desc: "공간을 화사하게 밝히는 서양 호접란" },
-  { title: "쌀화환", desc: "축하의 마음이 기부로 이어지는 드리미 쌀화환" },
+  { title: "대형 관엽화분", desc: "개업·이전 축하의 품격을 높이는 프리미엄 관엽", img: imgFor("foliage") },
+  { title: "근조화환", desc: "깊은 애도의 마음을 정중하게 전하는 근조 3단 화환", img: imgFor("wreath-condolence") },
+  { title: "축하화환", desc: "개업·취임·행사의 기쁨을 더하는 축하 3단 화환", img: imgFor("wreath-celebration") },
+  { title: "동양란", desc: "변함없는 신뢰의 마음을 전하는 단아한 동양란", img: imgFor("oriental-orchid") },
+  { title: "호접난", desc: "공간을 화사하게 밝히는 서양 호접난", img: imgFor("phalaenopsis") },
+  { title: "꽃바구니", desc: "받는 분의 공간을 화사하게 채우는 마음 담은 꽃바구니", img: imgFor("flower-basket") },
 ];
 
 const PD_TRACK_VH = 640;
@@ -468,7 +483,7 @@ export default function ProductSection() {
                           key={i}
                           data-cursor="label"
                           data-cursor-label={prod.desc}
-                          className="relative shrink-0 rounded-[24px] bg-[#f7f7f8] flex flex-col justify-end"
+                          className="relative shrink-0 overflow-hidden rounded-[24px] bg-[#f7f7f8] flex flex-col justify-end"
                           style={{
                             width: "clamp(288px, 23.4vw, 450px)",
                             height: "clamp(420px, 60vh, 650px)",
@@ -476,15 +491,40 @@ export default function ProductSection() {
                             marginTop: i % 2 === 1 ? "clamp(30px, 6vh, 65px)" : "0px",
                           }}
                         >
+                          {prod.img && (
+                            <>
+                              <img
+                                src={prod.img}
+                                alt={prod.title}
+                                draggable="false"
+                                className="absolute inset-0 h-full w-full object-cover select-none"
+                              />
+                              {/* 하단 스크림 — 사진 위 흰 텍스트 가독성 확보 */}
+                              <div
+                                aria-hidden
+                                className="absolute inset-x-0 bottom-0 h-1/2"
+                                style={{
+                                  background:
+                                    "linear-gradient(to top, rgba(17,17,17,.78), rgba(17,17,17,.32) 45%, rgba(17,17,17,0))",
+                                }}
+                              />
+                            </>
+                          )}
                           <p
-                            className="text-[#222] font-bold tracking-[-0.01em]"
-                            style={{ fontSize: "clamp(19px, 1.45vw, 26px)" }}
+                            className="relative font-bold tracking-[-0.01em]"
+                            style={{
+                              fontSize: "clamp(19px, 1.45vw, 26px)",
+                              color: prod.img ? "#fff" : "#222",
+                            }}
                           >
                             {prod.title}
                           </p>
                           <p
-                            className="mt-[10px] text-[#888] leading-[1.5]"
-                            style={{ fontSize: "clamp(13px, 0.85vw, 16px)" }}
+                            className="relative mt-[10px] leading-[1.5]"
+                            style={{
+                              fontSize: "clamp(13px, 0.85vw, 16px)",
+                              color: prod.img ? "rgba(255,255,255,.88)" : "#888",
+                            }}
                           >
                             {prod.desc}
                           </p>
@@ -641,10 +681,35 @@ export default function ProductSection() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-[14px]">
-            {PRODUCTS.slice(0, 4).map((prod, i) => (
-              <div key={i} className="rounded-[18px] bg-[#f7f7f8] p-[18px] flex flex-col justify-end aspect-[10/12]">
-                <p className="text-[#222] font-bold text-[16px]">{prod.title}</p>
-                <p className="mt-[6px] text-[#888] text-[12px] leading-[1.5]">{prod.desc}</p>
+            {PRODUCTS.map((prod, i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-[18px] bg-[#f7f7f8] p-[18px] flex flex-col justify-end aspect-[10/12]"
+              >
+                {prod.img && (
+                  <>
+                    <img
+                      src={prod.img}
+                      alt={prod.title}
+                      draggable="false"
+                      className="absolute inset-0 h-full w-full object-cover select-none"
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-1/2"
+                      style={{ background: "linear-gradient(to top, rgba(17,17,17,.78), rgba(17,17,17,0))" }}
+                    />
+                  </>
+                )}
+                <p className="relative font-bold text-[16px]" style={{ color: prod.img ? "#fff" : "#222" }}>
+                  {prod.title}
+                </p>
+                <p
+                  className="relative mt-[6px] text-[12px] leading-[1.5]"
+                  style={{ color: prod.img ? "rgba(255,255,255,.88)" : "#888" }}
+                >
+                  {prod.desc}
+                </p>
               </div>
             ))}
           </div>
