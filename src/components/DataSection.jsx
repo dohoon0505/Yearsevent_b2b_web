@@ -898,8 +898,18 @@ function ForBusinessStage() {
       }
 
       // 2) 야경 clip-path — 칩 → 캡슐(#5·#13) → 풀블리드 → 출구 좌하단 radius(#6)
-      const stageW = g.vw;
-      const stageH = g.stageH;
+      // 칩 단계 clip은 chip span의 "실시간" 위치로 산출 — measure 타이밍/뷰포트 오차로
+      // clip이 chip보다 좁으면 chip의 #222 배경이 우측에 검은 띠로 노출되므로 매 프레임 보정.
+      if (p < FB_EXP1_END && chipRef.current && bgLayerRef.current) {
+        const ccr = chipRef.current.getBoundingClientRect();
+        const cbr = bgLayerRef.current.getBoundingClientRect();
+        g.chip = { x: ccr.left - cbr.left, y: ccr.top - cbr.top, w: ccr.width, h: ccr.height };
+      }
+      // clip 좌표계 = 레이어 실제 크기(clientWidth). g.vw=innerWidth는 스크롤바를
+      // 포함해 우측이 ~15px 어긋나 칩 #222 배경이 검은 띠로 새는 원인.
+      const bl = bgLayerRef.current;
+      const stageW = bl ? bl.clientWidth : g.vw;
+      const stageH = bl ? bl.clientHeight : g.stageH;
       let clip;
       if (p < FB_EXP1_AT) {
         clip = insetClip(g.chip, stageW, stageH, g.chip.h / 2);
