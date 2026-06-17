@@ -530,7 +530,7 @@ export default function ProductSection() {
                     </p>
                     <h2
                       className="mt-[20px] text-[#222] font-bold leading-[1.4] tracking-[-0.02em]"
-                      style={{ fontSize: "clamp(38px, 3.65vw, 70px)" }}
+                      style={{ fontSize: "clamp(34px, 3.29vw, 63px)" }}
                     >
                       경조사 소식을
                       <br />
