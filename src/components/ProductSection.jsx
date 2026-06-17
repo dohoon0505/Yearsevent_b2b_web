@@ -9,11 +9,12 @@ import productGlass from "../assets/product-glass-blue.jpg";
  *      + "비즈니스" 단어 로테이터(#10·#11 — text-scramble-word-rotator-08 md,
  *        마스크 세로 순환: 정지 70% + easeInOutCubic 슬라이드 30%)]
  *   → [헤드라인 교체: "모든 경조사 소식에 발 빠르게 대응합니다"]
- *   → [다크 영역이 "다음 섹션 상품 카드"와 동일한 세로형 카드로 축소(시퀀스 04):
- *      라벨 top-left + 헤드라인 bottom-left로 재정렬되며 흰 배경 전환]
- *   → [흰 배경 쇼케이스: 좌측 텍스트+CTA 고정, 상품 카드 우→좌 슬라이드
- *      + 카드 슬라이드 시 상품 이미지가 "측면 물결 스윕"(card-wavy-swap/wave-side)으로
- *        등장(화면 중앙 도달 시 완전 노출) + 커스텀 라벨 커서(#9)]
+ *   → [다크 영역이 "첫 상품 카드(대형 관엽화분)" 위치·크기로 축소(시퀀스 04):
+ *      라벨 top-left + 헤드라인 bottom-left로 재정렬]
+ *   → [다크 카드가 측면 물결(card-wavy-swap/wave-side)로 사라지며 그 자리의
+ *      대형 관엽화분 카드가 드러남]
+ *   → [흰 배경 쇼케이스: 좌측 텍스트+CTA 고정, 나머지 상품 카드 우→좌 슬라이드
+ *      (개별 물결 없음) + 커스텀 라벨 커서(#9)]
  *   → [100%: 흰 섹션 좌하단 border-radius → 다음 섹션 배경으로 연결(#9)]
  *
  * 성능: 스크롤 프레임에서 React state 갱신 없이 ref 직접 DOM 기록.
@@ -58,12 +59,13 @@ const PD_TRACK_VH = 640;
 const PD_TEXT_END = 0.14; // 헤드라인1 scrub 완료
 const PD_SWAP_AT = 0.18; // 헤드라인1 → 2 교체
 const PD_SWAP_DUR = 0.08;
-const PD_CAP_AT = 0.32; // 다크 → 캡슐 축소 (시퀀스 04)
-const PD_CAP_END = 0.48;
-const PD_CAPFADE_DUR = 0.08; // 캡슐 페이드아웃
-const PD_SHOW_AT = 0.5; // 쇼케이스 등장
-const PD_SHOW_DUR = 0.08;
-const PD_CARDS_AT = 0.56; // 카드 우→좌 슬라이드 (#9)
+const PD_CAP_AT = 0.3; // 다크 → 첫 상품카드(대형 관엽화분) 위치·크기로 축소
+const PD_CAP_END = 0.46;
+const PD_SHOW_AT = 0.34; // 쇼케이스(흰 배경+좌측+카드)를 미리 등장 → 다크 카드 뒤에 첫 카드 배치
+const PD_SHOW_DUR = 0.1;
+const PD_WAVE_AT = 0.48; // 다크 카드가 측면 물결로 사라짐 (card-wavy-swap)
+const PD_WAVE_END = 0.64; // 사라짐 완료 → 대형 관엽화분 노출
+const PD_CARDS_AT = 0.66; // 나머지 카드 우→좌 슬라이드 (물결 스윕 없음)
 const PD_CARDS_END = 0.94;
 const PD_RADIUS_AT = 0.95; // 좌하단 radius (#9)
 
@@ -96,20 +98,22 @@ const waveBody = (pts) => {
   return d;
 };
 const waveSmooth = (pts) => `M${__r(pts[0][0])} ${__r(pts[0][1])}${waveBody(pts)}`;
-const waveSideClip = (c, w, h) => {
-  if (c <= 0) return WAVE_ZERO;
-  if (c >= 1) return waveFull(w, h);
+// ox·oy: 레이어 로컬 오프셋 — 풀스크린 레이어에서 (ox,oy)~(ox+w,oy+h) 영역만 물결 클립.
+const waveSideClip = (c, w, h, ox = 0, oy = 0) => {
+  if (c <= 0) return `path("M${__r(ox)} ${__r(oy)}Z")`;
+  if (c >= 1)
+    return `path("M${__r(ox)} ${__r(oy)}H${__r(ox + w)}V${__r(oy + h)}H${__r(ox)}Z")`;
   const A = w * 0.05; // 진폭 ~5%
   const wv = 1.3; // 1.3주기
   const ex = c * (w + 2 * A) - A;
   const s = Math.max(14, Math.ceil(wv * 10));
   const p = [];
   for (let i = 0; i <= s; i++) {
-    const y = (h * i) / s;
+    const y = oy + (h * i) / s;
     const ph = (i / s) * wv * Math.PI * 2;
-    p.push([ex + A * Math.sin(ph), y]);
+    p.push([ox + ex + A * Math.sin(ph), y]);
   }
-  return `path("${waveSmooth(p)} L0 ${__r(h)} L0 0Z")`;
+  return `path("${waveSmooth(p)} L${__r(ox)} ${__r(oy + h)} L${__r(ox)} ${__r(oy)}Z")`;
 };
 
 export default function ProductSection() {
@@ -126,7 +130,7 @@ export default function ProductSection() {
   const whiteLayerRef = useRef(null); // 흰 레이어 (출구 좌하단 radius)
   const showcaseRef = useRef(null); // 쇼케이스 콘텐츠 (등장)
   const cardsTrackRef = useRef(null); // 카드 트랙 (우→좌 슬라이드)
-  const cardRevealRefs = useRef([]); // 상품 이미지 reveal 레이어 (측면 물결 스윕)
+  const cardEl0Ref = useRef(null); // 첫 상품 카드(대형 관엽화분) — 다크 카드 위치·크기 동기 + 물결 사라짐 대상
   const cursorRef = useRef(null); // 커스텀 라벨 커서
   const stageRef = useRef(null);
   const geo = useRef({ vw: 0, vh: 0 });
@@ -278,33 +282,49 @@ export default function ProductSection() {
         h2Ref.current.style.transform = `translate3d(0, ${((1 - s) * 28).toFixed(1)}px, 0)`;
       }
 
-      // 3) 다크 → 카드 모양 축소 (시퀀스 04) → 페이드아웃
+      // 3) 다크 → 첫 상품카드(대형 관엽화분) 위치·크기로 축소 → 그 자리에서 측면
+      //    물결로 사라지며 대형 관엽화분 노출(card-wavy-swap). cap = 첫 카드의 실제
+      //    화면 위치(슬라이드 전 = 정지 위치)에 100% 일치.
       const capT = smoothstep(clamp01((p - PD_CAP_AT) / (PD_CAP_END - PD_CAP_AT)));
-      const cap = g.cap;
-      const top = lerp(0, cap.y, capT);
-      const left = lerp(0, cap.x, capT);
-      const right = lerp(0, g.vw - cap.x - cap.w, capT);
-      const bottom = lerp(0, g.vh - cap.y - cap.h, capT);
-      const rad = lerp(0, 24, capT); // 카드 라운드(24px) — 더 이상 원형(=h/2) 캡슐이 아님
-      // capT=0이면 clip 해제(none) — inset(0)의 안티앨리어싱 경계로 아래 밝은
-      // 레이어가 1px 비치는 헤어라인(섹션 경계 흰 선) 방지.
-      const clip =
-        capT <= 0
-          ? "none"
-          : `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${rad.toFixed(1)}px)`;
+      let cap = g.cap; // 측정 전 폴백(화면 중앙)
+      const fc = cardEl0Ref.current;
+      if (fc) {
+        const fr = fc.getBoundingClientRect();
+        if (fr.width) cap = { x: fr.left, y: fr.top, w: fr.width, h: fr.height };
+      }
       const dark = darkLayerRef.current;
       if (dark) {
+        let clip;
+        if (p < PD_WAVE_AT) {
+          // 풀스크린 → cap(첫 카드) 으로 inset 축소. 여백은 레이어 실제 크기 기준
+          // (g.vw=innerWidth는 스크롤바를 포함해 clip 좌표계와 어긋나므로 clientWidth 사용).
+          const lw = dark.clientWidth;
+          const lh = dark.clientHeight;
+          const top = lerp(0, cap.y, capT);
+          const left = lerp(0, cap.x, capT);
+          const right = lerp(0, lw - cap.x - cap.w, capT);
+          const bottom = lerp(0, lh - cap.y - cap.h, capT);
+          const rad = lerp(0, 24, capT);
+          clip =
+            capT <= 0
+              ? "none"
+              : `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${rad.toFixed(1)}px)`;
+        } else {
+          // cap 카드가 측면 물결로 사라짐 (coverage 1→0) → 뒤의 대형 관엽화분 노출
+          const waveT = clamp01((p - PD_WAVE_AT) / (PD_WAVE_END - PD_WAVE_AT));
+          const cov = reduceMotion ? 0 : 1 - waveT;
+          clip = waveSideClip(cov, cap.w, cap.h, cap.x, cap.y);
+        }
         if (dark.dataset.clip !== clip) {
           dark.style.clipPath = clip;
           dark.dataset.clip = clip;
         }
-        dark.style.opacity = (1 - clamp01((p - PD_CAP_END) / PD_CAPFADE_DUR)).toFixed(3);
       }
-      // 중앙 정렬 콘텐츠(스크럽·교체)는 카드가 형성되며 축소·페이드아웃,
-      // 카드 정렬 콘텐츠(라벨 top-left + 헤드라인 bottom-left)가 cap 사각형에서 페이드인.
+      // 중앙 정렬 콘텐츠(스크럽·교체)는 축소 초반에 빠르게 페이드아웃(우측 cap에 잘려
+      // 보이지 않도록), 카드 정렬 콘텐츠(라벨 top-left + 헤드라인 bottom-left)는 cap에 배치.
       if (darkInnerRef.current) {
-        darkInnerRef.current.style.transform = `scale(${lerp(1, 0.62, capT).toFixed(4)})`;
-        darkInnerRef.current.style.opacity = (1 - smoothstep(clamp01((capT - 0.05) / 0.4))).toFixed(3);
+        darkInnerRef.current.style.transform = `scale(${lerp(1, 0.92, capT).toFixed(4)})`;
+        darkInnerRef.current.style.opacity = (1 - smoothstep(clamp01(capT / 0.25))).toFixed(3);
       }
       const cardEl = darkCardRef.current;
       if (cardEl) {
@@ -312,42 +332,21 @@ export default function ProductSection() {
         cardEl.style.top = `${cap.y.toFixed(1)}px`;
         cardEl.style.width = `${cap.w.toFixed(1)}px`;
         cardEl.style.height = `${cap.h.toFixed(1)}px`;
-        cardEl.style.opacity = smoothstep(clamp01((capT - 0.4) / 0.45)).toFixed(3);
+        cardEl.style.opacity = smoothstep(clamp01((capT - 0.45) / 0.45)).toFixed(3);
       }
 
-      // 4) 쇼케이스 등장 + 카드 우→좌 슬라이드 (#9)
+      // 4) 쇼케이스(흰 배경+좌측+카드)를 다크 축소와 함께 미리 등장 → 다크 카드 뒤에
+      //    첫 카드를 배치. 다크가 물결로 사라진 뒤에만 호버(라벨 커서) 활성화.
       const sIn = smoothstep(clamp01((p - PD_SHOW_AT) / PD_SHOW_DUR));
       if (showcaseRef.current) {
         showcaseRef.current.style.opacity = sIn.toFixed(3);
         showcaseRef.current.style.transform = `translate3d(0, ${((1 - sIn) * 40).toFixed(1)}px, 0)`;
-        // 보일 때만 호버 대상 활성화 (커서 라벨/화살표 오작동 방지)
-        showcaseRef.current.style.pointerEvents = sIn > 0.5 ? "auto" : "none";
+        showcaseRef.current.style.pointerEvents = p >= PD_WAVE_END ? "auto" : "none";
       }
+      // 나머지 카드 우→좌 슬라이드 (개별 물결 스윕 없음 — 이미지는 항상 노출)
       const cT = easeInOutCubic(clamp01((p - PD_CARDS_AT) / (PD_CARDS_END - PD_CARDS_AT)));
       if (cardsTrackRef.current)
         cardsTrackRef.current.style.transform = `translate3d(${lerp(g.slideStart, g.slideEnd, cT).toFixed(1)}px, 0, 0)`;
-
-      // 4b) 상품 이미지 — 측면 물결 스윕(wave-side, md 100% 반영). 카드 중심 X가
-      //     우(0.85·vw)에서 화면 중앙(0.5·vw)으로 올수록 coverage 0→1 → 중앙
-      //     도달 시 이미지 완전 노출. (이미지 없는 카드는 reveal 레이어 자체가 없음)
-      const revs = cardRevealRefs.current;
-      if (revs.length && p >= PD_SHOW_AT) {
-        const startX = g.vw * 0.85;
-        const span = g.vw * 0.35; // 0.85·vw → 0.5·vw
-        for (let i = 0; i < revs.length; i++) {
-          const layer = revs[i];
-          if (!layer) continue;
-          const r = layer.parentElement.getBoundingClientRect();
-          const cov = reduceMotion
-            ? 1
-            : clamp01((startX - (r.left + r.width / 2)) / span);
-          const clip2 = waveSideClip(cov, r.width, r.height);
-          if (layer.dataset.clip !== clip2) {
-            layer.style.clipPath = clip2;
-            layer.dataset.clip = clip2;
-          }
-        }
-      }
 
       // 5) 출구 — 흰 레이어 좌하단 radius (#9)
       const exitT = smoothstep(clamp01((p - PD_RADIUS_AT) / (1 - PD_RADIUS_AT)));
@@ -556,6 +555,7 @@ export default function ProductSection() {
                       {PRODUCTS.map((prod, i) => (
                         <article
                           key={i}
+                          ref={i === 0 ? cardEl0Ref : undefined}
                           data-cursor="label"
                           data-cursor-label={prod.desc}
                           className="relative shrink-0 overflow-hidden rounded-[24px] flex flex-col justify-end"
@@ -564,20 +564,14 @@ export default function ProductSection() {
                             height: "clamp(420px, 60vh, 650px)",
                             padding: "clamp(22px, 1.8vw, 34px)",
                             marginTop: i % 2 === 1 ? "clamp(30px, 6vh, 65px)" : "0px",
-                            // 이미지 카드는 다크 베이스(물결 스윕 전 흰 텍스트 가독성 확보),
-                            // 이미지 없는 카드는 기존 회색 플레이스홀더 유지.
+                            // 이미지 카드는 다크 베이스, 이미지 없는 카드는 회색 플레이스홀더.
                             background: prod.img ? "#1d1d1f" : "#f7f7f8",
                           }}
                         >
                           {prod.img && (
-                            // reveal 레이어 — clip-path가 측면 물결로 좌→우 쓸려 들어온다.
-                            // 초기 clip = 빈 경로(숨김) → update()에서 카드 위치 기반 coverage로 구동.
-                            <div
-                              ref={(el) => (cardRevealRefs.current[i] = el)}
-                              aria-hidden
-                              className="absolute inset-0 will-change-[clip-path]"
-                              style={{ clipPath: 'path("M0 0Z")' }}
-                            >
+                            // 상품 이미지는 항상 노출(개별 물결 스윕 없음). 첫 카드는 위를
+                            // 덮은 다크 카드가 물결로 사라지며 드러난다.
+                            <>
                               <img
                                 src={prod.img}
                                 alt={prod.title}
@@ -593,7 +587,7 @@ export default function ProductSection() {
                                     "linear-gradient(to top, rgba(17,17,17,.78), rgba(17,17,17,.32) 45%, rgba(17,17,17,0))",
                                 }}
                               />
-                            </div>
+                            </>
                           )}
                           <p
                             className="relative font-bold tracking-[-0.01em]"
