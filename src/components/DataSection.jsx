@@ -954,7 +954,7 @@ function ForBusinessStage() {
         fbColRef.current.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
       }
       if (bgImgRef.current)
-        bgImgRef.current.style.transform = `translate3d(0, ${(-0.42 * g.stageH * cT).toFixed(1)}px, 0)`;
+        bgImgRef.current.style.transform = `translate3d(0, ${(-0.05 * g.stageH * cT).toFixed(1)}px, 0)`;
 
       // 5) DATA 카드 count-up
       const vals = statValRefs.current;
@@ -1144,16 +1144,18 @@ function ForBusinessStage() {
               className="absolute inset-0 z-20 will-change-[clip-path] overflow-hidden"
               style={{ clipPath: "inset(45% 48% 45% 48% round 999px)" }}
             >
-              {/* 높이 142% (Figma) — 카드 단계에서 top 0 → -42%로 스크롤-스루 */}
+              {/* 높이 190% + top -85%: 칩/캡슐(화면 중앙)에 건물 불빛이 가장 밝은 구간
+                  (이미지 73~77%)이 오도록 이미지를 위로 올림. 카드 단계 패럴랙스(-5%)로도
+                  이미지 밖이 노출되지 않게 세로 여유 확보. */}
               <img
                 ref={bgImgRef}
                 src={fbCityNight}
                 alt=""
                 draggable="false"
-                className="absolute left-0 top-0 w-full object-cover select-none will-change-transform"
-                style={{ height: "142%" }}
+                className="absolute left-0 w-full object-cover select-none will-change-transform"
+                style={{ height: "190%", top: "-85%" }}
               />
-              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-black/15" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20" />
             </div>
 
