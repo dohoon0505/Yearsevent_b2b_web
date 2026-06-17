@@ -607,11 +607,15 @@ function AboutScrollStage() {
   };
 
   return (
-    <section ref={sectionRef} aria-label="회사 소개" className="relative bg-white">
+    <section
+      ref={sectionRef}
+      aria-label="회사 소개"
+      className="relative bg-white lg:bg-transparent lg:z-10"
+    >
       <div ref={trackRef} style={{ height: `${A_TRACK_VH}vh` }} className="relative">
         <div
           ref={lensStageRef}
-          className="a-lens-stage pd-cursor-stage sticky top-0 h-screen w-full overflow-hidden"
+          className="a-lens-stage pd-cursor-stage sticky top-0 h-screen w-full overflow-hidden lg:bg-white"
           onMouseMove={onLensMove}
           onMouseLeave={onLensLeave}
           style={{
@@ -1054,8 +1058,11 @@ function ForBusinessStage() {
 
   return (
     <section ref={sectionRef} aria-label="비즈니스 소개" className="relative bg-[#222]">
-      {/* 데스크톱(lg+) — Figma 165:121 시퀀스 */}
-      <div className="hidden lg:block">
+      {/* 데스크톱(lg+) — Figma 165:121 시퀀스.
+          About sticky 무대가 정지(p=1) 후 위로 빠지는 100vh 빈 구간을 없애기 위해,
+          데스크톱에선 트랙을 About 끝과 100vh 겹쳐 끌어올린다. About 섹션이 z 위라
+          About 카드가 "걷히면서" 그 아래 For Business가 드러난다(흰 배경 덮음 방지). */}
+      <div className="hidden lg:block -mt-[100vh]">
         <div ref={trackRef} style={{ height: `${FB_TRACK_VH}vh` }} className="relative">
           {/* 무대 150vh — h-screen(100vh) 회귀 금지: 배경·섹션이 뷰포트보다 길어야 함.
               top 음수(-50vh) = 최하단 고정: 상단 50vh는 진입 스크롤로 통과 후 핀 */}
