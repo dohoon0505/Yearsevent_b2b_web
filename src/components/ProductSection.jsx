@@ -580,7 +580,7 @@ export default function ProductSection() {
                           style={{
                             width: "clamp(288px, 25vw, 480px)",
                             height: "clamp(420px, 60vh, 650px)",
-                            padding: "clamp(28px, 2.6vw, 50px)",
+                            padding: "clamp(22px, 1.875vw, 36px)",
                             borderRadius: "clamp(28px, 2.6vw, 50px)",
                             marginTop: i % 2 === 1 ? "clamp(30px, 6vh, 65px)" : "0px",
                             // 이미지 카드는 다크 베이스, 이미지 없는 카드는 회색 플레이스홀더.
@@ -611,7 +611,7 @@ export default function ProductSection() {
                           <p
                             className="relative font-bold tracking-[-0.01em]"
                             style={{
-                              fontSize: "clamp(22px, 1.67vw, 32px)",
+                              fontSize: "clamp(20px, 1.5vw, 29px)",
                               color: prod.img ? "#fff" : "#222",
                             }}
                           >
@@ -620,7 +620,7 @@ export default function ProductSection() {
                           <p
                             className="relative mt-[14px] leading-[1.5]"
                             style={{
-                              fontSize: "clamp(14px, 1.04vw, 20px)",
+                              fontSize: "clamp(13px, 0.94vw, 18px)",
                               color: prod.img ? "rgba(255,255,255,.88)" : "rgba(34,34,34,.7)",
                             }}
                           >
